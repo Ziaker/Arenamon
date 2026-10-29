@@ -86,4 +86,22 @@ assert.deepEqual(store.project.materials, []);
 assert.equal(api.validateProject(JSON.parse(JSON.stringify(store.project))).ok, true);
 assert.equal(api.validateProject({...fixture(), textures: [null]}).ok, false);
 
-console.log('✓ F2: timeline determinística, morph, textura RGBA e grafo material seguro.');
+// F3.2: explosão radial determinística (mesma função usada pelo preset e pela ferramenta da UI).
+const radialTargets = [{id: 'a', origin: [0, 1, 0]}, {id: 'b', origin: [1, 0, -1]}];
+const radial = api.buildRadialTracks(radialTargets, {radius: 4, seed: 7, lift: .5, steps: [{time: 0, reach: 0}, {time: .9, reach: 1}]});
+assert.equal(radial.length, 6, 'dois alvos geram três trilhas de posição cada');
+assert.deepEqual(radial.map(track => track.id), ['track-a-position-x', 'track-a-position-y', 'track-a-position-z', 'track-b-position-x', 'track-b-position-y', 'track-b-position-z']);
+const firstDirection = api.radialDirection(0, radialTargets.length, 7);
+assert.deepEqual(radial[0].keyframes.map(frame => frame.value), [0, Number((firstDirection[0] * 4).toFixed(5))]);
+radial.forEach(track => assert.equal(track.keyframes.length, 2));
+assert.equal(JSON.stringify(api.buildRadialTracks(radialTargets, {radius: 4, seed: 7, lift: .5, steps: [{time: 0, reach: 0}, {time: .9, reach: 1}]})), JSON.stringify(radial), 'mesma semente devolve a mesma explosão');
+assert.notEqual(JSON.stringify(api.buildRadialTracks(radialTargets, {radius: 4, seed: 8, lift: .5, steps: [{time: 0, reach: 0}, {time: .9, reach: 1}]})), JSON.stringify(radial), 'semente diferente muda as direções');
+const direction = api.radialDirection(0, 8, 7);
+assert.ok(Math.abs(Math.hypot(...direction) - 1) < 1e-9, 'direção radial é unitária');
+assert.ok(direction[1] >= -1 && direction[1] <= 1, 'direção radial fica dentro da esfera');
+assert.throws(() => api.buildRadialTracks(radialTargets, {radius: 0, seed: 7, steps: [{time: 0, reach: 0}]}), /Raio/);
+assert.throws(() => api.buildRadialTracks(radialTargets, {radius: 4, seed: 7, steps: [{time: .1, reach: 0}]}), /t = 0/);
+assert.throws(() => api.buildRadialTracks(radialTargets, {radius: 4, seed: 7, steps: [{time: 0, reach: 0}, {time: 0, reach: 1}]}), /crescentes/);
+assert.throws(() => api.radialDirection(0, 8, -1), /Semente/);
+
+console.log('✓ F2: timeline determinística, morph, textura RGBA, grafo material seguro e explosão radial.');

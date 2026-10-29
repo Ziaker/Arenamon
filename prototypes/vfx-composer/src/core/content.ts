@@ -44,6 +44,7 @@ export function validateContent(project: Record<string, unknown>): ValidationIss
     }
     if (node.pivot !== undefined && (!Array.isArray(node.pivot) || node.pivot.length !== 3 || node.pivot.some(value => typeof value !== 'number' || !Number.isFinite(value)))) fail(`nodes.${i}.pivot`, 'Pivô exige vetor 3D finito');
     if (node.locked !== undefined && typeof node.locked !== 'boolean') fail(`nodes.${i}.locked`, 'locked deve ser booleano');
+    if (node.color !== undefined && (typeof node.color !== 'string' || !/^#[0-9a-f]{6}$/i.test(node.color))) fail(`nodes.${i}.color`, 'Cor do objeto exige hexadecimal #rrggbb');
     if (node.geometry !== undefined) {
       if (!object(node.geometry)) fail(`nodes.${i}.geometry`, 'Geometria inválida');
       else if (node.geometry.kind === 'box') {

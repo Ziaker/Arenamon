@@ -13,6 +13,7 @@ try {
   page.on('request', request => {if (/^https?:/.test(request.url())) external.push(request.url());});
   await page.goto(pathToFileURL(html).href);
   await page.waitForFunction(() => window.__ARENAMON_VFX_COMPOSER__?.ready);
+  await page.click('#new-empty-project');
   await page.click('[data-workspace="particles"]');
   await page.click('#add-emitter');
   assert.deepEqual(await page.locator('#particle-preview-backend option').allTextContents(), ['Autoral', 'Quarks', 'Comparar A/B']);

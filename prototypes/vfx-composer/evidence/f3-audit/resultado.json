@@ -1,0 +1,130 @@
+{
+  "status": "approved",
+  "phase": "F3.2 auditoria E2E",
+  "browser": "msedge",
+  "viewport": {
+    "width": 1440,
+    "height": 1000
+  },
+  "offline": true,
+  "externalRequests": 0,
+  "effects": [
+    {
+      "id": "emissor-1",
+      "name": "Brasa Ascendente",
+      "mode": "burst",
+      "shape": "sphere",
+      "snapshotAt": 0.5666666666666667,
+      "particles": 280,
+      "visiblePixels": {
+        "changed": 1966,
+        "warm": 1014,
+        "cool": 0,
+        "magenta": 0,
+        "bright": 740
+      }
+    },
+    {
+      "id": "emissor-2",
+      "name": "Névoa Fria",
+      "mode": "continuous",
+      "shape": "sphere",
+      "snapshotAt": 1.1,
+      "particles": 49,
+      "visiblePixels": {
+        "changed": 7220,
+        "warm": 0,
+        "cool": 5464,
+        "magenta": 0,
+        "bright": 685
+      }
+    },
+    {
+      "id": "emissor-3",
+      "name": "Estilhaço Arcano",
+      "mode": "burst",
+      "shape": "ring",
+      "snapshotAt": 0.7,
+      "particles": 106,
+      "visiblePixels": {
+        "changed": 1207,
+        "warm": 0,
+        "cool": 899,
+        "magenta": 454,
+        "bright": 347
+      }
+    }
+  ],
+  "combined": {
+    "time": 0.7,
+    "particles": 417,
+    "drawCalls": 3,
+    "budget": {
+      "cost": {
+        "particles": 583,
+        "lights": 0,
+        "drawCalls": 3
+      },
+      "peak": 583,
+      "rawPeak": 682,
+      "suppressed": 99,
+      "activeEmitters": 3,
+      "verdict": {
+        "publishable": true,
+        "over": [],
+        "limits": {
+          "particles": 900,
+          "lights": 4
+        },
+        "performanceVerified": false
+      }
+    },
+    "pixels": {
+      "changed": 8519,
+      "warm": 1059,
+      "cool": 4358,
+      "magenta": 455,
+      "bright": 1253
+    }
+  },
+  "quarks": {
+    "systems": 3,
+    "active": 430,
+    "drawCalls": 2,
+    "rebuilds": 24,
+    "rejected": 0,
+    "approximations": [
+      "turbulence",
+      "spread"
+    ]
+  },
+  "playback": {
+    "advancedTo": 1.1496999999999997,
+    "reverseDirection": -1
+  },
+  "persistence": {
+    "exportedParticles": 3,
+    "importedSnapshotMatches": true,
+    "normalReloadParticles": 3,
+    "backupRecoveredParticles": 3
+  },
+  "checks": [
+    "3 efeitos criados pelos controles da UI, sem injeção de documento",
+    "canvas WebGL com pixels quentes, frios e magenta medidos por diferença",
+    "play, stop e reverse avançam o relógio real",
+    "scrub determinístico: mesmo tempo devolve as mesmas partículas",
+    "3 draw calls autorais e orçamento medium publicável",
+    "three.quarks real com 3 sistemas e comparação A/B",
+    "exportação por download e reimportação pelo input preservam a simulação",
+    "autosave normal, recuperação do backup e fallback explícito sem backup",
+    "zero requisições externas e zero erros de console",
+    "app abre com os 3 efeitos tocando em loop, aba Partículas",
+    "preset de explosão com 8 cubos vermelhos e 8 esferas amarelas, 48 tracks de posição"
+  ],
+  "limitations": [
+    "A integração no jogo/F4 não foi autorizada nem executada.",
+    "FPS e comportamento em GPUs/hardwares diferentes não foram medidos.",
+    "Qualidade artística continua sendo julgamento humano.",
+    "A sequência de quadros é uma amostra de tempos, não uma captura contínua de vídeo."
+  ]
+}

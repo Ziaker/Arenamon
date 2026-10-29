@@ -3,10 +3,11 @@ import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
 import {TransformControls} from 'three/addons/controls/TransformControls.js';
 import {DocumentStore} from '../editor/document-store';
 import {AutosaveManager} from '../editor/autosave';
-import type {AuthoringSettings, VfxProject, VisualNode} from '../core/types';
+import type {AuthoringSettings, VfxProject, VisualNode, Vec3} from '../core/types';
 import {createAssistedPaths, createPathGeometry} from '../editor/geometry';
 import {openProjectText, saveProjectFile} from '../editor/file-io';
 import {advancePlayback, evaluateNumericTrack, evaluatePathTrack, quantizeTime} from '../animation/timeline';
+import {buildRadialTracks} from '../animation/radial';
 import {createTextureDocument, decodeTexturePixels, paintTextureStroke} from '../textures/texture-document';
 import {compileMaterialRecipe, validateMaterialGraph} from '../materials/material-graph';
 import type {AuthoringFps, MaterialGraph, NumericTrackProperty, TextureDocument, VisualTrack} from '../core/types';
@@ -22,14 +23,74 @@ const initialProject = (): VfxProject => ({
   nodes: [], assets: [], subeffects: [], timeline: {fps: 30, tracks: []}, qualityProfiles: {},
   accessibility: {noFlash: false, reduceMotion: false}, pinnedComponents: [],
 });
+// Demonstração viva: os três efeitos da auditoria F3.2, carregados no próprio app.
+// Eles existem no documento, no painel Partículas e na cena — não são uma captura de teste.
+const demoEmitters = (): ParticleEmitter[] => [
+  {
+    id: 'emissor-1', name: 'Brasa Ascendente', enabled: true, seed: 20261028, origin: [0, .9, 0],
+    emission: {mode: 'burst', count: 60, rate: 90, interval: .08, duration: 1.4},
+    lifetime: {min: .5, max: 1.8},
+    shape: {kind: 'sphere', radius: .18, angle: 40},
+    velocity: {speedMin: .8, speedMax: 2.4, spread: 22},
+    forces: {gravity: [0, .85, 0], drag: .9, turbulenceFrequency: 2.2, turbulenceAmplitude: .22},
+    look: {sizeStart: .09, sizeEnd: .012, opacityStart: 1, opacityEnd: 0, colorStart: '#ffd166', colorEnd: '#ff4d00', blending: 'additive', depthWrite: false},
+    maxParticles: 280,
+  },
+  {
+    id: 'emissor-2', name: 'Névoa Fria', enabled: true, seed: 424242, origin: [-1.15, .65, .1],
+    emission: {mode: 'continuous', count: 36, rate: 60, interval: .12, duration: 3},
+    lifetime: {min: 1.6, max: 3.2},
+    shape: {kind: 'sphere', radius: .55, angle: 35},
+    velocity: {speedMin: .1, speedMax: .5, spread: 65},
+    forces: {gravity: [0, .18, 0], drag: 1.4, turbulenceFrequency: .9, turbulenceAmplitude: .12},
+    look: {sizeStart: .35, sizeEnd: .7, opacityStart: .45, opacityEnd: .08, colorStart: '#b8f2ff', colorEnd: '#4c7dff', blending: 'normal', depthWrite: false},
+    maxParticles: 220,
+  },
+  {
+    id: 'emissor-3', name: 'Estilhaço Arcano', enabled: true, seed: 777001, origin: [1, .85, 0],
+    emission: {mode: 'burst', count: 70, rate: 90, interval: .5, duration: 1.8},
+    lifetime: {min: .8, max: 1.3},
+    shape: {kind: 'ring', radius: .12, angle: 90},
+    velocity: {speedMin: 2, speedMax: 4.5, spread: 360},
+    forces: {gravity: [0, -1.2, 0], drag: 1.4, turbulenceFrequency: 0, turbulenceAmplitude: 0},
+    look: {sizeStart: .1, sizeEnd: .02, opacityStart: 1, opacityEnd: .15, colorStart: '#ff7bff', colorEnd: '#6a4dff', blending: 'additive', depthWrite: false},
+    maxParticles: 260,
+  },
+];
+const DEMO_EFFECT_ID = 'demo-tres-efeitos';
+const DEMO_DURATION = 3;
+const demoProject = (): VfxProject => ({
+  ...initialProject(), effectId: DEMO_EFFECT_ID, revision: 2,
+  timeline: {fps: 30, duration: DEMO_DURATION, tracks: []}, particles: demoEmitters(),
+});
+// Preset vivo: explosão de 8 cubos vermelhos + 8 esferas amarelas saindo do mesmo ponto.
+// É o mesmo documento que sai dos controles do app (objeto → cor → keyframes), não um vídeo.
+const EXPLOSION_EFFECT_ID = 'explosao-cubos-esferas';
+const EXPLOSION_DURATION = 1.6;
+const explosionProject = (): VfxProject => {
+  const nodes: VisualNode[] = [], tracks: VisualTrack[] = [];
+  const shell = (prefix: 'box' | 'sphere', color: string, radius: number, seed: number): void => {
+    const created: VisualNode[] = [];
+    for (let i = 0; i < 8; i++) {
+      created.push({id: `${prefix}-${i + 1}`, kind: 'mesh', parentId: null, assetIds: [], color, transform: {position: [0, .9, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}, geometry: prefix === 'box' ? {kind: 'box', size: [1, 1, 1]} : {kind: 'sphere', radius: .5}});
+    }
+    nodes.push(...created);
+    // Mesma função da ferramenta "Explodir selecionados": o preset não é um caso especial.
+    tracks.push(...buildRadialTracks(created.map(node => ({id: node.id, origin: [0, .9, 0] as Vec3})), {radius, seed, steps: [{time: 0, reach: 0}, {time: .25, reach: .72}, {time: .9, reach: 1}]}));
+  };
+  shell('box', '#ff2b2b', 3.1, 7);
+  shell('sphere', '#ffd400', 4, 11);
+  return {...initialProject(), effectId: EXPLOSION_EFFECT_ID, revision: 1, nodes, timeline: {fps: 30, duration: EXPLOSION_DURATION, tracks}};
+};
 const $ = <T extends HTMLElement>(selector: string): T => {
   const element = document.querySelector<T>(selector); if (!element) throw new Error(`Elemento ausente: ${selector}`); return element;
 };
 
 document.querySelector('.brand small')!.textContent = 'F3.2 · autoria determinística + preview three.quarks';
-document.querySelector('.top')!.insertAdjacentHTML('beforeend', `<nav class="workspace-tabs" aria-label="Workspaces"><button data-workspace="drawing" class="selected">Desenho</button><button data-workspace="animation">Animação</button><button data-workspace="textures">Texturas</button><button data-workspace="materials">Materiais</button><button data-workspace="particles">Partículas</button><button disabled title="F4">Integração · F4</button></nav>`);
+document.querySelector('.top')!.insertAdjacentHTML('beforeend', `<nav class="workspace-tabs" aria-label="Workspaces"><button data-workspace="drawing" class="selected">Desenho</button><button data-workspace="animation">Animação</button><button data-workspace="textures">Texturas</button><button data-workspace="materials">Materiais</button><button data-workspace="particles">Partículas</button><button disabled title="F4">Integração · F4</button></nav>
+<div id="demo-bar" class="demo-bar"><span id="demo-state">Demonstração: Brasa, Névoa e Estilhaço tocando na cena</span><button id="load-demo">▶ Tocar os 3 efeitos</button><button id="load-explosion">💥 Explosão (cubos + esferas)</button><button id="new-empty-project">Projeto vazio</button></div>`);
 document.querySelector('.right')!.insertAdjacentHTML('beforeend', `<section id="f2-panel">
-  <div class="workspace-panel" data-panel="animation" hidden><h2>Timeline</h2><label class="field wide">FPS<select id="timeline-fps"><option>24</option><option selected>30</option><option>60</option></select><span>fps</span></label><label class="field wide">Duração<input id="timeline-duration" type="number" min="0.1" max="60" step="0.1" value="2"><span>s</span></label><div class="inline-actions"><button id="timeline-reverse">◀ Reverse</button><button id="timeline-play">▶ Play</button><button id="timeline-stop">■ Stop</button></div><label class="field wide">Tempo<input id="timeline-scrub" type="range" min="0" max="2" step="0.033333" value="0"><span id="timeline-readout">0.000 s · 0 f</span></label><label class="field wide">Propriedade<select id="track-property"><option value="position.x">Posição X</option><option value="position.y">Posição Y</option><option value="position.z">Posição Z</option><option value="scale">Escala</option><option value="opacity">Opacidade</option><option value="visible">Visível</option></select><span></span></label><label class="field wide">Interpolação<select id="key-interpolation"><option value="linear">Linear</option><option value="step">Step</option><option value="bezier">Bézier</option></select><span></span></label><button id="add-keyframe">+ Keyframe no tempo</button><label><input id="onion-enabled" type="checkbox"> Onion skin anterior/próximo</label><label class="field wide">Opacidade<input id="onion-opacity" type="range" min="0" max="100" step="1" value="25"><span>%</span></label></div>
+  <div class="workspace-panel" data-panel="animation" hidden><h2>Timeline</h2><label class="field wide">FPS<select id="timeline-fps"><option>24</option><option selected>30</option><option>60</option></select><span>fps</span></label><label class="field wide">Duração<input id="timeline-duration" type="number" min="0.1" max="60" step="0.1" value="2"><span>s</span></label><div class="inline-actions"><button id="timeline-reverse">◀ Reverse</button><button id="timeline-play">▶ Play</button><button id="timeline-stop">■ Stop</button><label><input id="timeline-loop" type="checkbox" checked> Loop</label></div><label class="field wide">Tempo<input id="timeline-scrub" type="range" min="0" max="2" step="0.033333" value="0"><span id="timeline-readout">0.000 s · 0 f</span></label><label class="field wide">Propriedade<select id="track-property"><option value="position.x">Posição X</option><option value="position.y">Posição Y</option><option value="position.z">Posição Z</option><option value="rotation.x">Rotação X</option><option value="rotation.y">Rotação Y</option><option value="rotation.z">Rotação Z</option><option value="scale">Escala</option><option value="opacity">Opacidade</option><option value="visible">Visível</option></select><span></span></label><label class="field wide">Interpolação<select id="key-interpolation"><option value="linear">Linear</option><option value="step">Step</option><option value="bezier">Bézier</option></select><span></span></label><button id="add-keyframe">+ Keyframe no tempo</button><h2>Explosão radial</h2><p class="hint">Cria keyframes de posição para todos os objetos selecionados: centro em t = 0, raio no tempo escolhido.</p><label class="field wide">Raio<input id="radial-radius" type="range" min="0.2" max="20" step="0.1" value="4"><span id="radial-radius-value">4,0 m</span></label><label class="field wide">Tempo<input id="radial-time" type="range" min="0.1" max="5" step="0.05" value="0.9"><span id="radial-time-value">0,90 s</span></label><label class="field wide">Elevação<input id="radial-lift" type="range" min="-10" max="10" step="0.1" value="0"><span id="radial-lift-value">0,0 m</span></label><label class="field wide">Semente<input id="radial-seed" type="number" min="0" max="999999" step="1" value="7"><span>#</span></label><button id="radial-explode">Explodir selecionados</button><h2>Trilhas do objeto</h2><p class="hint" id="track-hint">Selecione um objeto para ver e remover keyframes.</p><div id="track-list"></div><div class="inline-actions"><button id="clear-node-tracks">Limpar animação do objeto</button></div><label><input id="onion-enabled" type="checkbox"> Onion skin anterior/próximo</label><label class="field wide">Opacidade<input id="onion-opacity" type="range" min="0" max="100" step="1" value="25"><span>%</span></label></div>
   <div class="workspace-panel" data-panel="textures" hidden><h2>Pintura de textura</h2><canvas id="texture-canvas" width="256" height="256"></canvas><label class="field wide">Pincel<input id="brush-size" type="range" min="1" max="128" step="1" value="24"><span>px</span></label><label class="field wide">Opacidade<input id="brush-opacity" type="range" min="0" max="100" step="1" value="100"><span>%</span></label><label class="field wide">Cor<input id="brush-color" type="color" value="#ffffff"><span></span></label><div class="inline-actions"><button id="new-texture">Nova 256×256</button><label class="file-button">Importar PNG<input id="import-texture" type="file" accept="image/png" hidden></label><button id="clear-texture">Limpar</button></div><h2>Spritesheet</h2><label class="field wide">Colunas<input id="sprite-columns" type="number" min="1" max="64" step="1" value="1"><span>×</span></label><label class="field wide">Linhas<input id="sprite-rows" type="number" min="1" max="64" step="1" value="1"><span>×</span></label><label class="field wide">FPS<input id="sprite-fps" type="number" min="1" max="60" step="1" value="24"><span>fps</span></label><button id="apply-spritesheet">Aplicar spritesheet</button></div>
   <div class="workspace-panel" data-panel="materials" hidden><h2>Material seguro</h2><p class="hint">Grafo declarativo; nenhum código de shader é aceito.</p><label class="field wide">Cor<input id="material-color" type="color" value="#44aaff"><span></span></label><label class="field wide">Roughness<input id="material-roughness" type="range" min="0" max="1" step="0.01" value="0.35"><span></span></label><label class="field wide">Metalness<input id="material-metalness" type="range" min="0" max="1" step="0.01" value="0"><span></span></label><label class="field wide">Nó<select id="material-node-type"><option>color</option><option>texture</option><option>gradient</option><option>noise</option><option>fresnel</option><option>dissolve</option><option>multiply</option></select><span></span></label><div class="inline-actions"><button id="apply-material">Aplicar material</button><button id="add-material-node">+ Nó seguro</button></div><ol id="material-nodes"></ol><p id="material-validation"></p></div>
 </section>`);
@@ -58,7 +119,7 @@ const PARTICLE_FIELDS = [
 ] as const;
 const fieldId = (path: string): string => `emitter-${path.replace('emission.', '').replace('lifetime.', 'life-').replace('shape.', '').replace('velocity.', '').replace('forces.', '').replace('look.', '')}`;
 const particleRows = PARTICLE_FIELDS.map(field => `<label class="paired"><span>${field.label}</span><input id="${fieldId(field.path)}-range" type="range" min="${field.min}" max="${field.max}" step="${field.step}"><input id="${fieldId(field.path)}" type="number" min="${field.min}" max="${field.max}" step="${field.step}"><span class="unit">${field.unit}</span></label>`).join('');
-document.querySelector('.right')!.insertAdjacentHTML('beforeend', `<section id="particle-panel" class="workspace-panel" data-panel="particles" hidden>
+document.querySelector('.right')!.querySelector('#selection')!.insertAdjacentHTML('beforebegin', `<section id="particle-panel" class="workspace-panel" data-panel="particles" hidden>
   <h2>Emissor de partículas</h2>
   <p class="hint">Contrato F3.1: simulação pura e semeada. Mesmo seed + tempo + perfil = mesmas partículas. O Composer não decide dano, acerto nem colisão.</p>
   <div class="inline-actions"><button id="add-emitter">+ Emissor</button><button id="remove-emitter">Remover</button><label class="field wide" style="margin:0">Emissor<select id="emitter-select"></select><span></span></label></div>
@@ -85,10 +146,21 @@ document.querySelector('.right')!.insertAdjacentHTML('beforeend', `<section id="
   <label><input id="access-no-flash" type="checkbox"> No flash (opacidade ≤ 85%)</label>
 </section>`);
 
+const PROJECT_ID = 'composer-local';
 let recovered = initialProject();
+let autosave: AutosaveManager | null = null;
+let recoveryNotice = '';
 try {
-  const saved = localStorage.getItem('arenamon.vfx.composer-local');
-  if (saved) recovered = JSON.parse(saved) as VfxProject;
+  autosave = new AutosaveManager(localStorage, PROJECT_ID);
+  try {
+    const loaded = autosave.load();
+    recovered = loaded.project;
+    if (loaded.recovered) recoveryNotice = 'Snapshot anterior recuperado após corrupção do autosave principal.';
+  } catch (error) {
+    let hasSnapshot = false;
+    try {hasSnapshot = localStorage.getItem(`arenamon.vfx.${PROJECT_ID}`) !== null || localStorage.getItem(`arenamon.vfx.${PROJECT_ID}.backup`) !== null;} catch { /* storage indisponível */ }
+    if (hasSnapshot) recoveryNotice = `Autosave inválido: ${error instanceof Error ? error.message : 'falha'} — projeto inicial em memória. Dados originais preservados.`;
+  }
 } catch { /* file:// pode negar storage; o editor continua em memória */ }
 const store = new DocumentStore(recovered);
 let playback = {time: 0, duration: store.project.timeline.duration ?? 2, direction: 1 as 1 | -1, playing: false};
@@ -98,8 +170,6 @@ let selectedId: string | null = store.selectedId;
 let selectedIds = new Set<string>(selectedId ? [selectedId] : []);
 let isolated = false;
 let serial = store.project.nodes.length;
-let autosave: AutosaveManager | null = null;
-try { autosave = new AutosaveManager(localStorage, store.project.projectId); } catch { autosave = null; }
 
 const viewport = $('#viewport');
 const renderer = new THREE.WebGLRenderer({antialias: true});
@@ -209,12 +279,12 @@ function nodeMesh(node: VisualNode): THREE.Object3D {
     const curve = new THREE.CatmullRomCurve3(points, path.closed, 'centripetal');
     if (path.kind === 'ribbon') geometry = ribbonGeometry(curve, path.width, path.endWidth ?? path.width, path.extrusion ?? path.width * .15, path.closed);
     else geometry = new THREE.TubeGeometry(curve, Math.max(8, points.length * 8), path.width / 2, 8, path.closed);
-    material = new THREE.MeshStandardMaterial({color: selectedIds.has(node.id) ? 0xffd166 : 0x46d7c7, roughness: .3, metalness: .05, side: THREE.DoubleSide});
+    material = new THREE.MeshStandardMaterial({color: node.color ? new THREE.Color(node.color) : selectedIds.has(node.id) ? 0xffd166 : 0x46d7c7, roughness: .3, metalness: .05, side: THREE.DoubleSide});
   } else {
     if (node.geometry?.kind === 'sphere') geometry = new THREE.SphereGeometry(node.geometry.radius, 24, 16);
     else if (node.geometry?.kind === 'plane') geometry = new THREE.PlaneGeometry(...node.geometry.size);
     else {const size = node.geometry?.kind === 'box' ? node.geometry.size : [1, 1, 1]; geometry = new THREE.BoxGeometry(...size);}
-    material = new THREE.MeshStandardMaterial({color: selectedIds.has(node.id) ? 0x55c7ff : 0x7a8ba8, roughness: .35, metalness: .12, side: THREE.DoubleSide});
+    material = new THREE.MeshStandardMaterial({color: node.color ? new THREE.Color(node.color) : selectedIds.has(node.id) ? 0x55c7ff : 0x7a8ba8, roughness: .35, metalness: .12, side: THREE.DoubleSide});
   }
   geometry.translate(-pivot[0], -pivot[1], -pivot[2]);
   const mesh = new THREE.Mesh(geometry, material);
@@ -235,7 +305,9 @@ function rebuild(): void {
   const hierarchy = $('#hierarchy'); hierarchy.replaceChildren();
   for (const node of store.project.nodes) {
     const row = document.createElement('div'); row.className = `node-row${selectedIds.has(node.id) ? ' multi' : ''}`;
-    const button = document.createElement('button'); button.dataset.nodeId = node.id; button.textContent = `${node.locked ? '🔒' : '◈'} ${node.id}`;
+    const button = document.createElement('button'); button.dataset.nodeId = node.id;
+    const dot = document.createElement('span'); dot.className = 'node-swatch'; dot.style.background = node.color ?? '#3b4a61';
+    button.append(dot, document.createTextNode(`${node.locked ? '🔒' : '◈'} ${node.id}`));
     button.className = node.id === selectedId ? 'selected' : '';
     button.onclick = event => {
       if (event.ctrlKey || event.shiftKey) {
@@ -247,6 +319,7 @@ function rebuild(): void {
     row.append(button); hierarchy.append(row);
   }
   syncInspector();
+  syncTracks();
   syncParticlePanel();
   try { autosave?.save(store.project); } catch (error) { $('#status').textContent = `Autosave: ${error instanceof Error ? error.message : 'falhou'}`; }
   expose();
@@ -269,11 +342,18 @@ function syncVertexFields(): void {
 }
 function syncInspector(): void {
   const node = selected();
-  $('#selection').textContent = node ? node.id : 'Nenhum objeto selecionado';
-  const position = node?.transform?.position ?? [0, 0, 0];
+  $('#selection').textContent = node ? (selectedIds.size > 1 ? `${node.id} + ${selectedIds.size - 1} selecionado(s)` : node.id) : 'Nenhum objeto selecionado';
+  const transform = node?.transform ?? {position: [0, 0, 0] as Vec3, rotation: [0, 0, 0] as Vec3, scale: [1, 1, 1] as Vec3};
+  const position = transform.position;
   (['x', 'y', 'z'] as const).forEach((axis, index) => {($('#position-' + axis) as HTMLInputElement).value = String(position[index]);});
+  (['x', 'y', 'z'] as const).forEach((axis, index) => {($('#rotation-' + axis) as HTMLInputElement).value = String(Number((transform.rotation[index] * 180 / Math.PI).toFixed(2)));});
+  (['x', 'y', 'z'] as const).forEach((axis, index) => {($('#scale-' + axis) as HTMLInputElement).value = String(transform.scale[index]);});
   const pivot = node?.pivot ?? [0, 0, 0];
   (['x', 'y', 'z'] as const).forEach((axis, index) => {($('#pivot-' + axis) as HTMLInputElement).value = String(pivot[index]);});
+  const color = node?.color ?? '#7a8ba8';
+  ($('#node-color') as HTMLInputElement).value = color;
+  ($('#node-color') as HTMLInputElement).disabled = !node;
+  $('#node-color-hex').textContent = color;
   if (node?.geometry?.kind === 'ribbon') ($('#path-extrusion') as HTMLInputElement).value = String(node.geometry.extrusion ?? node.geometry.width * .15);
   if (node?.geometry?.kind === 'ribbon') ($('#path-end-width') as HTMLInputElement).value = String(node.geometry.endWidth ?? node.geometry.width);
   $('#toggle-lock').textContent = node?.locked ? '🔒 Destravar' : '🔓 Travar';
@@ -298,7 +378,23 @@ function editPosition(axis: 0 | 1 | 2, value: number): void {
     const position = [...(node.transform?.position ?? [0, 0, 0])] as [number, number, number]; position[axis] += delta; store.setTransform(id, {position});
   }}); rebuild();
 }
-function expose(): void {(window as unknown as {__ARENAMON_VFX_COMPOSER__: unknown}).__ARENAMON_VFX_COMPOSER__ = {ready: true, get project() {return store.project;}, get playback() {return {...playback};}, get onionCount() {return onionGroup.children.length;}, get materialRecipe() {try {return compileMaterialRecipe(materialGraph, store.project.textures ?? [activeTexture]);} catch {return null;}}, get selectedIds() {return [...selectedIds];}, get transformAttached() {return transformControls.object !== undefined;}, get drawing() {return drawing;}, get emitters() {return store.project.particles ?? [];}, get qualityProfile() {return qualityProfile;}, get particleTelemetry() {return particlePreview.report;}, get quarksTelemetry() {return quarksPreview.report;}, get previewBackend() {return previewBackend;}, get previewVisibility() {return {authoring: particlePreview.group.visible, quarks: quarksPreview.group.visible};}, get rendererGeometries() {return renderer.info.memory.geometries;}, get particleBudget() {return evaluateParticleBudget(currentEmitters(), qualityProfile, store.project.accessibility);}, particleSnapshot() {const options = particleOptions(); return (store.project.particles ?? []).flatMap(emitter => simulateEmitter(emitter, playback.time, options).map(particle => [Number(particle.x.toFixed(5)), Number(particle.y.toFixed(5)), Number(particle.z.toFixed(5)), Number(particle.size.toFixed(5)), Number(particle.opacity.toFixed(5))]));}, get selectedBoundsCenter() {const object = authored.children.find(child => child.userData.nodeId === selectedId); return object ? new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3()).toArray() : null;}, nodeScreenPoint(id: string) {const object = authored.children.find(child => child.userData.nodeId === id); if (!object) return null; const point = object.position.clone().project(camera), bounds = renderer.domElement.getBoundingClientRect(); return [bounds.left + (point.x + 1) * bounds.width / 2, bounds.top + (1 - point.y) * bounds.height / 2];}};}
+function editTransform(axis: 0 | 1 | 2, field: 'rotation' | 'scale', value: number): void {
+  if (!Number.isFinite(value) || !selected()) return;
+  if (field === 'scale' && value <= 0) {$('#status').textContent = 'Escala precisa ser positiva'; return;}
+  const target = field === 'rotation' ? value * Math.PI / 180 : value;
+  store.transaction(field === 'rotation' ? 'Rotacionar seleção' : 'Escalar seleção', () => {
+    for (const id of selectedIds) {
+      const node = store.project.nodes.find(candidate => candidate.id === id);
+      if (!node || node.locked) continue;
+      const current = node.transform ?? {position: [0, 0, 0] as Vec3, rotation: [0, 0, 0] as Vec3, scale: [1, 1, 1] as Vec3};
+      const vector = [...current[field]] as Vec3;
+      vector[axis] = target;
+      store.setTransform(id, {[field]: vector});
+    }
+  });
+  rebuild();
+}
+function expose(): void {(window as unknown as {__ARENAMON_VFX_COMPOSER__: unknown}).__ARENAMON_VFX_COMPOSER__ = {ready: true, get project() {return store.project;}, get playback() {return {...playback};}, get recovery() {return {message: recoveryNotice, recovered: recoveryNotice.startsWith('Snapshot')};}, get demoLoaded() {return store.project.effectId === 'demo-tres-efeitos';}, get demoPlaying() {return playback.playing;}, get loopPlayback() {return loopPlayback;}, get onionCount() {return onionGroup.children.length;}, get materialRecipe() {try {return compileMaterialRecipe(materialGraph, store.project.textures ?? [activeTexture]);} catch {return null;}}, get selectedIds() {return [...selectedIds];}, get transformAttached() {return transformControls.object !== undefined;}, get drawing() {return drawing;}, get emitters() {return store.project.particles ?? [];}, get qualityProfile() {return qualityProfile;}, get particleTelemetry() {return particlePreview.report;}, get quarksTelemetry() {return quarksPreview.report;}, get previewBackend() {return previewBackend;}, get previewVisibility() {return {authoring: particlePreview.group.visible, quarks: quarksPreview.group.visible};}, get rendererGeometries() {return renderer.info.memory.geometries;}, get particleBudget() {return evaluateParticleBudget(currentEmitters(), qualityProfile, store.project.accessibility);}, particleSnapshot() {const options = particleOptions(); return (store.project.particles ?? []).flatMap(emitter => simulateEmitter(emitter, playback.time, options).map(particle => [Number(particle.x.toFixed(5)), Number(particle.y.toFixed(5)), Number(particle.z.toFixed(5)), Number(particle.size.toFixed(5)), Number(particle.opacity.toFixed(5))]));}, get selectedBoundsCenter() {const object = authored.children.find(child => child.userData.nodeId === selectedId); return object ? new THREE.Box3().setFromObject(object).getCenter(new THREE.Vector3()).toArray() : null;}, nodeScreenPoint(id: string) {const object = authored.children.find(child => child.userData.nodeId === id); if (!object) return null; const point = object.position.clone().project(camera), bounds = renderer.domElement.getBoundingClientRect(); return [bounds.left + (point.x + 1) * bounds.width / 2, bounds.top + (1 - point.y) * bounds.height / 2];}};}
 
 $('#add-box').onclick = () => {
   const id = `box-${++serial}`; selectedId = id;
@@ -445,8 +541,21 @@ $('#export-project').onclick = async () => {
 $('#undo').onclick = () => {if (store.undo()) {selectedId = store.selectedId; selectedIds = new Set(selectedId ? [selectedId] : []); rebuild();}};
 $('#redo').onclick = () => {if (store.redo()) {selectedId = store.selectedId; selectedIds = new Set(selectedId ? [selectedId] : []); rebuild();}};
 (['x', 'y', 'z'] as const).forEach((axis, index) => {($('#position-' + axis) as HTMLInputElement).onchange = event => editPosition(index as 0 | 1 | 2, Number((event.target as HTMLInputElement).value));});
+(['x', 'y', 'z'] as const).forEach((axis, index) => {($('#rotation-' + axis) as HTMLInputElement).onchange = event => editTransform(index as 0 | 1 | 2, 'rotation', Number((event.target as HTMLInputElement).value));});
+(['x', 'y', 'z'] as const).forEach((axis, index) => {($('#scale-' + axis) as HTMLInputElement).onchange = event => editTransform(index as 0 | 1 | 2, 'scale', Number((event.target as HTMLInputElement).value));});
+function applyNodeColor(color: string): void {
+  if (!selectedId) {$('#status').textContent = 'Selecione um objeto para pintar'; return;}
+  try {store.setNodeColor(selectedId, color); rebuild(); $('#status').textContent = `Cor aplicada em ${selectedId}: ${selected()?.color}`;}
+  catch (error) {$('#status').textContent = error instanceof Error ? error.message : 'Cor inválida';}
+}
+$('#node-color').onchange = event => applyNodeColor((event.target as HTMLInputElement).value);
+$('#node-swatches').onclick = event => {
+  const color = (event.target as HTMLElement).closest<HTMLElement>('[data-color]')?.dataset.color;
+  if (color) applyNodeColor(color);
+};
 const workspaceButtons = [...document.querySelectorAll<HTMLButtonElement>('[data-workspace]')];
-function setWorkspace(name: string): void {workspaceButtons.forEach(button => button.classList.toggle('selected', button.dataset.workspace === name)); document.querySelectorAll<HTMLElement>('[data-panel]').forEach(panel => panel.hidden = panel.dataset.panel !== name); document.body.dataset.workspace = name;}
+const workspaceTitles: Record<string, string> = {drawing: 'Propriedades', animation: 'Animação', textures: 'Texturas', materials: 'Materiais', particles: 'Partículas'};
+function setWorkspace(name: string): void {workspaceButtons.forEach(button => button.classList.toggle('selected', button.dataset.workspace === name)); document.querySelectorAll<HTMLElement>('[data-panel]').forEach(panel => panel.hidden = panel.dataset.panel !== name); const title = document.querySelector('.right .panel-head h2'); if (title) title.textContent = workspaceTitles[name] ?? 'Propriedades'; if (name === 'particles') $('#particle-panel').scrollIntoView({block: 'start'});}
 workspaceButtons.forEach(button => button.onclick = () => setWorkspace(button.dataset.workspace!));
 const timelineFps = $('#timeline-fps') as HTMLSelectElement, timelineDuration = $('#timeline-duration') as HTMLInputElement, timelineScrub = $('#timeline-scrub') as HTMLInputElement;
 function syncTimeline(): void {const fps = Number(timelineFps.value) as AuthoringFps; timelineScrub.max = String(playback.duration); timelineScrub.step = String(1 / fps); timelineScrub.value = String(playback.time); $('#timeline-readout').textContent = `${playback.time.toFixed(3)} s · ${Math.round(playback.time * fps)} f`; expose();}
@@ -457,7 +566,149 @@ timelineScrub.oninput = () => {playback.time = quantizeTime(Number(timelineScrub
 $('#timeline-play').onclick = () => {if (playback.time >= playback.duration) playback.time = 0; playback.direction = 1; playback.playing = true; syncTimeline();};
 $('#timeline-reverse').onclick = () => {if (playback.time <= 0) playback.time = playback.duration; playback.direction = -1; playback.playing = true; syncTimeline();};
 $('#timeline-stop').onclick = () => {playback = {...playback, time: 0, playing: false}; syncTimeline();};
-$('#add-keyframe').onclick = () => {const node = selected(); if (!node) {$('#status').textContent = 'Selecione um objeto para adicionar keyframe'; return;} const property = ($('#track-property') as HTMLSelectElement).value as NumericTrackProperty; const interpolation = ($('#key-interpolation') as HTMLSelectElement).value as 'linear' | 'step' | 'bezier'; const transform = node.transform ?? {position: [0, 0, 0], rotation: [0, 0, 0], scale: [1, 1, 1]}; const values: Record<NumericTrackProperty, number> = {opacity: 1, scale: transform.scale[0], visible: 1, 'position.x': transform.position[0], 'position.y': transform.position[1], 'position.z': transform.position[2], 'rotation.x': transform.rotation[0], 'rotation.y': transform.rotation[1], 'rotation.z': transform.rotation[2]}; const id = `track-${node.id}-${property.replace('.', '-')}`; const existing = store.project.timeline.tracks.find(track => track.id === id && track.property !== 'path.points') as Extract<VisualTrack, {property: NumericTrackProperty}> | undefined; const keyframes = [...(existing?.keyframes ?? []).filter(frame => Math.abs(frame.time - playback.time) > 1e-6), {time: playback.time, value: values[property], interpolation}].sort((a, b) => a.time - b.time); store.upsertTrack({id, targetId: node.id, property, keyframes}); rebuild(); $('#status').textContent = `Keyframe ${property} em ${playback.time.toFixed(3)} s`;};
+let loopPlayback = true;
+($('#timeline-loop') as HTMLInputElement).onchange = event => {loopPlayback = (event.target as HTMLInputElement).checked;};
+const TRACK_LABELS: Record<string, string> = {'position.x': 'Posição X', 'position.y': 'Posição Y', 'position.z': 'Posição Z', 'rotation.x': 'Rotação X', 'rotation.y': 'Rotação Y', 'rotation.z': 'Rotação Z', scale: 'Escala', opacity: 'Opacidade', visible: 'Visível', 'path.points': 'Caminho'};
+function syncTracks(): void {
+  const node = selected(), list = $('#track-list'), hint = $('#track-hint');
+  list.replaceChildren();
+  if (!node) {hint.textContent = 'Selecione um objeto para ver e remover keyframes.'; return;}
+  const tracks = store.project.timeline.tracks.filter(track => track.targetId === node.id);
+  if (!tracks.length) {hint.textContent = `Sem trilhas em ${node.id}. Use “+ Keyframe no tempo” ou “Explodir selecionados”.`; return;}
+  hint.textContent = `${tracks.length} trilha(s) em ${node.id} — clique num tempo para ir até ele`;
+  for (const track of tracks) {
+    const row = document.createElement('div'); row.className = 'track-row';
+    const name = document.createElement('span'); name.className = 'track-name'; name.textContent = TRACK_LABELS[track.property] ?? track.property;
+    const times = document.createElement('span'); times.className = 'track-times';
+    for (const frame of track.keyframes) {
+      const seek = document.createElement('button'); seek.className = 'track-time'; seek.dataset.seek = String(frame.time); seek.title = `Ir para ${frame.time.toFixed(2)} s`; seek.textContent = `${frame.time.toFixed(2)}s`;
+      times.append(seek);
+    }
+    const remove = document.createElement('button'); remove.className = 'track-remove'; remove.dataset.trackId = track.id; remove.title = 'Remover trilha'; remove.textContent = '✕';
+    row.append(name, times, remove); list.append(row);
+  }
+}
+$('#add-keyframe').onclick = () => {
+  const ids = [...selectedIds];
+  if (!ids.length) {$('#status').textContent = 'Selecione um objeto para adicionar keyframe'; return;}
+  const property = ($('#track-property') as HTMLSelectElement).value as NumericTrackProperty;
+  const interpolation = ($('#key-interpolation') as HTMLSelectElement).value as 'linear' | 'step' | 'bezier';
+  let applied = 0;
+  try {
+    store.transaction('Keyframe', () => {
+      for (const id of ids) {
+        const node = store.project.nodes.find(candidate => candidate.id === id);
+        if (!node || node.locked) continue;
+        const transform = node.transform ?? {position: [0, 0, 0] as Vec3, rotation: [0, 0, 0] as Vec3, scale: [1, 1, 1] as Vec3};
+        const values: Record<NumericTrackProperty, number> = {opacity: 1, scale: transform.scale[0], visible: 1, 'position.x': transform.position[0], 'position.y': transform.position[1], 'position.z': transform.position[2], 'rotation.x': transform.rotation[0], 'rotation.y': transform.rotation[1], 'rotation.z': transform.rotation[2]};
+        const trackId = `track-${node.id}-${property.replace('.', '-')}`;
+        const existing = store.project.timeline.tracks.find(track => track.id === trackId && track.property !== 'path.points') as Extract<VisualTrack, {property: NumericTrackProperty}> | undefined;
+        const keyframes = [...(existing?.keyframes ?? []).filter(frame => Math.abs(frame.time - playback.time) > 1e-6), {time: playback.time, value: values[property], interpolation}].sort((a, b) => a.time - b.time);
+        store.upsertTrack({id: trackId, targetId: node.id, property, keyframes});
+        applied++;
+      }
+    });
+  } catch (error) {$('#status').textContent = error instanceof Error ? error.message : 'Keyframe recusado'; return;}
+  rebuild();
+  $('#status').textContent = `${applied} keyframe(s) de ${property} em ${playback.time.toFixed(3)} s`;
+};
+$('#track-list').onclick = event => {
+  const target = event.target as HTMLElement;
+  const seek = target.closest<HTMLElement>('[data-seek]')?.dataset.seek;
+  if (seek !== undefined) {timelineScrub.value = seek; timelineScrub.dispatchEvent(new Event('input')); return;}
+  const trackId = target.closest<HTMLElement>('[data-track-id]')?.dataset.trackId;
+  if (!trackId) return;
+  store.removeTrack(trackId); rebuild();
+  $('#status').textContent = `Trilha removida: ${trackId}`;
+};
+$('#clear-node-tracks').onclick = () => {
+  const node = selected();
+  if (!node) {$('#status').textContent = 'Selecione um objeto para limpar a animação'; return;}
+  const tracks = store.project.timeline.tracks.filter(track => track.targetId === node.id);
+  if (!tracks.length) {$('#status').textContent = `${node.id} já está sem animação`; return;}
+  store.transaction('Limpar animação', () => {for (const track of tracks) store.removeTrack(track.id);});
+  rebuild();
+  $('#status').textContent = `Animação removida de ${node.id}: ${tracks.length} trilha(s)`;
+};
+const radialRadius = $('#radial-radius') as HTMLInputElement, radialTime = $('#radial-time') as HTMLInputElement, radialLift = $('#radial-lift') as HTMLInputElement, radialSeed = $('#radial-seed') as HTMLInputElement;
+const meters = (value: number): string => `${value.toLocaleString('pt-BR', {minimumFractionDigits: 1, maximumFractionDigits: 1})} m`;
+function syncRadialLabels(): void {
+  $('#radial-radius-value').textContent = meters(Number(radialRadius.value));
+  $('#radial-time-value').textContent = `${Number(radialTime.value).toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2})} s`;
+  $('#radial-lift-value').textContent = meters(Number(radialLift.value));
+}
+[radialRadius, radialTime, radialLift].forEach(input => input.oninput = syncRadialLabels);
+syncRadialLabels();
+$('#radial-explode').onclick = () => {
+  const ids = [...selectedIds];
+  if (!ids.length) {$('#status').textContent = 'Selecione um ou mais objetos e clique em “Explodir selecionados”'; return;}
+  const radius = Number(radialRadius.value), time = Number(radialTime.value), lift = Number(radialLift.value), seed = Math.trunc(Number(radialSeed.value));
+  const nodes = store.project.nodes.filter(node => ids.includes(node.id));
+  let tracks: VisualTrack[];
+  try {
+    tracks = buildRadialTracks(nodes.map(node => ({id: node.id, origin: node.transform?.position ?? [0, 0, 0] as Vec3})), {radius, seed, lift, steps: [{time: 0, reach: 0}, {time: Number((time * .3).toFixed(4)), reach: .72}, {time, reach: 1}]});
+  } catch (error) {$('#status').textContent = error instanceof Error ? error.message : 'Explosão radial recusada'; return;}
+  try {
+    store.transaction('Explosão radial', () => {
+      if ((store.project.timeline.duration ?? 2) < time) store.setTimelineDuration(time);
+      for (const track of tracks) store.upsertTrack(track);
+    });
+  } catch (error) {$('#status').textContent = error instanceof Error ? error.message : 'Explosão radial recusada'; return;}
+  const duration = store.project.timeline.duration ?? time;
+  playback = {time: 0, duration, direction: 1, playing: false};
+  timelineDuration.value = String(duration);
+  setWorkspace('animation'); syncTimeline(); rebuild();
+  $('#status').textContent = `Explosão radial: ${nodes.length} objeto(s), raio ${radius} m em ${time.toFixed(2)} s — clique ▶ Play`;
+};
+function uniqueNodeId(base: string): string {
+  let candidate = base, index = 1;
+  const exists = (id: string): boolean => store.project.nodes.some(node => node.id === id);
+  while (exists(candidate)) candidate = `${base}-${++index}`;
+  return candidate;
+}
+function duplicateSelected(): void {
+  const source = selected();
+  if (!source) {$('#status').textContent = 'Selecione um objeto para duplicar'; return;}
+  const id = uniqueNodeId(`${source.id}-copia`);
+  const copy: VisualNode = {...source, id};
+  const tracks = store.project.timeline.tracks.filter(track => track.targetId === source.id).map(track => ({...track, id: `track-${id}-${track.property.replace('.', '-')}`, targetId: id})) as VisualTrack[];
+  try {
+    store.transaction('Duplicar objeto', () => {store.addNode(copy); for (const track of tracks) store.upsertTrack(track);});
+  } catch (error) {$('#status').textContent = error instanceof Error ? error.message : 'Duplicação recusada'; return;}
+  selectedId = id; selectedIds = new Set([id]);
+  rebuild();
+  $('#status').textContent = `Duplicado: ${id}${tracks.length ? ` · ${tracks.length} trilha(s) copiada(s)` : ''}`;
+}
+$('#duplicate-node').onclick = duplicateSelected;
+function removeSelectedNodes(): void {
+  const ids = [...selectedIds];
+  if (!ids.length) {$('#status').textContent = 'Selecione um objeto para remover'; return;}
+  try {
+    store.transaction('Remover objetos', () => {for (const id of ids) if (store.project.nodes.some(node => node.id === id)) store.removeNode(id);});
+  } catch (error) {$('#status').textContent = error instanceof Error ? error.message : 'Remoção recusada'; return;}
+  selectedId = null; selectedIds = new Set();
+  rebuild();
+  $('#status').textContent = `${ids.length} objeto(s) removido(s)`;
+}
+$('#remove-node').onclick = removeSelectedNodes;
+function frameScene(): void {
+  const box = new THREE.Box3();
+  for (const child of authored.children) if (child.visible) box.expandByObject(child);
+  if (box.isEmpty()) {camera.position.set(5, 4, 7); controls.target.set(0, .6, 0); controls.update(); return;}
+  const center = box.getCenter(new THREE.Vector3()), radius = Math.max(box.getSize(new THREE.Vector3()).length() / 2, .6);
+  const distance = radius / (Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * Math.min(1, camera.aspect)) * 1.15;
+  camera.position.copy(center).addScaledVector(new THREE.Vector3(1, .72, 1.3).normalize(), distance);
+  controls.target.copy(center); controls.update();
+}
+$('#frame-all').onclick = frameScene;
+document.addEventListener('keydown', event => {
+  const target = event.target as HTMLElement | null;
+  if (target && /^(INPUT|SELECT|TEXTAREA)$/.test(target.tagName)) return;
+  const key = event.key.toLowerCase();
+  if ((event.ctrlKey || event.metaKey) && key === 'd') {event.preventDefault(); duplicateSelected(); return;}
+  if (key === 'f') {event.preventDefault(); frameScene(); return;}
+  if (key === 'delete' || key === 'backspace') {event.preventDefault(); removeSelectedNodes();}
+});
 function applyTrackAt(object: THREE.Object3D, track: Exclude<VisualTrack, {property: 'path.points'}>, time: number): void {const value = evaluateNumericTrack(track, time); if (track.property === 'position.x') object.position.x = value; else if (track.property === 'position.y') object.position.y = value; else if (track.property === 'position.z') object.position.z = value; else if (track.property === 'scale') object.scale.setScalar(value); else if (track.property === 'visible') object.visible = value >= .5; else if (track.property === 'opacity' && object instanceof THREE.Mesh) {(object.material as THREE.Material).transparent = value < 1; (object.material as THREE.Material).opacity = value;} else if (track.property.startsWith('rotation.')) object.rotation[track.property.at(-1) as 'x' | 'y' | 'z'] = value;}
 function timelineObject(node: VisualNode, time: number): THREE.Object3D {const morph = store.project.timeline.tracks.find(track => track.targetId === node.id && track.property === 'path.points') as Extract<VisualTrack, {property: 'path.points'}> | undefined; let animated = node; const geometry = node.geometry; if (morph && geometry && (geometry.kind === 'stroke' || geometry.kind === 'curve' || geometry.kind === 'ribbon')) animated = {...node, geometry: {...geometry, points: evaluatePathTrack(morph, time)}}; const object = nodeMesh(animated); for (const track of store.project.timeline.tracks) if (track.targetId === node.id && track.property !== 'path.points') applyTrackAt(object, track, time); return object;}
 function applyTimelinePreview(): void {
@@ -642,5 +893,72 @@ $('#add-keyframe').insertAdjacentHTML('afterend', '<button id="add-morph-keyfram
 $('#add-morph-keyframe').onclick = () => {const node = selected(); const geometry = node?.geometry; if (!node || !geometry || geometry.kind === 'box' || geometry.kind === 'sphere' || geometry.kind === 'plane') {$('#status').textContent = 'Selecione um Stroke, Curva ou Ribbon'; return;} const id = `track-${node.id}-path-points`; const existing = store.project.timeline.tracks.find(track => track.id === id && track.property === 'path.points') as Extract<VisualTrack, {property: 'path.points'}> | undefined; const keyframes = [...(existing?.keyframes ?? []).filter(frame => Math.abs(frame.time - playback.time) > 1e-6), {time: playback.time, value: geometry.points, interpolation: 'linear' as const}].sort((a, b) => a.time - b.time); store.upsertTrack({id, targetId: node.id, property: 'path.points', keyframes}); rebuild();};
 const resize = () => {const {clientWidth: width, clientHeight: height} = viewport; camera.aspect = width / Math.max(height, 1); camera.updateProjectionMatrix(); renderer.setSize(width, height, false);};
 new ResizeObserver(resize).observe(viewport); resize(); syncAuthoringFields(); updateDrawingPlane();
-let previousFrame = performance.now(); renderer.setAnimationLoop(now => {const delta = Math.min(.1, (now - previousFrame) / 1000); previousFrame = now; if (playback.playing) {playback = advancePlayback(playback, delta); syncTimeline();} applyTimelinePreview(); const emitters = currentEmitters(), options = particleOptions(); particlePreview.update(previewBackend === 'quarks' ? [] : emitters, playback.time, options); quarksPreview.update(previewBackend === 'authoring' ? [] : emitters, playback.time, options); if ((readoutFrame++ % 6) === 0) refreshParticleReadout(); controls.update(); renderer.render(scene, camera);});
-rebuild(); $('#status').textContent = 'Projeto local · autosave por revisão';
+let previousFrame = 0; renderer.setAnimationLoop(now => {const delta = previousFrame ? Math.max(0, Math.min(.1, (now - previousFrame) / 1000)) : 0; previousFrame = now; if (playback.playing && delta > 0) {const next = advancePlayback(playback, delta); playback = loopPlayback && next.direction === 1 && !next.playing && next.time >= next.duration ? {...next, time: 0, playing: true} : next; syncTimeline();} applyTimelinePreview(); const emitters = currentEmitters(), options = particleOptions(); particlePreview.update(previewBackend === 'quarks' ? [] : emitters, playback.time, options); quarksPreview.update(previewBackend === 'authoring' ? [] : emitters, playback.time, options); if ((readoutFrame++ % 6) === 0) refreshParticleReadout(); controls.update(); renderer.render(scene, camera);});
+const demoSeenAt = (): boolean => {try {return localStorage.getItem('arenamon.vfx.demo-v1') === '1';} catch {return false;}};
+const markDemoSeen = (): void => {try {localStorage.setItem('arenamon.vfx.demo-v1', '1');} catch { /* storage indisponível */ }};
+function focusDemoCamera(): void {camera.position.set(2.95, 1.75, 3.85); controls.target.set(0, .85, 0); controls.update();}
+function startDemo(notice: string): void {
+  store.replaceProject(demoProject());
+  playback = {time: 0, duration: DEMO_DURATION, direction: 1, playing: true};
+  activeEmitterId = 'emissor-1'; emitterDraft = null; draftRevision = -1; emitterSerial = demoEmitters().length;
+  timelineFps.value = '30'; timelineDuration.value = String(DEMO_DURATION);
+  ($('#timeline-loop') as HTMLInputElement).checked = true; loopPlayback = true;
+  focusDemoCamera(); setWorkspace('particles'); markDemoSeen();
+  syncParticlePanel(); syncTimeline(); rebuild();
+  $('#demo-state').textContent = 'Demonstração: 3 efeitos tocando na cena — edite os emissores à direita';
+  $('#status').textContent = notice;
+  expose();
+}
+$('#load-demo').onclick = () => startDemo('Demonstração no ar: 3 efeitos tocando em tempo real (loop). Ajuste qualquer emissor na aba Partículas.');
+function frameExplosion(): void {camera.position.set(10.4, 6.7, 13.2); controls.target.set(0, .9, 0); controls.update();}
+function startExplosion(notice: string): void {
+  store.replaceProject(explosionProject());
+  playback = {time: 0, duration: EXPLOSION_DURATION, direction: 1, playing: true};
+  activeEmitterId = null; emitterDraft = null; draftRevision = -1; emitterSerial = 0;
+  selectedId = null; selectedIds = new Set();
+  timelineFps.value = '30'; timelineDuration.value = String(EXPLOSION_DURATION);
+  ($('#timeline-loop') as HTMLInputElement).checked = true; loopPlayback = true;
+  frameExplosion(); setWorkspace('animation'); markDemoSeen();
+  syncParticlePanel(); syncTimeline(); rebuild();
+  $('[data-panel="animation"]').scrollIntoView({block: 'start'});
+  $('#demo-state').textContent = 'Explosão: 8 cubos vermelhos + 8 esferas amarelas, 48 tracks de posição em loop';
+  $('#status').textContent = notice;
+  expose();
+}
+$('#load-explosion').onclick = () => startExplosion('Explosão no ar: os cubos vermelhos e as esferas amarelas saem do centro. Aba Animação mostra os keyframes de posição.');
+$('#new-empty-project').onclick = () => {
+  store.replaceProject(initialProject());
+  playback = {time: 0, duration: 2, direction: 1, playing: false};
+  activeEmitterId = null; emitterDraft = null; draftRevision = -1; emitterSerial = 0;
+  selectedId = null; selectedIds = new Set();
+  serial = 0;
+  timelineDuration.value = '2'; setWorkspace('drawing'); markDemoSeen();
+  camera.position.set(5, 4, 7); controls.target.set(0, .6, 0); controls.update();
+  syncParticlePanel(); syncTimeline(); rebuild();
+  $('#demo-state').textContent = 'Projeto vazio — use “▶ Tocar os 3 efeitos” ou “💥 Explosão (cubos + esferas)”';
+  $('#status').textContent = 'Projeto vazio. Use “▶ Tocar os 3 efeitos” para voltar à demonstração.';
+  expose();
+};
+const loadedDemo = store.project.effectId === DEMO_EFFECT_ID;
+const loadedExplosion = store.project.effectId === EXPLOSION_EFFECT_ID;
+const emptyProject = store.project.nodes.length === 0 && (store.project.particles ?? []).length === 0;
+if (loadedDemo) {
+  playback = {...playback, time: 0, duration: Math.max(playback.duration, DEMO_DURATION), direction: 1, playing: true};
+  timelineDuration.value = String(playback.duration);
+  setWorkspace('particles'); focusDemoCamera();
+  syncParticlePanel(); syncTimeline(); rebuild();
+  $('#status').textContent = 'Demonstração: 3 efeitos tocando em tempo real (loop). Aba Partículas para ajustar.';
+} else if (loadedExplosion) {
+  playback = {...playback, time: 0, direction: 1, playing: true};
+  selectedId = null; selectedIds = new Set();
+  timelineDuration.value = String(playback.duration);
+  setWorkspace('animation'); frameExplosion();
+  syncParticlePanel(); syncTimeline(); rebuild();
+  $('[data-panel="animation"]').scrollIntoView({block: 'start'});
+  $('#demo-state').textContent = 'Explosão: 8 cubos vermelhos + 8 esferas amarelas em loop';
+  $('#status').textContent = 'Explosão tocando em tempo real. Aba Animação mostra os 48 tracks de posição.';
+} else if (emptyProject && !demoSeenAt()) {
+  startDemo('Primeira abertura: demonstração com 3 efeitos carregada e tocando. Use “Projeto vazio” para começar do zero.');
+} else {
+  rebuild(); $('#status').textContent = recoveryNotice || 'Projeto local · autosave por revisão';
+}
