@@ -144,7 +144,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `actions.dodge.duration` | Duração · C | s | 0.05 | 8 | 0.01 | 0.5 | src/sim/air.js:25 | muda · dodge |
+| `actions.dodge.duration` | Duração · C | s | 0.05 | 8 | 0.01 | 0.657 | src/sim/air.js:25 | muda · dodge |
 | `actions.dodge.cost` | Custo de stamina · C | — | 0 | 6 | 0.05 | 1 | src/sim/ai-moves.js:84 | muda · dodge |
 | `actions.dodge.invulnerable` | Invulnerabilidade inicial · C | s | 0 | 2 | 0.01 | 0.2 | src/sim/animation-combat-windows.js:270 | pendente (combate) |
 | `actions.dodge.distance` | Distância (× duração × velocidade) · C | × | 0 | 12 | 0.05 | 2.05 | src/sim/entity.js:53 | muda · dodge |
@@ -181,7 +181,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `actions.tackle.duration` | Duração · X | s | 0.05 | 8 | 0.01 | 0.65 | src/sim/animation-combat-windows.js:239 | muda · tackle |
+| `actions.tackle.duration` | Duração · X | s | 0.05 | 8 | 0.01 | 1.143 | src/sim/animation-combat-windows.js:239 | muda · tackle |
 | `actions.tackle.cost` | Custo de stamina · X | — | 0 | 6 | 0.05 | 1 | src/sim/ai-moves.js:164 | muda · tackle |
 | `actions.tackle.invulnerable` | Invulnerabilidade inicial · X | s | 0 | 2 | 0.01 | 0 | src/sim/animation-combat-windows.js:243 | pendente (combate) |
 | `actions.tackle.distance` | Distância (× duração × velocidade) · X | × | 0 | 12 | 0.05 | 1.55 | src/sim/controller/ctrl-tackle.js:122 | muda · tackle |
@@ -232,17 +232,17 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `rules.recoil` | Duração do recuo ao defender | s | 0.05 | 8 | 0.01 | 0.514 | src/sim/controller/ctrl-basico.js:79 | muda · guard |
+| `rules.recoil` | Duração do recuo ao defender | s | 0.05 | 8 | 0.01 | 0.61 | src/sim/controller/ctrl-basico.js:79 | muda · guard |
 | `rules.recoilFraction` | Distância do recuo | — | 0 | 4 | 0.01 | 0.8 | src/sim/controller/ctrl-update.js:356 | muda · guard |
 | `rules.blockPushback` | Repulsão ao bloquear (defensor) (sem efeito) | m | 0 | 10 | 0.05 | 0.5 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `rules.blend` | Suavização entre ações | — | 0 | 4.3 | 0.01 | 0.43 | src/sim/controller/ctrl-update.js:376 | pendente (combate) |
-| `rules.guardStun` | Atordoamento após bloqueio | s | 0 | 8 | 0.01 | 0.514 | src/sim/combat.js:189 | muda · guard |
+| `rules.guardStun` | Atordoamento após bloqueio | s | 0 | 8 | 0.01 | 0.505 | src/sim/combat.js:189 | muda · guard |
 | `rules.hitstun` | Duração da reação a impacto no solo (sem lançamento) | — | 0 | 4 | 0.01 | 0.2 | src/sim/combat.js:204 | pendente (combate) |
 | `rules.perfect` | Janela da defesa perfeita | — | 0 | 4 | 0.01 | 0.34 | src/sim/controller/ctrl-update.js:186 | muda · guard |
 | `rules.perfectCooldown` | Recarga da defesa perfeita | — | 0 | 20 | 0.05 | 2 | src/sim/controller/ctrl-update.js:164 | muda · duelLong |
-| `rules.staminaMax` | Stamina máxima | — | 0.1 | 24 | 1 | 11.1 | src/app/match-flow.js:155 | muda · guard |
-| `rules.regenDelay` | Atraso para regenerar | — | 0 | 20 | 0.05 | 1 | src/sim/controller/ctrl-update.js:171 | muda · guard |
-| `rules.regenTime` | Tempo de regeneração | — | 0.1 | 32 | 0.05 | 4 | src/sim/controller/ctrl-update.js:171 | muda · guard |
+| `rules.staminaMax` | Stamina máxima | — | 0.1 | 24 | 1 | 23.1 | src/app/match-flow.js:155 | muda · guard |
+| `rules.regenDelay` | Atraso para regenerar | — | 0 | 1 | 0.001 | 0 | src/sim/controller/ctrl-update.js:171 | muda · guard |
+| `rules.regenTime` | Tempo de regeneração | — | 0.1 | 20 | 0.05 | 1.4 | src/sim/controller/ctrl-update.js:171 | muda · guard |
 | `rules.exhaustMode` | Quando fica exausto | seletor | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:36 | muda · duelLong |
 | `rules.comboWindow` | Janela de combo após acertar | s | 0 | 4 | 0.05 | 0.7 | src/sim/combat.js:208 | pendente (combate) |
 | `rules.guardSpeed` | Velocidade defendendo (%) | — | 0.01 | 60 | 0.01 | 0.6 | src/sim/controller/ctrl-basico.js:21 | muda · duelLong |
@@ -254,15 +254,15 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `rules.tackleFriction1` | Tackle PL1: atrito durante o movimento | /s | 0 | 24 | 0.1 | 1.8 | src/sim/controller/ctrl-update.js:309 | pendente (combate) |
+| `rules.tackleFriction1` | Tackle PL1: atrito durante o movimento | /s | 0 | 24 | 0.1 | 1.1 | src/sim/controller/ctrl-update.js:309 | pendente (combate) |
 | `rules.tackleFriction2` | Tackle PL2: atrito durante o movimento | /s | 0 | 24 | 0.1 | 1.2 | src/sim/controller/ctrl-update.js:309 | muda · sprint |
-| `rules.tackleFriction3` | Tackle PL3: atrito durante o movimento | /s | 0 | 24 | 0.1 | 1.8 | src/sim/controller/ctrl-update.js:309 | muda · charge |
+| `rules.tackleFriction3` | Tackle PL3: atrito durante o movimento | /s | 0 | 24 | 0.1 | 1 | src/sim/controller/ctrl-update.js:309 | muda · charge |
 | `rules.chargeTackleMaxTime` | Tackle carregado: tempo até o PL3 | s | 0.2 | 8 | 0.05 | 1.2 | src/sim/controller/ctrl-tackle.js:15 | muda · charge |
 | `rules.chargeTackleDrain` | Tackle carregado: dreno de stamina | /s | 0 | 8 | 0.05 | 0.8 | src/sim/controller/ctrl-tackle.js:61 | muda · charge |
-| `rules.chargeTackleMove` | Tackle carregado: velocidade ao andar | % | 0 | 2 | 0.01 | 0.8 | src/sim/controller/ctrl-tackle.js:64 | muda · charge |
+| `rules.chargeTackleMove` | Tackle carregado: velocidade ao andar | % | 0 | 2 | 0.01 | 0.9 | src/sim/controller/ctrl-tackle.js:64 | muda · charge |
 | `rules.chargeTackleTurn` | Tackle carregado: giro durante a carga | % | 0 | 2 | 0.01 | 0.25 | src/sim/controller/ctrl-tackle.js:66 | pendente (combate) |
-| `rules.chargeTackleSpeed2` | Tackle PL2: velocidade e alcance | × | 1 | 6 | 0.01 | 1.5 | src/sim/controller/ctrl-tackle.js:19 | muda · sprint |
-| `rules.chargeTackleSpeed3` | Tackle PL3: velocidade e alcance | × | 1 | 8 | 0.01 | 2.2 | src/sim/controller/ctrl-tackle.js:19 | muda · charge |
+| `rules.chargeTackleSpeed2` | Tackle PL2: velocidade e alcance | × | 1 | 6 | 0.01 | 1.94 | src/sim/controller/ctrl-tackle.js:19 | muda · sprint |
+| `rules.chargeTackleSpeed3` | Tackle PL3: velocidade e alcance | × | 1 | 8 | 0.01 | 2.71 | src/sim/controller/ctrl-tackle.js:19 | muda · charge |
 | `rules.chargeTackleDamage2` | Tackle PL2: dano | × | 1 | 8 | 0.01 | 1.3 | src/sim/controller/ctrl-tackle.js:20 | pendente (combate) |
 | `rules.chargeTackleDamage3` | Tackle PL3: dano | × | 1 | 12 | 0.01 | 1.7 | src/sim/controller/ctrl-tackle.js:20 | muda · charge |
 | `rules.sprintTacklePL` | X no sprint: PL do tackle | PL | 1 | 3 | 1 | 2 | src/sim/controller/ctrl-update.js:233 | muda · sprint |
@@ -309,12 +309,12 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `rules.slamFxFlicker` | Meteor slam: tremulação das chamas | % | 0 | 2 | 0.01 | 0.5 | src/view/meteor-fx.js:135 | visual/depuração |
 | `rules.slamFxFadeOut` | Meteor slam: dissipação ao aterrissar | s | 0 | 3 | 0.01 | 0.25 | src/view/meteor-fx.js:130 | visual/depuração |
 | `rules.slamGroundTime` | Meteor slam: estado no chão | s | 0 | 4 | 0.01 | 0.45 | src/sim/controller/ctrl-update.js:441 | muda · slam |
-| `rules.slamGroundRadius` | Meteor slam: alcance do impacto no chão | m | 0.5 | 8 | 0.05 | 1.4 | src/sim/physics.js:565 | muda · slam |
+| `rules.slamGroundRadius` | Meteor slam: alcance do impacto no chão | m | 0.5 | 8 | 0.05 | 1.4 | src/sim/physics.js:566 | muda · slam |
 | `rules.slamPrepTime` | Meteor slam: preparação no ar | s | 0 | 3 | 0.01 | 0.5 | src/sim/controller/ctrl-tackle.js:93 | muda · slam |
 | `rules.slamHop` | Meteor slam: altura da preparação | m | 0 | 6 | 0.05 | 0.8 | src/sim/controller/ctrl-update.js:341 | muda · slam |
 | `rules.slamFallTime` | Meteor slam: tempo de queda | s | 0 | 1.2 | 0.01 | 0.12 | src/sim/controller/ctrl-update.js:321 | muda · slam |
 | `rules.slamImpactScale` | Meteor slam: tamanho do efeito de impacto no chão | × | 0.5 | 6 | 0.05 | 1.2 | src/view/quarks/bridge.js:74 | pendente (combate) |
-| `rules.slamImpactShake` | Meteor slam: tremor da câmera no impacto | × | 0 | 6 | 0.05 | 1.2 | src/view/vfx.js:236 | pendente (combate) |
+| `rules.slamImpactShake` | Meteor slam: tremor da câmera no impacto | × | 0 | 6 | 0.05 | 1.2 | src/view/vfx.js:243 | pendente (combate) |
 | `rules.slamRecovery` | Meteor slam: recuperação ao errar | s | 0 | 4 | 0.01 | 0.6 | src/sim/controller/ctrl-update.js:441 | pendente (combate) |
 | `rules.slamLaunchHorizontal` | Ground bounce: empurrão horizontal | % | 0 | 2 | 0.01 | 0.4 | src/sim/combat.js:199 | muda · slam |
 | `rules.groundBounceForce` | Ground bounce: força do quique | m/s | 0 | 60 | 0.5 | 9 | src/sim/combat.js:199 | muda · slam |
@@ -324,7 +324,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `rules.launchGravity` | Gravidade de lançamento | — | 0.5 | 120 | 0.1 | 39.6 | src/app/live-panels.js:22 | muda · flight |
+| `rules.launchGravity` | Gravidade de lançamento | — | 0.5 | 120 | 0.1 | 39.6 | src/app/live-panels.js:23 | muda · flight |
 | `rules.launchUp` | Força vertical do impacto | — | 0 | 120 | 0.1 | 7.1 | src/sim/combat.js:199 | muda · tackle |
 | `rules.launchHorizontal` | Força horizontal do impacto | — | 0 | 120 | 0.1 | 19.3 | src/sim/combat.js:195 | muda · tackle |
 | `rules.launchDrag` | Arrasto no voo | — | 0 | 20 | 0.05 | 1.15 | src/sim/physics.js:323 | muda · flight |
@@ -336,7 +336,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `rules.techWindow` | Recovery rápido: janela | s | 0.05 | 3 | 0.01 | 0.35 | src/sim/controller/ctrl-tackle.js:135 | pendente (combate) |
 | `rules.techMinAir` | Recovery rápido: tempo mínimo de voo | s | 0 | 3 | 0.01 | 0 | src/sim/controller/ctrl-tackle.js:135 | muda · flight |
 | `rules.techCost` | Recovery rápido: custo de stamina | — | 0 | 4 | 0.05 | 1 | src/sim/controller/ctrl-update.js:157 | muda · flight |
-| `rules.landingRecovery` | Recuperação após aterrissar | s | 0 | 8 | 0.01 | 0.629 | src/sim/physics.js:251 | muda · tackle |
+| `rules.landingRecovery` | Recuperação após aterrissar | s | 0 | 8 | 0.01 | 0.467 | src/sim/physics.js:251 | muda · tackle |
 | `rules.wallRestitution` | Rebote na parede: horizontal | × | 0 | 4 | 0.01 | 0.28 | src/sim/map/map-collision.js:30 | muda · wallBounce |
 | `rules.wallBounceVertical` | Rebote na parede: vertical (× velocidade vertical) | × | -1 | 4 | 0.01 | 1 | src/sim/physics.js:25 | muda · wallBounce |
 | `rules.wallBounceUp` | Rebote na parede: impulso vertical | m/s | 0 | 40 | 0.1 | 0 | src/sim/physics.js:25 | muda · wallBounce |
@@ -361,10 +361,10 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.combat.launchNormalWeight` | Peso da normal de contato | — | 0 | 4 | 0.01 | 0.75 | src/sim/combat.js:197 | pendente (combate) |
 | `extras.combat.launchCenterWeight` | Peso da direção entre centros | — | 0 | 4 | 0.01 | 0.25 | src/sim/combat.js:197 | pendente (combate) |
 | `extras.combat.contactProjectionPasses` | Passagens para separar colisores | — | 1 | 20 | 1 | 4 | src/sim/physics.js:467 | pendente (combate) |
-| `extras.combat.clashHitstop` | Hitstop do clash (X×X) | — | 0 | 1 | 0.001 | 0.033 | src/sim/game.js:112 | muda · clash |
-| `extras.combat.impactHitstop` | Hitstop dos impactos comuns | — | 0 | 1 | 0.001 | 0.008 | src/sim/game.js:116 | muda · tackle |
-| `extras.combat.hitstopDamageBoost` | Hitstop por dano: acréscimo no golpe forte | Desligado (hitstop fixo) | 0 | 6 | 0.1 | 0 | src/sim/game.js:116 | muda · tackle |
-| `extras.combat.hitstopDamageRef` | Hitstop por dano: dano de referência (HP) | HP | 5 | 200 | 1 | 30 | src/sim/game.js:116 | pendente (combate) |
+| `extras.combat.clashHitstop` | Hitstop do clash (X×X) | — | 0 | 1 | 0.001 | 0.033 | src/sim/game.js:113 | muda · clash |
+| `extras.combat.impactHitstop` | Hitstop dos impactos comuns | — | 0 | 1 | 0.001 | 0.008 | src/sim/game.js:117 | muda · tackle |
+| `extras.combat.hitstopDamageBoost` | Hitstop por dano: acréscimo no golpe forte | Desligado (hitstop fixo) | 0 | 6 | 0.1 | 0 | src/sim/game.js:117 | muda · tackle |
+| `extras.combat.hitstopDamageRef` | Hitstop por dano: dano de referência (HP) | HP | 5 | 200 | 1 | 30 | src/sim/game.js:117 | pendente (combate) |
 | `extras.combat.perfectGuardCounterWindow` | Janela de contra-ataque após defesa perfeita | — | 0 | 20 | 0.05 | 1.98 | src/sim/combat.js:185 | pendente (combate) |
 | `extras.combat.exhaustRecovery` | Recuperação extra ao esgotar a stamina | — | 0 | 4 | 0.01 | 0.15 | src/sim/controller/ctrl-update.js:445 | pendente (combate) |
 | `extras.combat.guardRegenFactor` | Regeneração de stamina defendendo (×) | — | 0 | 7 | 0.01 | 0.7 | src/sim/controller/ctrl-update.js:170 | pendente (combate) |
@@ -455,17 +455,17 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.cameraExtra.flightZoomFactor` | Zoom quando voando | — | 0 | 2 | 0.01 | 0.18 | src/view/rig.js:47 | visual/depuração |
 | `extras.cameraExtra.flightHeightFactor` | Elevação da câmera no voo | — | 0 | 2.1 | 0.01 | 0.42 | src/view/rig.js:53 | visual/depuração |
 | `extras.cameraExtra.flightLookFactor` | Elevação do olhar no voo | — | 0 | 2 | 0.01 | 0.4 | src/view/rig.js:54 | visual/depuração |
-| `extras.cameraExtra.orbitSensitivity` | Sensibilidade do mouse | — | 0 | 0.5 | 0.001 | 0.006 | src/view/view.js:102 | visual/depuração |
-| `extras.cameraExtra.wheelSensitivity` | Sensibilidade da roda | — | 0 | 0.5 | 0.001 | 0.01 | src/view/view.js:104 | visual/depuração |
+| `extras.cameraExtra.orbitSensitivity` | Sensibilidade do mouse | — | 0 | 0.5 | 0.001 | 0.006 | src/view/view.js:104 | visual/depuração |
+| `extras.cameraExtra.wheelSensitivity` | Sensibilidade da roda | — | 0 | 0.5 | 0.001 | 0.01 | src/view/view.js:106 | visual/depuração |
 | `extras.cameraExtra.fov` | Campo de visão (FOV) | ° | 20 | 120 | 1 | 48 | src/view/cinematic-camera.js:908 | visual/depuração |
-| `extras.cameraExtra.nearClip` | Plano de corte próximo | — | 0.01 | 2 | 0.01 | 0.1 | src/view/view.js:58 | visual/depuração |
-| `extras.cameraExtra.farClip` | Plano de corte distante | m | 10 | 1000 | 5 | 100 | src/view/view.js:58 | visual/depuração |
+| `extras.cameraExtra.nearClip` | Plano de corte próximo | — | 0.01 | 2 | 0.01 | 0.1 | src/view/view.js:59 | visual/depuração |
+| `extras.cameraExtra.farClip` | Plano de corte distante | m | 10 | 1000 | 5 | 100 | src/view/view.js:59 | visual/depuração |
 | `extras.cameraExtra.lockTargetBias` | Lock-on: foco rumo ao rival | — | 0 | 2 | 0.01 | 0.28 | src/view/rig.js:41 | visual/depuração |
 | `extras.cameraExtra.lockBiasLimit` | Lock-on: deslocamento máximo do olhar | — | 0 | 18.8 | 0.05 | 4.7 | src/view/rig.js:41 | visual/depuração |
 | `extras.cameraExtra.framingSeparationFactor` | Afastamento pela separação dos lutadores | — | 0 | 2.25 | 0.01 | 0.45 | src/view/rig.js:44 | visual/depuração |
 | `extras.cameraExtra.framingPadding` | Margem de enquadramento no lock-on | — | 0 | 10 | 0.05 | 1.2 | src/view/rig.js:44 | visual/depuração |
-| `extras.cameraExtra.cameraShakeAmount` | Tremor da câmera: intensidade | — | 0 | 2 | 0.01 | 0.12 | src/view/view.js:224 | visual/depuração |
-| `extras.cameraExtra.cameraShakeDecay` | Tremor da câmera: dissipação | — | 0 | 40 | 0.05 | 10 | src/view/view.js:223 | visual/depuração |
+| `extras.cameraExtra.cameraShakeAmount` | Tremor da câmera: intensidade | — | 0 | 2 | 0.01 | 0.12 | src/view/view.js:226 | visual/depuração |
+| `extras.cameraExtra.cameraShakeDecay` | Tremor da câmera: dissipação | — | 0 | 40 | 0.05 | 10 | src/view/view.js:225 | visual/depuração |
 
 ## IA: estratégia e decisões
 
@@ -480,40 +480,40 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.ai.chargeMargin` | IA: margem de segurança da carga | s | 0 | 1 | 0.01 | 0.25 | src/sim/tactics.js:442 | muda · duel |
 | `extras.ai.chargeChance` | IA: chance de carregar | % | 0 | 1 | 0.01 | 0.8 | src/sim/tactics.js:444 | muda · duel |
 | `extras.ai.feintChance` | IA: chance de fintar | % | 0 | 1 | 0.01 | 0.5 | src/sim/tactics.js:295 | muda · duelLong |
-| `extras.ai.moveSmoothing` | Suavização da intenção de movimento (IA) | rad/s | 0 | 40 | 0.5 | 10 | src/sim/ai.js:57 | muda · duel |
-| `extras.ai.minDirectionHold` | Retenção contra zigue-zague (IA) | s | 0 | 0.6 | 0.01 | 0.18 | src/sim/ai.js:69 | muda · duel |
-| `extras.ai.initialCooldown` | Primeira decisão da IA | — | 0 | 3 | 0.01 | 0.6 | src/sim/ai.js:44 | muda · duel |
-| `extras.ai.orbitChangePeriod` | Tempo de troca de lado | — | 0 | 10 | 0.05 | 1.7 | src/sim/ai.js:87 | pendente (ia) |
-| `extras.ai.threatAlignment` | Alinhamento de ameaça | — | -1 | 2 | 0.01 | 0.3 | src/sim/ai.js:28 | muda · duelLong |
-| `extras.ai.threatDistance` | Raio de ameaça | — | 0 | 19.2 | 0.05 | 4.8 | src/sim/ai.js:96 | pendente (ia) |
-| `extras.ai.defensiveRetreatDistance` | Recuo na defesa: distância | — | 0 | 10 | 0.05 | 2.4 | src/sim/ai.js:124 | pendente (ia) |
-| `extras.ai.defensiveRetreatStrength` | Recuo na defesa: intensidade | — | 0 | 2 | 0.01 | 0.5 | src/sim/ai.js:124 | pendente (ia) |
-| `extras.ai.reactiveRetreatStrength` | Recuo ao detectar ataque | — | 0 | 2 | 0.01 | 0.2 | src/sim/ai.js:130 | pendente (ia) |
-| `extras.ai.approachDistance` | Distância para se aproximar | — | 0 | 12 | 0.05 | 3 | src/sim/ai.js:147 | pendente (ia) |
-| `extras.ai.retreatDistance` | Distância para se afastar | — | 0 | 10 | 0.05 | 1.35 | src/sim/ai.js:148 | pendente (ia) |
-| `extras.ai.retreatStrength` | Intensidade do recuo | — | 0 | 2 | 0.01 | 0.65 | src/sim/ai.js:148 | pendente (ia) |
-| `extras.ai.strafeStrength` | Intensidade do movimento lateral | — | 0 | 2 | 0.01 | 0.72 | src/sim/ai.js:149 | pendente (ia) |
-| `extras.ai.wallPrediction` | Previsão de parede | — | 0 | 4 | 0.01 | 0.8 | src/sim/ai.js:151 | pendente (ia) |
-| `extras.ai.wallMargin` | Margem da parede | — | 0 | 10 | 0.05 | 1 | src/sim/ai.js:152 | pendente (ia) |
-| `extras.ai.attackRange` | Alcance para atacar | — | 0 | 13.4 | 0.05 | 3.35 | src/sim/ai.js:153 | pendente (ia) |
-| `extras.ai.combatAttackCooldown` | Intervalo de tackles da IA | — | 0 | 10 | 0.05 | 1.1 | src/sim/ai.js:121 | pendente (ia) |
-| `extras.ai.lowStaminaThreshold` | Stamina crítica da IA | — | 0 | 4.75 | 0.01 | 0.95 | src/sim/ai.js:162 | pendente (ia) |
-| `extras.ai.lowStaminaDistance` | Distância para recuar sem stamina | — | 0 | 10 | 0.05 | 2.5 | src/sim/ai.js:162 | pendente (ia) |
-| `extras.ai.lowStaminaRetreat` | Força do recuo sem stamina | — | 0 | 3.5 | 0.01 | 0.7 | src/sim/ai.js:162 | pendente (ia) |
-| `extras.ai.evadeCycle` | Ciclo de decisões evasivas | — | 1 | 12 | 1 | 3 | src/sim/ai.js:128 | pendente (ia) |
-| `extras.ai.evadeCycleIndex` | Passo evasivo do ciclo | — | 0 | 12 | 1 | 2 | src/sim/ai.js:128 | pendente (ia) |
+| `extras.ai.moveSmoothing` | Suavização da intenção de movimento (IA) | rad/s | 0 | 40 | 0.5 | 10 | src/sim/ai.js:61 | muda · duel |
+| `extras.ai.minDirectionHold` | Retenção contra zigue-zague (IA) | s | 0 | 0.6 | 0.01 | 0.18 | src/sim/ai.js:73 | muda · duel |
+| `extras.ai.initialCooldown` | Primeira decisão da IA | — | 0 | 3 | 0.01 | 0.6 | src/sim/ai.js:45 | muda · duel |
+| `extras.ai.orbitChangePeriod` | Tempo de troca de lado | — | 0 | 10 | 0.05 | 1.7 | src/sim/ai.js:91 | pendente (ia) |
+| `extras.ai.threatAlignment` | Alinhamento de ameaça | — | -1 | 2 | 0.01 | 0.3 | src/sim/ai.js:29 | muda · duelLong |
+| `extras.ai.threatDistance` | Raio de ameaça | — | 0 | 19.2 | 0.05 | 4.8 | src/sim/ai.js:100 | pendente (ia) |
+| `extras.ai.defensiveRetreatDistance` | Recuo na defesa: distância | — | 0 | 10 | 0.05 | 2.4 | src/sim/ai.js:128 | pendente (ia) |
+| `extras.ai.defensiveRetreatStrength` | Recuo na defesa: intensidade | — | 0 | 2 | 0.01 | 0.5 | src/sim/ai.js:128 | pendente (ia) |
+| `extras.ai.reactiveRetreatStrength` | Recuo ao detectar ataque | — | 0 | 2 | 0.01 | 0.2 | src/sim/ai.js:134 | pendente (ia) |
+| `extras.ai.approachDistance` | Distância para se aproximar | — | 0 | 12 | 0.05 | 3 | src/sim/ai.js:151 | pendente (ia) |
+| `extras.ai.retreatDistance` | Distância para se afastar | — | 0 | 10 | 0.05 | 1.35 | src/sim/ai.js:152 | pendente (ia) |
+| `extras.ai.retreatStrength` | Intensidade do recuo | — | 0 | 2 | 0.01 | 0.65 | src/sim/ai.js:152 | pendente (ia) |
+| `extras.ai.strafeStrength` | Intensidade do movimento lateral | — | 0 | 2 | 0.01 | 0.72 | src/sim/ai.js:153 | pendente (ia) |
+| `extras.ai.wallPrediction` | Previsão de parede | — | 0 | 4 | 0.01 | 0.8 | src/sim/ai.js:155 | pendente (ia) |
+| `extras.ai.wallMargin` | Margem da parede | — | 0 | 10 | 0.05 | 1 | src/sim/ai.js:156 | pendente (ia) |
+| `extras.ai.attackRange` | Alcance para atacar | — | 0 | 13.4 | 0.05 | 3.35 | src/sim/ai.js:157 | pendente (ia) |
+| `extras.ai.combatAttackCooldown` | Intervalo de tackles da IA | — | 0 | 10 | 0.05 | 1.1 | src/sim/ai.js:125 | pendente (ia) |
+| `extras.ai.lowStaminaThreshold` | Stamina crítica da IA | — | 0 | 4.75 | 0.01 | 0.95 | src/sim/ai.js:166 | pendente (ia) |
+| `extras.ai.lowStaminaDistance` | Distância para recuar sem stamina | — | 0 | 10 | 0.05 | 2.5 | src/sim/ai.js:166 | pendente (ia) |
+| `extras.ai.lowStaminaRetreat` | Força do recuo sem stamina | — | 0 | 3.5 | 0.01 | 0.7 | src/sim/ai.js:166 | pendente (ia) |
+| `extras.ai.evadeCycle` | Ciclo de decisões evasivas | — | 1 | 12 | 1 | 3 | src/sim/ai.js:132 | pendente (ia) |
+| `extras.ai.evadeCycleIndex` | Passo evasivo do ciclo | — | 0 | 12 | 1 | 2 | src/sim/ai.js:132 | pendente (ia) |
 
 ## IA: personalidade do vermelho
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.aiRed.reaction` | Tempo de reação | — | 0 | 2 | 0.01 | 0.16 | src/sim/ai.js:100 | pendente (ia) |
-| `extras.aiRed.reactionJitter` | Variação do tempo de reação | — | 0 | 2 | 0.01 | 0.14 | src/sim/ai.js:100 | pendente (ia) |
-| `extras.aiRed.mistake` | Chance de erro | — | 0 | 2 | 0.01 | 0.16 | src/sim/ai.js:100 | pendente (ia) |
-| `extras.aiRed.aggression` | Agressividade | — | 0 | 2.25 | 0.01 | 0.45 | src/sim/ai.js:153 | pendente (ia) |
-| `extras.aiRed.variation` | Variação de ritmo | — | 0 | 2.25 | 0.01 | 0.45 | src/sim/ai.js:91 | muda · duel |
-| `extras.aiRed.hesitation` | Hesitação (por segundo) | — | 0 | 2 | 0.01 | 0.3 | src/sim/ai.js:165 | pendente (ia) |
-| `extras.aiRed.evadeChance` | Preferência por esquivar | — | 0 | 2 | 0.01 | 0.35 | src/sim/ai.js:100 | pendente (ia) |
+| `extras.aiRed.reaction` | Tempo de reação | — | 0 | 2 | 0.01 | 0.16 | src/sim/ai.js:104 | pendente (ia) |
+| `extras.aiRed.reactionJitter` | Variação do tempo de reação | — | 0 | 2 | 0.01 | 0.14 | src/sim/ai.js:104 | pendente (ia) |
+| `extras.aiRed.mistake` | Chance de erro | — | 0 | 2 | 0.01 | 0.16 | src/sim/ai.js:104 | pendente (ia) |
+| `extras.aiRed.aggression` | Agressividade | — | 0 | 2.25 | 0.01 | 0.45 | src/sim/ai.js:157 | pendente (ia) |
+| `extras.aiRed.variation` | Variação de ritmo | — | 0 | 2.25 | 0.01 | 0.45 | src/sim/ai.js:95 | muda · duel |
+| `extras.aiRed.hesitation` | Hesitação (por segundo) | — | 0 | 2 | 0.01 | 0.3 | src/sim/ai.js:169 | pendente (ia) |
+| `extras.aiRed.evadeChance` | Preferência por esquivar | — | 0 | 2 | 0.01 | 0.35 | src/sim/ai.js:104 | pendente (ia) |
 | `extras.aiRed.style` | Estilo de luta (IA tática) | Sorteado por partida | 0 | 6 | 1 | 0 | src/ui/ai-eval-panel.js:27 | muda · duel |
 | `extras.aiRed.adaptation` | Adaptação ao adversário (IA tática) | — | 0 | 2.75 | 0.01 | 0.55 | src/sim/tactics.js:122 | pendente (ia) |
 
@@ -521,13 +521,13 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.aiBlue.reaction` | Tempo de reação | — | 0 | 2 | 0.01 | 0.1 | src/sim/ai.js:100 | muda · duelLong |
-| `extras.aiBlue.reactionJitter` | Variação do tempo de reação | — | 0 | 2 | 0.01 | 0.12 | src/sim/ai.js:100 | muda · duelLong |
-| `extras.aiBlue.mistake` | Chance de erro | — | 0 | 2 | 0.01 | 0.1 | src/sim/ai.js:100 | pendente (ia) |
-| `extras.aiBlue.aggression` | Agressividade | — | 0 | 3.1 | 0.01 | 0.62 | src/sim/ai.js:153 | muda · duel |
-| `extras.aiBlue.variation` | Variação de ritmo | — | 0 | 2 | 0.01 | 0.4 | src/sim/ai.js:91 | muda · duel |
-| `extras.aiBlue.hesitation` | Hesitação (por segundo) | — | 0 | 2 | 0.01 | 0.15 | src/sim/ai.js:165 | muda · duel |
-| `extras.aiBlue.evadeChance` | Preferência por esquivar | — | 0 | 2.5 | 0.01 | 0.5 | src/sim/ai.js:100 | pendente (ia) |
+| `extras.aiBlue.reaction` | Tempo de reação | — | 0 | 2 | 0.01 | 0.1 | src/sim/ai.js:104 | muda · duelLong |
+| `extras.aiBlue.reactionJitter` | Variação do tempo de reação | — | 0 | 2 | 0.01 | 0.12 | src/sim/ai.js:104 | muda · duelLong |
+| `extras.aiBlue.mistake` | Chance de erro | — | 0 | 2 | 0.01 | 0.1 | src/sim/ai.js:104 | pendente (ia) |
+| `extras.aiBlue.aggression` | Agressividade | — | 0 | 3.1 | 0.01 | 0.62 | src/sim/ai.js:157 | muda · duel |
+| `extras.aiBlue.variation` | Variação de ritmo | — | 0 | 2 | 0.01 | 0.4 | src/sim/ai.js:95 | muda · duel |
+| `extras.aiBlue.hesitation` | Hesitação (por segundo) | — | 0 | 2 | 0.01 | 0.15 | src/sim/ai.js:169 | muda · duel |
+| `extras.aiBlue.evadeChance` | Preferência por esquivar | — | 0 | 2.5 | 0.01 | 0.5 | src/sim/ai.js:104 | pendente (ia) |
 | `extras.aiBlue.style` | Estilo de luta (IA tática) | Sorteado por partida | 0 | 6 | 1 | 0 | src/ui/ai-eval-panel.js:27 | muda · duel |
 | `extras.aiBlue.adaptation` | Adaptação ao adversário (IA tática) | — | 0 | 3.5 | 0.01 | 0.7 | src/sim/tactics.js:122 | pendente (ia) |
 
@@ -535,11 +535,11 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `test.step` | Intervalo de simulação | ms | 0.00416667 | 0.0333333 | 0.0000416667 | 0.00833333 | src/app/live-panels.js:207 | muda · tackle |
-| `test.maxFrame` | Maior quadro admitido | — | 0 | 2 | 0.01 | 0.1 | src/sim/game.js:228 | pendente (tecnico) |
+| `test.step` | Intervalo de simulação | ms | 0.00416667 | 0.0333333 | 0.0000416667 | 0.00833333 | src/app/live-panels.js:208 | muda · tackle |
+| `test.maxFrame` | Maior quadro admitido | — | 0 | 2 | 0.01 | 0.1 | src/sim/game.js:229 | pendente (tecnico) |
 | `test.arenaRadius` | Raio da arena circular (m) | — | 0 | 150 | 0.5 | 50 | src/nav/nav-graph.js:35 | pendente (tecnico) |
 | `test.arenaHalf` | Metade do lado da arena | × m | 6 | 100 | 1 | 16 | src/nav/nav-graph.js:35 | muda · duel |
-| `test.halfExtent` | Meia largura do colisor | — | 0.1 | 2.5 | 0.01 | 0.5 | src/app/live-panels.js:32 | muda · tackle |
+| `test.halfExtent` | Meia largura do colisor | — | 0.1 | 2.5 | 0.01 | 0.5 | src/app/live-panels.js:33 | muda · tackle |
 | `test.hp` | Vida máxima base · legado (sem efeito) | — | 1 | 800 | 1 | 100 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.attack` | Ataque base | — | 0 | 200 | 1 | 20 | src/sim/moves/air-slash.js:22 | pendente (tecnico) |
 | `test.defense` | Defesa base (sem efeito) | — | 0 | 200 | 1 | 50 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
@@ -549,7 +549,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `test.defenseMedian` | Mediana de defesa (sem efeito) | — | 0.01 | 200 | 1 | 50 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.pushCoefficient` | Coeficiente legado de empurrão (sem efeito) | — | 0 | 10 | 0.05 | 2 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.pushDuration` | Duração do empurrão legado | — | 0 | 2 | 0.01 | 0.3 | src/sim/physics.js:432 | pendente (tecnico) |
-| `test.aiInterval` | Intervalo padrão de IA | — | 0 | 4.25 | 0.01 | 0.85 | src/sim/ai.js:129 | pendente (tecnico) |
+| `test.aiInterval` | Intervalo padrão de IA | — | 0 | 4.25 | 0.01 | 0.85 | src/sim/ai.js:133 | pendente (tecnico) |
 | `test.aiRange` | Distância padrão da IA (sem efeito) | — | 0 | 13.2 | 0.05 | 3.3 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.contactStep` | Tamanho máximo de subpasso | — | 0.01 | 2 | 0.01 | 0.1 | src/sim/physics.js:437 | muda · duel |
 | `test.epsilon` | Tolerância de contato | — | 0 | 0.000001 | 1e-9 | 1e-8 | src/sim/physics.js:157 | pendente (tecnico) |
@@ -659,52 +659,52 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.visual.bodyWidth` | Largura visual do corpo | — | 0.1 | 10 | 0.05 | 1 | src/view/meteor-fx.js:12 | visual/depuração |
 | `extras.visual.bodyHeight` | Altura visual do corpo | — | 0.1 | 10 | 0.05 | 1.3 | src/sim/aim-marker.js:33 | visual/depuração |
 | `extras.visual.bodyDepth` | Profundidade visual do corpo | — | 0.1 | 10 | 0.05 | 1 | src/view/meteor-fx.js:12 | visual/depuração |
-| `extras.visual.arrowRadius` | Raio da seta frontal | — | 0 | 2 | 0.01 | 0.16 | src/view/view.js:335 | visual/depuração |
-| `extras.visual.arrowLength` | Comprimento da seta frontal | — | 0 | 2.1 | 0.01 | 0.42 | src/view/view.js:335 | visual/depuração |
-| `extras.visual.arrowOffset` | Deslocamento da seta | — | 0 | 2 | 0.01 | 0.2 | src/view/view.js:334 | visual/depuração |
-| `extras.visual.arrowHeight` | Altura da seta | — | 0 | 10 | 0.05 | 1.48 | src/view/view.js:334 | visual/depuração |
-| `extras.visual.guardScale` | Escala vertical defendendo | — | 0 | 2 | 0.01 | 1.03 | src/view/view.js:325 | visual/depuração |
-| `extras.visual.landingScale` | Compressão na aterrissagem | — | 0 | 2 | 0.01 | 0.82 | src/view/view.js:325 | visual/depuração |
-| `extras.visual.shadowMin` | Escala mínima da sombra | — | 0 | 2 | 0.01 | 0.3 | src/view/view.js:327 | visual/depuração |
-| `extras.visual.shadowHeightFade` | Sombra versus altitude | — | 0 | 2 | 0.01 | 0.16 | src/view/view.js:327 | visual/depuração |
+| `extras.visual.arrowRadius` | Raio da seta frontal | — | 0 | 2 | 0.01 | 0.16 | src/view/view.js:347 | visual/depuração |
+| `extras.visual.arrowLength` | Comprimento da seta frontal | — | 0 | 2.1 | 0.01 | 0.42 | src/view/view.js:347 | visual/depuração |
+| `extras.visual.arrowOffset` | Deslocamento da seta | — | 0 | 2 | 0.01 | 0.2 | src/view/view.js:346 | visual/depuração |
+| `extras.visual.arrowHeight` | Altura da seta | — | 0 | 10 | 0.05 | 1.48 | src/view/view.js:346 | visual/depuração |
+| `extras.visual.guardScale` | Escala vertical defendendo | — | 0 | 2 | 0.01 | 1.03 | src/view/view.js:337 | visual/depuração |
+| `extras.visual.landingScale` | Compressão na aterrissagem | — | 0 | 2 | 0.01 | 0.82 | src/view/view.js:337 | visual/depuração |
+| `extras.visual.shadowMin` | Escala mínima da sombra | — | 0 | 2 | 0.01 | 0.3 | src/view/view.js:339 | visual/depuração |
+| `extras.visual.shadowHeightFade` | Sombra versus altitude | — | 0 | 2 | 0.01 | 0.16 | src/view/view.js:339 | visual/depuração |
 | `extras.visual.renderPixelRatio` | Resolução máxima ×DPR | × | 0.5 | 3 | 0.1 | 2 | src/sim/graphics.js:8 | visual/depuração |
-| `extras.visual.ambientLightIntensity` | Luz ambiente | — | 0 | 10 | 0.05 | 2.5 | src/view/view.js:171 | visual/depuração |
-| `extras.visual.directionalIntensity` | Luz direcional | — | 0 | 10 | 0.05 | 2 | src/view/view.js:172 | visual/depuração |
+| `extras.visual.ambientLightIntensity` | Luz ambiente | — | 0 | 10 | 0.05 | 2.5 | src/view/view.js:173 | visual/depuração |
+| `extras.visual.directionalIntensity` | Luz direcional | — | 0 | 10 | 0.05 | 2 | src/view/view.js:174 | visual/depuração |
 | `extras.visual.floorThickness` | Espessura do piso | — | 0 | 2 | 0.01 | 0.1 | src/view/scenery.js:112 | visual/depuração |
 | `extras.visual.wallHeight` | Altura das paredes | — | 0 | 2 | 0.01 | 0.35 | src/view/scenery.js:10 | visual/depuração |
 | `extras.visual.wallThickness` | Espessura das paredes | — | 0 | 2 | 0.01 | 0.15 | src/view/scenery.js:10 | visual/depuração |
 | `extras.visual.gridDivisions` | Divisões da grade do piso | — | 2 | 100 | 1 | 32 | src/view/scenery.js:31 | visual/depuração |
-| `extras.visual.lightX` | Luz principal: posição X | — | -30 | 30 | 0.5 | 4 | src/view/view.js:63 | visual/depuração |
-| `extras.visual.lightY` | Luz principal: altura | — | -30 | 30 | 0.5 | 12 | src/view/view.js:63 | visual/depuração |
-| `extras.visual.lightZ` | Luz principal: posição Z | — | -30 | 30 | 0.5 | -8 | src/view/view.js:63 | visual/depuração |
+| `extras.visual.lightX` | Luz principal: posição X | — | -30 | 30 | 0.5 | 4 | src/view/view.js:64 | visual/depuração |
+| `extras.visual.lightY` | Luz principal: altura | — | -30 | 30 | 0.5 | 12 | src/view/view.js:64 | visual/depuração |
+| `extras.visual.lightZ` | Luz principal: posição Z | — | -30 | 30 | 0.5 | -8 | src/view/view.js:64 | visual/depuração |
 
 ## Efeitos e feedback
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.fx.impactCount` | Partículas por impacto | — | 0 | 64 | 1 | 8 | src/view/view.js:186 | visual/depuração |
-| `extras.fx.clashCount` | Partículas por clash | — | 0 | 64 | 1 | 12 | src/view/view.js:186 | visual/depuração |
-| `extras.fx.landingCount` | Partículas na aterrissagem | — | 0 | 64 | 1 | 7 | src/view/view.js:186 | visual/depuração |
-| `extras.fx.impactDuration` | Vida das partículas | — | 0.02 | 2 | 0.01 | 0.34 | src/view/view.js:191 | visual/depuração |
-| `extras.fx.clashDuration` | Vida das partículas de clash | — | 0.02 | 2.4 | 0.01 | 0.48 | src/view/view.js:191 | visual/depuração |
-| `extras.fx.particleWidth` | Largura da partícula | — | 0 | 0.6 | 0.001 | 0.075 | src/view/view.js:189 | visual/depuração |
-| `extras.fx.particleHeight` | Altura da partícula | — | 0 | 0.56 | 0.001 | 0.07 | src/view/view.js:189 | visual/depuração |
-| `extras.fx.particleLength` | Comprimento da partícula | — | 0 | 3.3 | 0.01 | 0.66 | src/view/view.js:189 | visual/depuração |
-| `extras.fx.clashParticleLength` | Comprimento de partícula clash | — | 0 | 4.75 | 0.01 | 0.95 | src/view/view.js:189 | visual/depuração |
-| `extras.fx.particleOpacity` | Opacidade das partículas | — | 0 | 2 | 0.01 | 0.92 | src/view/view.js:189 | visual/depuração |
-| `extras.fx.particleTravel` | Distância de expansão | — | 0 | 10 | 0.05 | 1.6 | src/view/view.js:219 | visual/depuração |
-| `extras.fx.particleInitialTravel` | Distância inicial | — | 0 | 2 | 0.01 | 0.15 | src/view/view.js:219 | visual/depuração |
-| `extras.fx.particleRise` | Altura da explosão | — | 0 | 2 | 0.01 | 0.36 | src/view/view.js:219 | visual/depuração |
-| `extras.fx.particleHeightFromGround` | Altura de origem | — | 0 | 2 | 0.01 | 0.22 | src/view/view.js:190 | visual/depuração |
-| `extras.fx.particleStretch` | Alongamento no final | — | 0 | 10 | 0.05 | 1.9 | src/view/view.js:220 | visual/depuração |
-| `extras.fx.invulnRepeatDelay` | Espera entre efeitos de invulnerabilidade | ms | 0 | 5000 | 10 | 300 | src/view/view.js:211 | visual/depuração |
-| `extras.fx.impactNoticeMs` | Tempo do aviso de impacto | ms | 0 | 5000 | 10 | 630 | src/ui/hud.js:56 | visual/depuração |
-| `extras.fx.clashNoticeMs` | Tempo do aviso CLASH | ms | 0 | 5000 | 10 | 970 | src/ui/hud.js:56 | visual/depuração |
-| `extras.fx.invulnNoticeMs` | Intervalo do aviso invulnerável | ms | 0 | 5000 | 10 | 350 | src/ui/hud.js:53 | visual/depuração |
+| `extras.fx.impactCount` | Partículas por impacto | — | 0 | 64 | 1 | 8 | src/view/view.js:188 | visual/depuração |
+| `extras.fx.clashCount` | Partículas por clash | — | 0 | 64 | 1 | 12 | src/view/view.js:188 | visual/depuração |
+| `extras.fx.landingCount` | Partículas na aterrissagem | — | 0 | 64 | 1 | 7 | src/view/view.js:188 | visual/depuração |
+| `extras.fx.impactDuration` | Vida das partículas | — | 0.02 | 2 | 0.01 | 0.34 | src/view/view.js:193 | visual/depuração |
+| `extras.fx.clashDuration` | Vida das partículas de clash | — | 0.02 | 2.4 | 0.01 | 0.48 | src/view/view.js:193 | visual/depuração |
+| `extras.fx.particleWidth` | Largura da partícula | — | 0 | 0.6 | 0.001 | 0.075 | src/view/view.js:191 | visual/depuração |
+| `extras.fx.particleHeight` | Altura da partícula | — | 0 | 0.56 | 0.001 | 0.07 | src/view/view.js:191 | visual/depuração |
+| `extras.fx.particleLength` | Comprimento da partícula | — | 0 | 3.3 | 0.01 | 0.66 | src/view/view.js:191 | visual/depuração |
+| `extras.fx.clashParticleLength` | Comprimento de partícula clash | — | 0 | 4.75 | 0.01 | 0.95 | src/view/view.js:191 | visual/depuração |
+| `extras.fx.particleOpacity` | Opacidade das partículas | — | 0 | 2 | 0.01 | 0.92 | src/view/view.js:191 | visual/depuração |
+| `extras.fx.particleTravel` | Distância de expansão | — | 0 | 10 | 0.05 | 1.6 | src/view/view.js:221 | visual/depuração |
+| `extras.fx.particleInitialTravel` | Distância inicial | — | 0 | 2 | 0.01 | 0.15 | src/view/view.js:221 | visual/depuração |
+| `extras.fx.particleRise` | Altura da explosão | — | 0 | 2 | 0.01 | 0.36 | src/view/view.js:221 | visual/depuração |
+| `extras.fx.particleHeightFromGround` | Altura de origem | — | 0 | 2 | 0.01 | 0.22 | src/view/view.js:192 | visual/depuração |
+| `extras.fx.particleStretch` | Alongamento no final | — | 0 | 10 | 0.05 | 1.9 | src/view/view.js:222 | visual/depuração |
+| `extras.fx.invulnRepeatDelay` | Espera entre efeitos de invulnerabilidade | ms | 0 | 5000 | 10 | 300 | src/view/view.js:213 | visual/depuração |
+| `extras.fx.impactNoticeMs` | Tempo do aviso de impacto | ms | 0 | 5000 | 10 | 630 | src/ui/hud.js:72 | visual/depuração |
+| `extras.fx.clashNoticeMs` | Tempo do aviso CLASH | ms | 0 | 5000 | 10 | 970 | src/ui/hud.js:72 | visual/depuração |
+| `extras.fx.invulnNoticeMs` | Intervalo do aviso invulnerável | ms | 0 | 5000 | 10 | 350 | src/ui/hud.js:69 | visual/depuração |
 | `extras.fx.noticeFontSize` | Tamanho do aviso | — | 0 | 56 | 1 | 30 | src/app/tuning-sync.js:32 | visual/depuração |
 | `extras.fx.clashNoticeFontSize` | Tamanho do aviso de clash | — | 0 | 56 | 1 | 40 | src/app/tuning-sync.js:32 | visual/depuração |
-| `extras.fx.hitboxOpacity` | Opacidade das hitboxes | — | 0 | 2 | 0.01 | 0.6 | src/view/view.js:532 | visual/depuração |
-| `extras.fx.attackVectorWidth` | Largura dos vetores de ataque | — | 0 | 2 | 0.01 | 0.13 | src/view/view.js:538 | visual/depuração |
+| `extras.fx.hitboxOpacity` | Opacidade das hitboxes | — | 0 | 2 | 0.01 | 0.6 | src/view/view.js:545 | visual/depuração |
+| `extras.fx.attackVectorWidth` | Largura dos vetores de ataque | — | 0 | 2 | 0.01 | 0.13 | src/view/view.js:551 | visual/depuração |
 
 ## HUD e visualização
 
@@ -713,7 +713,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.hud.uiScale` | Escala do HUD | — | 0 | 3 | 0.01 | 1 | src/app/tuning-sync.js:32 | visual/depuração |
 | `extras.hud.debugFontSize` | Fonte de depuração (sem efeito) | — | 0 | 56 | 1 | 12 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `extras.hud.footerFontSize` | Fonte do rodapé (sem efeito) | — | 0 | 56 | 1 | 15 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
-| `extras.hud.fxVisible` | Exibir partículas | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:184 | visual/depuração |
+| `extras.hud.fxVisible` | Exibir partículas | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:186 | visual/depuração |
 | `extras.hud.hudVisible` | Exibir HUD | liga/desliga | 0 | 1 | 1 | 1 | src/app/tuning-sync.js:39 | visual/depuração |
 | `extras.hud.debugVisible` | Mostrar depuração | liga/desliga | 0 | 1 | 1 | 0 | src/app/tuning-sync.js:39 | visual/depuração |
 | `extras.hud.menuOpacity` | Opacidade do menu (sem efeito) | — | 0 | 2 | 0.01 | 0.85 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
@@ -723,69 +723,69 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.colors.playerR` | Jogador azul · Vermelho | — | 0 | 255 | 1 | 53 | src/view/view.js:310 | visual/depuração |
-| `extras.colors.playerG` | Jogador azul · Verde | — | 0 | 255 | 1 | 137 | src/view/view.js:310 | visual/depuração |
-| `extras.colors.playerB` | Jogador azul · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:310 | visual/depuração |
-| `extras.colors.enemyR` | Adversário vermelho · Vermelho | — | 0 | 255 | 1 | 242 | src/view/view.js:310 | visual/depuração |
-| `extras.colors.enemyG` | Adversário vermelho · Verde | — | 0 | 255 | 1 | 81 | src/view/view.js:310 | visual/depuração |
-| `extras.colors.enemyB` | Adversário vermelho · Azul | — | 0 | 255 | 1 | 75 | src/view/view.js:310 | visual/depuração |
-| `extras.colors.floorR` | Piso · Vermelho | — | 0 | 255 | 1 | 96 | src/view/view.js:64 | visual/depuração |
-| `extras.colors.floorG` | Piso · Verde | — | 0 | 255 | 1 | 109 | src/view/view.js:64 | visual/depuração |
-| `extras.colors.floorB` | Piso · Azul | — | 0 | 255 | 1 | 116 | src/view/view.js:64 | visual/depuração |
-| `extras.colors.wallR` | Paredes · Vermelho | — | 0 | 255 | 1 | 202 | src/view/view.js:74 | visual/depuração |
-| `extras.colors.wallG` | Paredes · Verde | — | 0 | 255 | 1 | 212 | src/view/view.js:74 | visual/depuração |
-| `extras.colors.wallB` | Paredes · Azul | — | 0 | 255 | 1 | 219 | src/view/view.js:74 | visual/depuração |
-| `extras.colors.backgroundR` | Fundo · Vermelho | — | 0 | 255 | 1 | 32 | src/view/view.js:62 | visual/depuração |
-| `extras.colors.backgroundG` | Fundo · Verde | — | 0 | 255 | 1 | 43 | src/view/view.js:62 | visual/depuração |
-| `extras.colors.backgroundB` | Fundo · Azul | — | 0 | 255 | 1 | 53 | src/view/view.js:62 | visual/depuração |
-| `extras.colors.gridMajorR` | Grid principal · Vermelho | — | 0 | 255 | 1 | 196 | src/view/view.js:72 | visual/depuração |
-| `extras.colors.gridMajorG` | Grid principal · Verde | — | 0 | 255 | 1 | 209 | src/view/view.js:72 | visual/depuração |
-| `extras.colors.gridMajorB` | Grid principal · Azul | — | 0 | 255 | 1 | 217 | src/view/view.js:72 | visual/depuração |
-| `extras.colors.gridMinorR` | Grid secundário · Vermelho | — | 0 | 255 | 1 | 133 | src/view/view.js:72 | visual/depuração |
-| `extras.colors.gridMinorG` | Grid secundário · Verde | — | 0 | 255 | 1 | 147 | src/view/view.js:72 | visual/depuração |
-| `extras.colors.gridMinorB` | Grid secundário · Azul | — | 0 | 255 | 1 | 156 | src/view/view.js:72 | visual/depuração |
-| `extras.colors.impactR` | Impacto · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.impactG` | Impacto · Verde | — | 0 | 255 | 1 | 179 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.impactB` | Impacto · Azul | — | 0 | 255 | 1 | 97 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.clashR` | Clash · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.clashG` | Clash · Verde | — | 0 | 255 | 1 | 229 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.clashB` | Clash · Azul | — | 0 | 255 | 1 | 141 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.landingR` | Poeira ao aterrissar · Vermelho | — | 0 | 255 | 1 | 180 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.landingG` | Poeira ao aterrissar · Verde | — | 0 | 255 | 1 | 193 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.landingB` | Poeira ao aterrissar · Azul | — | 0 | 255 | 1 | 203 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.partialR` | Defesa parcial · Vermelho | — | 0 | 255 | 1 | 115 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.partialG` | Defesa parcial · Verde | — | 0 | 255 | 1 | 202 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.partialB` | Defesa parcial · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.perfectR` | Defesa perfeita · Vermelho | — | 0 | 255 | 1 | 157 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.perfectG` | Defesa perfeita · Verde | — | 0 | 255 | 1 | 255 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.perfectB` | Defesa perfeita · Azul | — | 0 | 255 | 1 | 210 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.invulnerableR` | Invulnerabilidade · Vermelho | — | 0 | 255 | 1 | 195 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.invulnerableG` | Invulnerabilidade · Verde | — | 0 | 255 | 1 | 215 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.invulnerableB` | Invulnerabilidade · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:185 | visual/depuração |
-| `extras.colors.shadowR` | Sombra · Vermelho | — | 0 | 255 | 1 | 19 | src/view/view.js:286 | visual/depuração |
-| `extras.colors.shadowG` | Sombra · Verde | — | 0 | 255 | 1 | 26 | src/view/view.js:286 | visual/depuração |
-| `extras.colors.shadowB` | Sombra · Azul | — | 0 | 255 | 1 | 32 | src/view/view.js:286 | visual/depuração |
-| `extras.colors.arrowR` | Seta frontal · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:311 | visual/depuração |
-| `extras.colors.arrowG` | Seta frontal · Verde | — | 0 | 255 | 1 | 255 | src/view/view.js:311 | visual/depuração |
-| `extras.colors.arrowB` | Seta frontal · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:311 | visual/depuração |
-| `extras.colors.arrowGuardR` | Seta defendendo · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:336 | visual/depuração |
-| `extras.colors.arrowGuardG` | Seta defendendo · Verde | — | 0 | 255 | 1 | 224 | src/view/view.js:336 | visual/depuração |
-| `extras.colors.arrowGuardB` | Seta defendendo · Azul | — | 0 | 255 | 1 | 100 | src/view/view.js:336 | visual/depuração |
-| `extras.colors.defeatedR` | Derrotado · Vermelho | — | 0 | 255 | 1 | 86 | src/view/view.js:332 | visual/depuração |
-| `extras.colors.defeatedG` | Derrotado · Verde | — | 0 | 255 | 1 | 97 | src/view/view.js:332 | visual/depuração |
-| `extras.colors.defeatedB` | Derrotado · Azul | — | 0 | 255 | 1 | 106 | src/view/view.js:332 | visual/depuração |
-| `extras.colors.glowGuardR` | Brilho da defesa · Vermelho | — | 0 | 255 | 1 | 84 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowGuardG` | Brilho da defesa · Verde | — | 0 | 255 | 1 | 80 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowGuardB` | Brilho da defesa · Azul | — | 0 | 255 | 1 | 51 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowInvulnR` | Brilho da invulnerabilidade · Vermelho | — | 0 | 255 | 1 | 49 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowInvulnG` | Brilho da invulnerabilidade · Verde | — | 0 | 255 | 1 | 91 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowInvulnB` | Brilho da invulnerabilidade · Azul | — | 0 | 255 | 1 | 88 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowRecoilR` | Brilho de recuo · Vermelho | — | 0 | 255 | 1 | 96 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowRecoilG` | Brilho de recuo · Verde | — | 0 | 255 | 1 | 48 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowRecoilB` | Brilho de recuo · Azul | — | 0 | 255 | 1 | 71 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowTackleR` | Brilho de tackle · Vermelho | — | 0 | 255 | 1 | 107 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowTackleG` | Brilho de tackle · Verde | — | 0 | 255 | 1 | 54 | src/view/view.js:333 | visual/depuração |
-| `extras.colors.glowTackleB` | Brilho de tackle · Azul | — | 0 | 255 | 1 | 4 | src/view/view.js:333 | visual/depuração |
+| `extras.colors.playerR` | Jogador azul · Vermelho | — | 0 | 255 | 1 | 53 | src/view/view.js:322 | visual/depuração |
+| `extras.colors.playerG` | Jogador azul · Verde | — | 0 | 255 | 1 | 137 | src/view/view.js:322 | visual/depuração |
+| `extras.colors.playerB` | Jogador azul · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:322 | visual/depuração |
+| `extras.colors.enemyR` | Adversário vermelho · Vermelho | — | 0 | 255 | 1 | 242 | src/view/view.js:322 | visual/depuração |
+| `extras.colors.enemyG` | Adversário vermelho · Verde | — | 0 | 255 | 1 | 81 | src/view/view.js:322 | visual/depuração |
+| `extras.colors.enemyB` | Adversário vermelho · Azul | — | 0 | 255 | 1 | 75 | src/view/view.js:322 | visual/depuração |
+| `extras.colors.floorR` | Piso · Vermelho | — | 0 | 255 | 1 | 96 | src/view/view.js:65 | visual/depuração |
+| `extras.colors.floorG` | Piso · Verde | — | 0 | 255 | 1 | 109 | src/view/view.js:65 | visual/depuração |
+| `extras.colors.floorB` | Piso · Azul | — | 0 | 255 | 1 | 116 | src/view/view.js:65 | visual/depuração |
+| `extras.colors.wallR` | Paredes · Vermelho | — | 0 | 255 | 1 | 202 | src/view/view.js:75 | visual/depuração |
+| `extras.colors.wallG` | Paredes · Verde | — | 0 | 255 | 1 | 212 | src/view/view.js:75 | visual/depuração |
+| `extras.colors.wallB` | Paredes · Azul | — | 0 | 255 | 1 | 219 | src/view/view.js:75 | visual/depuração |
+| `extras.colors.backgroundR` | Fundo · Vermelho | — | 0 | 255 | 1 | 32 | src/view/view.js:63 | visual/depuração |
+| `extras.colors.backgroundG` | Fundo · Verde | — | 0 | 255 | 1 | 43 | src/view/view.js:63 | visual/depuração |
+| `extras.colors.backgroundB` | Fundo · Azul | — | 0 | 255 | 1 | 53 | src/view/view.js:63 | visual/depuração |
+| `extras.colors.gridMajorR` | Grid principal · Vermelho | — | 0 | 255 | 1 | 196 | src/view/view.js:73 | visual/depuração |
+| `extras.colors.gridMajorG` | Grid principal · Verde | — | 0 | 255 | 1 | 209 | src/view/view.js:73 | visual/depuração |
+| `extras.colors.gridMajorB` | Grid principal · Azul | — | 0 | 255 | 1 | 217 | src/view/view.js:73 | visual/depuração |
+| `extras.colors.gridMinorR` | Grid secundário · Vermelho | — | 0 | 255 | 1 | 133 | src/view/view.js:73 | visual/depuração |
+| `extras.colors.gridMinorG` | Grid secundário · Verde | — | 0 | 255 | 1 | 147 | src/view/view.js:73 | visual/depuração |
+| `extras.colors.gridMinorB` | Grid secundário · Azul | — | 0 | 255 | 1 | 156 | src/view/view.js:73 | visual/depuração |
+| `extras.colors.impactR` | Impacto · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.impactG` | Impacto · Verde | — | 0 | 255 | 1 | 179 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.impactB` | Impacto · Azul | — | 0 | 255 | 1 | 97 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.clashR` | Clash · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.clashG` | Clash · Verde | — | 0 | 255 | 1 | 229 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.clashB` | Clash · Azul | — | 0 | 255 | 1 | 141 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.landingR` | Poeira ao aterrissar · Vermelho | — | 0 | 255 | 1 | 180 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.landingG` | Poeira ao aterrissar · Verde | — | 0 | 255 | 1 | 193 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.landingB` | Poeira ao aterrissar · Azul | — | 0 | 255 | 1 | 203 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.partialR` | Defesa parcial · Vermelho | — | 0 | 255 | 1 | 115 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.partialG` | Defesa parcial · Verde | — | 0 | 255 | 1 | 202 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.partialB` | Defesa parcial · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.perfectR` | Defesa perfeita · Vermelho | — | 0 | 255 | 1 | 157 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.perfectG` | Defesa perfeita · Verde | — | 0 | 255 | 1 | 255 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.perfectB` | Defesa perfeita · Azul | — | 0 | 255 | 1 | 210 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.invulnerableR` | Invulnerabilidade · Vermelho | — | 0 | 255 | 1 | 195 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.invulnerableG` | Invulnerabilidade · Verde | — | 0 | 255 | 1 | 215 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.invulnerableB` | Invulnerabilidade · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:187 | visual/depuração |
+| `extras.colors.shadowR` | Sombra · Vermelho | — | 0 | 255 | 1 | 19 | src/view/view.js:288 | visual/depuração |
+| `extras.colors.shadowG` | Sombra · Verde | — | 0 | 255 | 1 | 26 | src/view/view.js:288 | visual/depuração |
+| `extras.colors.shadowB` | Sombra · Azul | — | 0 | 255 | 1 | 32 | src/view/view.js:288 | visual/depuração |
+| `extras.colors.arrowR` | Seta frontal · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:323 | visual/depuração |
+| `extras.colors.arrowG` | Seta frontal · Verde | — | 0 | 255 | 1 | 255 | src/view/view.js:323 | visual/depuração |
+| `extras.colors.arrowB` | Seta frontal · Azul | — | 0 | 255 | 1 | 255 | src/view/view.js:323 | visual/depuração |
+| `extras.colors.arrowGuardR` | Seta defendendo · Vermelho | — | 0 | 255 | 1 | 255 | src/view/view.js:348 | visual/depuração |
+| `extras.colors.arrowGuardG` | Seta defendendo · Verde | — | 0 | 255 | 1 | 224 | src/view/view.js:348 | visual/depuração |
+| `extras.colors.arrowGuardB` | Seta defendendo · Azul | — | 0 | 255 | 1 | 100 | src/view/view.js:348 | visual/depuração |
+| `extras.colors.defeatedR` | Derrotado · Vermelho | — | 0 | 255 | 1 | 86 | src/view/view.js:344 | visual/depuração |
+| `extras.colors.defeatedG` | Derrotado · Verde | — | 0 | 255 | 1 | 97 | src/view/view.js:344 | visual/depuração |
+| `extras.colors.defeatedB` | Derrotado · Azul | — | 0 | 255 | 1 | 106 | src/view/view.js:344 | visual/depuração |
+| `extras.colors.glowGuardR` | Brilho da defesa · Vermelho | — | 0 | 255 | 1 | 84 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowGuardG` | Brilho da defesa · Verde | — | 0 | 255 | 1 | 80 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowGuardB` | Brilho da defesa · Azul | — | 0 | 255 | 1 | 51 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowInvulnR` | Brilho da invulnerabilidade · Vermelho | — | 0 | 255 | 1 | 49 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowInvulnG` | Brilho da invulnerabilidade · Verde | — | 0 | 255 | 1 | 91 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowInvulnB` | Brilho da invulnerabilidade · Azul | — | 0 | 255 | 1 | 88 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowRecoilR` | Brilho de recuo · Vermelho | — | 0 | 255 | 1 | 96 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowRecoilG` | Brilho de recuo · Verde | — | 0 | 255 | 1 | 48 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowRecoilB` | Brilho de recuo · Azul | — | 0 | 255 | 1 | 71 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowTackleR` | Brilho de tackle · Vermelho | — | 0 | 255 | 1 | 107 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowTackleG` | Brilho de tackle · Verde | — | 0 | 255 | 1 | 54 | src/view/view.js:345 | visual/depuração |
+| `extras.colors.glowTackleB` | Brilho de tackle · Azul | — | 0 | 255 | 1 | 4 | src/view/view.js:345 | visual/depuração |
 
 ## Modos de jogo
 
@@ -806,9 +806,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.bindings.dodge` | Esquiva (C) — segure para sprint | seletor | 0 | 50 | 1 | 5 | src/ui/input.js:96 | visual/depuração |
 | `extras.bindings.defend` | Defesa (D) | seletor | 0 | 50 | 1 | 6 | src/ui/input.js:96 | visual/depuração |
 | `extras.bindings.lock` | Fixar alvo | seletor | 0 | 50 | 1 | 7 | src/ui/input.js:63 | visual/depuração |
-| `extras.bindings.pause` | Pausar | seletor | 0 | 50 | 1 | 8 | src/main.js:88 | visual/depuração |
-| `extras.bindings.restart` | Reiniciar | seletor | 0 | 50 | 1 | 9 | src/main.js:89 | visual/depuração |
-| `extras.bindings.debug` | Depuração | seletor | 0 | 50 | 1 | 10 | src/main.js:90 | visual/depuração |
+| `extras.bindings.pause` | Pausar | seletor | 0 | 50 | 1 | 8 | src/main.js:89 | visual/depuração |
+| `extras.bindings.restart` | Reiniciar | seletor | 0 | 50 | 1 | 9 | src/main.js:90 | visual/depuração |
+| `extras.bindings.debug` | Depuração | seletor | 0 | 50 | 1 | 10 | src/main.js:91 | visual/depuração |
 | `extras.bindings.skill1` | Movimento especial 1 | seletor | 0 | 50 | 1 | 11 | src/ui/input.js:95 | visual/depuração |
 | `extras.bindings.skill2` | Movimento especial 2 | seletor | 0 | 50 | 1 | 12 | src/ui/input.js:95 | visual/depuração |
 | `extras.bindings.skill3` | Movimento especial 3 | seletor | 0 | 50 | 1 | 49 | src/ui/input.js:95 | visual/depuração |
@@ -827,18 +827,18 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.toggles.enableLaunch` | Permitir lançamento aéreo | liga/desliga | 0 | 1 | 1 | 1 | src/sim/combat.js:201 | muda · tackle |
 | `extras.toggles.enableVault` | Permitir salto sobre o inimigo | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-update.js:413 | muda · slam |
 | `extras.toggles.enableWallBounce` | Permitir ricochete | liga/desliga | 0 | 1 | 1 | 1 | src/sim/map/map-collision.js:30 | muda · wallBounce |
-| `extras.toggles.enableAIAttack` | IA pode atacar | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ai.js:154 | pendente (combate) |
-| `extras.toggles.enableAIReactive` | IA reage a investidas | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ai.js:97 | pendente (combate) |
+| `extras.toggles.enableAIAttack` | IA pode atacar | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ai.js:158 | pendente (combate) |
+| `extras.toggles.enableAIReactive` | IA reage a investidas | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ai.js:101 | pendente (combate) |
 | `extras.toggles.enableCameraFollow` | Câmera segue jogador | liga/desliga | 0 | 1 | 1 | 1 | src/view/rig.js:33 | visual/depuração |
 | `extras.toggles.enableCameraRecenter` | Câmera recentraliza sozinha | liga/desliga | 0 | 1 | 1 | 1 | src/view/rig.js:29 | visual/depuração |
-| `extras.toggles.enablePlayerAI` | IA controla o jogador azul | liga/desliga | 0 | 1 | 1 | 0 | src/app/live-panels.js:36 | pendente (combate) |
-| `extras.toggles.showHitboxes` | Mostrar hitboxes | liga/desliga | 0 | 1 | 1 | 0 | src/app/live-panels.js:45 | visual/depuração |
+| `extras.toggles.enablePlayerAI` | IA controla o jogador azul | liga/desliga | 0 | 1 | 1 | 0 | src/app/live-panels.js:37 | pendente (combate) |
+| `extras.toggles.showHitboxes` | Mostrar hitboxes | liga/desliga | 0 | 1 | 1 | 0 | src/app/live-panels.js:46 | visual/depuração |
 | `extras.toggles.showAttackVectors` | Mostrar vetores de ataque | liga/desliga | 0 | 1 | 1 | 0 | src/app/wire-controls.js:31 | visual/depuração |
-| `extras.toggles.enableHitstop` | Hitstop: pausa curta no impacto | liga/desliga | 0 | 1 | 1 | 1 | src/sim/game.js:111 | muda · tackle |
+| `extras.toggles.enableHitstop` | Hitstop: pausa curta no impacto | liga/desliga | 0 | 1 | 1 | 1 | src/sim/game.js:112 | muda · tackle |
 | `extras.toggles.integerDamage` | Dano sempre inteiro (arredonda para baixo) | — | 0 | 10 | 0.05 | 1 | src/sim/damage-rule.js:9 | pendente (combate) |
 | `extras.toggles.enableCounterBonus` | Bônus do contra-ataque (esquiva e defesa perfeitas) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/combat.js:143 | pendente (combate) |
 | `extras.toggles.enableLandingSkid` | Deslize ao aterrissar | liga/desliga | 0 | 1 | 1 | 1 | src/sim/physics.js:245 | muda · tackle |
-| `extras.toggles.enableEnemyAI` | IA do oponente | liga/desliga | 0 | 1 | 1 | 1 | src/app/live-panels.js:46 | muda · duel |
+| `extras.toggles.enableEnemyAI` | IA do oponente | liga/desliga | 0 | 1 | 1 | 1 | src/app/live-panels.js:47 | muda · duel |
 | `extras.toggles.enableSprint` | Permitir sprint (C mantido) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-update.js:249 | muda · sprint |
 | `extras.toggles.enemyManual` | Controle manual do vermelho | liga/desliga | 0 | 1 | 1 | 0 | src/app/match-flow.js:115 | pendente (combate) |
 | `extras.toggles.enableAnimationCombatWindows` | Janelas de combate da animação | liga/desliga | 0 | 1 | 1 | 0 | src/sim/combat.js:25 | pendente (combate) |
@@ -850,7 +850,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.toggles.enableFlightSlam` | Mergulho no ar para quem foi lançado (X) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/controller/ctrl-update.js:54 | pendente (combate) |
 | `extras.toggles.enableTackleFeint` | Finta do tackle (C ou D cancelam) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-tackle.js:55 | muda · feint |
 | `extras.toggles.enableInfiniteStamina` | Stamina infinita (nunca gasta) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/controller/ctrl-basico.js:26 | muda · tackle |
-| `extras.toggles.enablePassives` | Sistema de passivas (catálogo experimental) | liga/desliga | 0 | 1 | 1 | 1 | src/app/main-loop.js:30 | pendente (combate) |
+| `extras.toggles.enablePassives` | Sistema de passivas (catálogo experimental) | liga/desliga | 0 | 1 | 1 | 1 | src/app/main-loop.js:31 | pendente (combate) |
 
 ## Smear de Membros
 
@@ -860,8 +860,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.visual.smear.smearDurationFrames` | Persistência da lâmina | quadros ( ms) | 1 | 4 | 1 | 3 | src/view/smear-mesh.js:134 (consumerWeak) | visual/depuração |
 | `extras.visual.smear.smearMinVelocity` | Velocidade mínima | m/s | 5 | 25 | 0.5 | 12 | src/view/smear-mesh.js:141 (consumerWeak) | visual/depuração |
 | `extras.visual.smear.smearWidth` | Largura da lâmina | m | 0.05 | 0.4 | 0.01 | 0.24 | src/view/smear-mesh.js:135 (consumerWeak) | visual/depuração |
-| `extras.visual.smear.smearColorMode` | Cor da lâmina | seletor | 0 | 2 | 1 | 0 | src/view/smear-mesh.js:125 (consumerWeak) | visual/depuração |
-| `extras.visual.smear.smearOpacity` | Opacidade | % | 0.2 | 1 | 0.05 | 1 | src/view/smear-mesh.js:127 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearColorMode` | Cor da lâmina | seletor | 0 | 2 | 1 | 1 | src/view/smear-mesh.js:125 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearOpacity` | Opacidade | % | 0.2 | 1 | 0.05 | 0.75 | src/view/smear-mesh.js:127 (consumerWeak) | visual/depuração |
 | `extras.visual.smear.smearPlBoost` | Reforço por Power Level | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:135 (consumerWeak) | visual/depuração |
 | `extras.visual.smear.smearOnDodge` | Smear também na esquiva (C) | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:133 (consumerWeak) | visual/depuração |
 
@@ -871,7 +871,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `ledge.mode` | Modo do agarre de borda | seletor | 0 | 2 | 1 | 1 | src/sim/ledge.js:94 | pendente (ledge) |
 | `ledge.objects` | Aceitar caixas e destrutíveis | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ledge.js:25 | muda · ledgeClimb |
-| `ledge.hint` | Realçar a borda agarrável | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:252 | pendente (ledge) |
+| `ledge.hint` | Realçar a borda agarrável | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:259 | pendente (ledge) |
 | `ledge.reach` | Alcance horizontal | m | 0 | 1.5 | 0.01 | 0.35 | src/sim/ledge.js:42 | pendente (ledge) |
 | `ledge.reachUp` | Altura máxima da borda acima dos pés | m | 0.2 | 3 | 0.01 | 1.25 | src/sim/ledge.js:44 | muda · ledgeClimb |
 | `ledge.minUp` | Altura mínima da borda acima dos pés | m | 0 | 2 | 0.01 | 0.6 | src/sim/ledge.js:44 | muda · ledgeClimb |
@@ -893,7 +893,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `ledge.dropPush` | Empurrão ao soltar | m/s | 0 | 6 | 0.1 | 1.2 | src/sim/ledge.js:63 | muda · ledgeDrop |
 | `ledge.cooldown` | Intervalo até agarrar de novo | s | 0 | 3 | 0.05 | 0.5 | src/sim/ledge.js:62 | pendente (ledge) |
 | `ledge.hurtDrops` | Golpe derruba da borda | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ledge.js:110 | pendente (ledge) |
-| `ledge.aiClimb` | IA sobe depois de | s | 0 | 5 | 0.05 | 0.35 | src/sim/game.js:75 | pendente (ledge) |
+| `ledge.aiClimb` | IA sobe depois de | s | 0 | 5 | 0.05 | 0.35 | src/sim/game.js:76 | pendente (ledge) |
 
 ## Squash & Stretch do Tackle
 
@@ -901,7 +901,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `extras.visual.squashStretch.enableSquashStretch` | Deformação elástica do Tackle | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:15 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.squashOnDodge` | Squash & stretch também na esquiva (C) | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:20 (consumerWeak) | visual/depuração |
-| `extras.visual.squashStretch.dodgeSquashScale` | Intensidade na esquiva | % | 0 | 2 | 0.05 | 0.8 | src/view/squash-stretch.js:20 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.dodgeSquashScale` | Intensidade na esquiva | % | 0 | 2 | 0.05 | 1.3 | src/view/squash-stretch.js:20 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.squashIntensity` | Compressão no arranque | % | 0 | 0.3 | 0.01 | 0.17 | src/view/squash-stretch.js:26 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.stretchIntensity` | Alongamento no impulso | % | 0 | 0.4 | 0.01 | 0.31 | src/view/squash-stretch.js:27 (consumerWeak) | visual/depuração |
 | `extras.visual.squashStretch.squashWindow` | Janela de compressão | ms | 0 | 150 | 1 | 60 | src/view/squash-stretch.js:24 (consumerWeak) | visual/depuração |
@@ -928,7 +928,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `vfx.master.enabled` | Efeitos visuais (todos) | liga/desliga | 0 | 1 | 1 | 1 | src/ui/perf-panel.js:57 | visual/depuração |
 | `vfx.master.maxParticles` | Limite de partículas simultâneas | — | 100 | 4000 | 50 | 1400 | src/sim/graphics.js:8 | visual/depuração |
-| `vfx.master.debugLog` | Registrar motivo de cada disparo | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:167 | visual/depuração |
+| `vfx.master.debugLog` | Registrar motivo de cada disparo | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:174 | visual/depuração |
 | `vfx.master.legacy` | Efeitos legados do v6 (partículas em caixa e tremor antigo) | liga/desliga | 0 | 1 | 1 | 0 | src/ui/perf-panel.js:59 | visual/depuração |
 | `vfx.master.noFlash` | Sem flashes (acessibilidade) | — | 0 | 0.5 | 0.001 | 0 | src/sim/moves/bullet-punch/bullet-punch.vfx.js:42 | visual/depuração |
 | `vfx.master.reduceMotion` | Reduzir movimento (acessibilidade) | — | 0 | 0.5 | 0.001 | 0 | src/sim/moves/bullet-punch/bullet-punch.vfx.js:41 | visual/depuração |
@@ -1137,7 +1137,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `vfx.hit.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:41 | visual/depuração |
+| `vfx.hit.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:48 | visual/depuração |
 | `vfx.hit.variant` | Variante | seletor | 0 | 3 | 1 | 1 | src/view/solid-fx.js:11 | visual/depuração |
 | `vfx.hit.size` | Tamanho | × | 0.2 | 3 | 0.01 | 2.23 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.hit.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.71 | src/view/solid-fx.js:63 | visual/depuração |
@@ -1145,33 +1145,33 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.hit.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 2.63 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.hit.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 6 | src/view/solid-fx.js:243 | visual/depuração |
 | `vfx.hit.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.95 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.hit.color` | Cor | cor | 0 | 16777200 | 1 | 16777200 | src/view/vfx.js:41 | visual/depuração |
+| `vfx.hit.color` | Cor | cor | 0 | 16777200 | 1 | 16777200 | src/view/vfx.js:48 | visual/depuração |
 | `vfx.hit.glow` | Brilho | × | 0.2 | 4 | 0.01 | 1.2 | src/view/solid-fx.js:447 | visual/depuração |
 | `vfx.hit.fade` | Dissipação | — | 0.3 | 4 | 0.01 | 2.58 | src/view/solid-fx.js:291 | visual/depuração |
-| `vfx.hit.color2` | Cor secundária | cor | 0 | 16777200 | 1 | 16773600 | src/view/vfx.js:41 | visual/depuração |
-| `vfx.hit.cone` | Abertura do cone de fagulhas (variante D) | ° | 0 | 1.4 | 0.01 | 0.55 | src/view/vfx.js:429 | visual/depuração |
-| `vfx.hit.debris` | Detritos (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:435 | visual/depuração |
+| `vfx.hit.color2` | Cor secundária | cor | 0 | 16777200 | 1 | 16773600 | src/view/vfx.js:48 | visual/depuração |
+| `vfx.hit.cone` | Abertura do cone de fagulhas (variante D) | ° | 0 | 1.4 | 0.01 | 0.55 | src/view/vfx.js:436 | visual/depuração |
+| `vfx.hit.debris` | Detritos (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:442 | visual/depuração |
 | `vfx.hit.dust` | Poeira rente ao chão (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/solid-fx.js:263 | visual/depuração |
 | `vfx.hit.crack` | Rachadura no chão (variante D) | × | 0 | 2 | 0.05 | 1 | src/view/vfx/runtime.js:261 | visual/depuração |
-| `vfx.hit.byDamage` | Escala pelo dano e lançamento reais (variante D) | % | 0 | 1 | 0.01 | 1 | src/view/vfx.js:417 | visual/depuração |
-| `vfx.hit.coreOn` | Núcleo de brilho — o círculo central (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:422 | visual/depuração |
-| `vfx.hit.coreSize` | Tamanho do núcleo de brilho (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:422 | visual/depuração |
-| `vfx.hit.bladeOn` | Lâmina de luz na direção do golpe (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:423 | visual/depuração |
-| `vfx.hit.bladeLength` | Comprimento da lâmina de luz (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:423 | visual/depuração |
-| `vfx.hit.bladeWidth` | Espessura da lâmina de luz (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:423 | visual/depuração |
-| `vfx.hit.ringPlaneOn` | Anel de pressão, o círculo vertical (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:425 | visual/depuração |
-| `vfx.hit.ringPlaneSize` | Expansão do anel de pressão (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:425 | visual/depuração |
-| `vfx.hit.ringGroundOn` | Anel no chão (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:426 | visual/depuração |
-| `vfx.hit.ringGroundSize` | Expansão do anel no chão (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:426 | visual/depuração |
-| `vfx.hit.ringOpacity` | Opacidade dos anéis (variante D) | × | 0 | 2 | 0.05 | 1 | src/view/vfx.js:420 | visual/depuração |
-| `vfx.hit.sparksOn` | Fagulhas em risco (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:431 | visual/depuração |
-| `vfx.hit.sparkLength` | Comprimento das fagulhas (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:431 | visual/depuração |
-| `vfx.hit.sparkWidth` | Espessura das fagulhas (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:431 | visual/depuração |
-| `vfx.hit.embersOn` | Faíscas que caem (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:432 | visual/depuração |
-| `vfx.hit.emberSize` | Tamanho das faíscas que caem (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:432 | visual/depuração |
-| `vfx.hit.backSplash` | Respingo para trás (variante D) | % | 0 | 1 | 0.01 | 0.25 | src/view/vfx.js:429 | visual/depuração |
-| `vfx.hit.debrisSize` | Tamanho dos detritos (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:438 | visual/depuração |
-| `vfx.hit.dustSize` | Tamanho da poeira (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:442 | visual/depuração |
+| `vfx.hit.byDamage` | Escala pelo dano e lançamento reais (variante D) | % | 0 | 1 | 0.01 | 1 | src/view/vfx.js:424 | visual/depuração |
+| `vfx.hit.coreOn` | Núcleo de brilho — o círculo central (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:429 | visual/depuração |
+| `vfx.hit.coreSize` | Tamanho do núcleo de brilho (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:429 | visual/depuração |
+| `vfx.hit.bladeOn` | Lâmina de luz na direção do golpe (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:430 | visual/depuração |
+| `vfx.hit.bladeLength` | Comprimento da lâmina de luz (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:430 | visual/depuração |
+| `vfx.hit.bladeWidth` | Espessura da lâmina de luz (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:430 | visual/depuração |
+| `vfx.hit.ringPlaneOn` | Anel de pressão, o círculo vertical (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:432 | visual/depuração |
+| `vfx.hit.ringPlaneSize` | Expansão do anel de pressão (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:432 | visual/depuração |
+| `vfx.hit.ringGroundOn` | Anel no chão (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:433 | visual/depuração |
+| `vfx.hit.ringGroundSize` | Expansão do anel no chão (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:433 | visual/depuração |
+| `vfx.hit.ringOpacity` | Opacidade dos anéis (variante D) | × | 0 | 2 | 0.05 | 1 | src/view/vfx.js:427 | visual/depuração |
+| `vfx.hit.sparksOn` | Fagulhas em risco (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:438 | visual/depuração |
+| `vfx.hit.sparkLength` | Comprimento das fagulhas (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:438 | visual/depuração |
+| `vfx.hit.sparkWidth` | Espessura das fagulhas (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:438 | visual/depuração |
+| `vfx.hit.embersOn` | Faíscas que caem (variante D) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:439 | visual/depuração |
+| `vfx.hit.emberSize` | Tamanho das faíscas que caem (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:439 | visual/depuração |
+| `vfx.hit.backSplash` | Respingo para trás (variante D) | % | 0 | 1 | 0.01 | 0.25 | src/view/vfx.js:436 | visual/depuração |
+| `vfx.hit.debrisSize` | Tamanho dos detritos (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:445 | visual/depuração |
+| `vfx.hit.dustSize` | Tamanho da poeira (variante D) | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:449 | visual/depuração |
 
 ## VFX · Speedlines da esquiva
 
@@ -1180,14 +1180,14 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.dodge.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.dodge.variant` | Variante | seletor | 0 | 2 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
 | `vfx.dodge.count` | Quantidade de partículas | — | 1 | 80 | 1 | 6 | src/view/solid-fx.js:67 | visual/depuração |
-| `vfx.dodge.length` | Comprimento | m | 0.1 | 4 | 0.01 | 1.4 | src/view/vfx.js:261 | visual/depuração |
+| `vfx.dodge.length` | Comprimento | m | 0.1 | 4 | 0.01 | 1.4 | src/view/vfx.js:268 | visual/depuração |
 | `vfx.dodge.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.22 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.dodge.width` | Largura | m | 0.01 | 0.4 | 0.005 | 0.07 | src/view/vfx.js:261 | visual/depuração |
+| `vfx.dodge.width` | Largura | m | 0.01 | 0.4 | 0.005 | 0.07 | src/view/vfx.js:268 | visual/depuração |
 | `vfx.dodge.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.7 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.dodge.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.45 | src/view/vfx.js:450 | visual/depuração |
-| `vfx.dodge.interval` | Intervalo | s | 0.005 | 0.4 | 0.005 | 0.025 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.dodge.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/vfx.js:261 | visual/depuração |
-| `vfx.dodge.color` | Cor | cor | 0 | 16777200 | 1 | 16777200 | src/view/vfx.js:261 | visual/depuração |
+| `vfx.dodge.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.45 | src/view/vfx.js:457 | visual/depuração |
+| `vfx.dodge.interval` | Intervalo | s | 0.005 | 0.4 | 0.005 | 0.025 | src/view/vfx.js:346 | visual/depuração |
+| `vfx.dodge.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/vfx.js:268 | visual/depuração |
+| `vfx.dodge.color` | Cor | cor | 0 | 16777200 | 1 | 16777200 | src/view/vfx.js:268 | visual/depuração |
 
 ## VFX · Speedlines do sprint
 
@@ -1195,14 +1195,14 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `vfx.sprint.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.sprint.variant` | Variante | seletor | 0 | 2 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
-| `vfx.sprint.density` | Densidade | × | 0.1 | 4 | 0.01 | 1 | src/view/vfx.js:339 | visual/depuração |
+| `vfx.sprint.density` | Densidade | × | 0.1 | 4 | 0.01 | 1 | src/view/vfx.js:346 | visual/depuração |
 | `vfx.sprint.length` | Comprimento | m | 0.1 | 4 | 0.01 | 1.1 | src/view/solid-fx.js:146 | visual/depuração |
 | `vfx.sprint.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 9 | src/view/solid-fx.js:243 | visual/depuração |
-| `vfx.sprint.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.5 | src/view/vfx.js:450 | visual/depuração |
+| `vfx.sprint.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.5 | src/view/vfx.js:457 | visual/depuração |
 | `vfx.sprint.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.sprint.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.55 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.sprint.color` | Cor | cor | 0 | 16777200 | 1 | 14218500 | src/view/solid-fx.js:166 | visual/depuração |
-| `vfx.sprint.frequency` | Frequência | /s | 1 | 80 | 1 | 28 | src/view/vfx.js:339 | visual/depuração |
+| `vfx.sprint.frequency` | Frequência | /s | 1 | 80 | 1 | 28 | src/view/vfx.js:346 | visual/depuração |
 
 ## VFX · Bloqueio normal
 
@@ -1210,13 +1210,13 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `vfx.block.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.block.variant` | Variante | seletor | 0 | 3 | 1 | 2 | src/view/solid-fx.js:11 | visual/depuração |
-| `vfx.block.size` | Tamanho | × | 0.2 | 3 | 0.01 | 1 | src/view/vfx.js:331 | visual/depuração |
-| `vfx.block.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.75 | src/view/vfx.js:331 | visual/depuração |
-| `vfx.block.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.3 | src/view/vfx.js:331 | visual/depuração |
-| `vfx.block.color` | Cor | cor | 0 | 16777200 | 1 | 7588610 | src/view/vfx.js:331 | visual/depuração |
-| `vfx.block.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1.22 | src/view/vfx.js:331 | visual/depuração |
-| `vfx.block.count` | Quantidade de partículas | — | 1 | 80 | 1 | 10 | src/view/vfx.js:390 | visual/depuração |
-| `vfx.block.expansion` | Expansão | × | 0 | 3 | 0.01 | 1 | src/view/vfx.js:331 | visual/depuração |
+| `vfx.block.size` | Tamanho | × | 0.2 | 3 | 0.01 | 1 | src/view/vfx.js:338 | visual/depuração |
+| `vfx.block.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.75 | src/view/vfx.js:338 | visual/depuração |
+| `vfx.block.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.3 | src/view/vfx.js:338 | visual/depuração |
+| `vfx.block.color` | Cor | cor | 0 | 16777200 | 1 | 7588610 | src/view/vfx.js:338 | visual/depuração |
+| `vfx.block.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1.22 | src/view/vfx.js:338 | visual/depuração |
+| `vfx.block.count` | Quantidade de partículas | — | 1 | 80 | 1 | 10 | src/view/vfx.js:397 | visual/depuração |
+| `vfx.block.expansion` | Expansão | × | 0 | 3 | 0.01 | 1 | src/view/vfx.js:338 | visual/depuração |
 
 ## VFX · Bloqueio perfeito
 
@@ -1233,28 +1233,28 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.perfect.color` | Cor | cor | 0 | 16777200 | 1 | 10354600 | src/view/solid-fx.js:166 | visual/depuração |
 | `vfx.perfect.color2` | Cor secundária | cor | 0 | 16777200 | 1 | 16777200 | src/view/solid-fx.js:230 | visual/depuração |
 | `vfx.perfect.fade` | Dissipação | — | 0.3 | 4 | 0.01 | 1.4 | src/view/solid-fx.js:291 | visual/depuração |
-| `vfx.perfect.flash` | Intensidade do flash | % | 0 | 1 | 0.01 | 0.55 | src/view/vfx.js:154 | visual/depuração |
-| `vfx.perfect.freeze` | Congelamento visual (só poses e efeito) | ms | 0 | 0.25 | 0.005 | 0.07 | src/view/vfx.js:526 | visual/depuração |
+| `vfx.perfect.flash` | Intensidade do flash | % | 0 | 1 | 0.01 | 0.55 | src/view/vfx.js:161 | visual/depuração |
+| `vfx.perfect.freeze` | Congelamento visual (só poses e efeito) | ms | 0 | 0.25 | 0.005 | 0.07 | src/view/vfx.js:43 | visual/depuração |
 
 ## VFX · Colisão com o chão (knockback)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.ground.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
-| `vfx.ground.variant` | Variante | seletor | 0 | 3 | 1 | 3 | src/view/vfx.js:341 | visual/depuração |
-| `vfx.ground.radius` | Raio | m | 0.2 | 4 | 0.01 | 2.9 | src/view/vfx.js:306 | visual/depuração |
-| `vfx.ground.density` | Densidade | × | 0.1 | 4 | 0.01 | 1.52 | src/view/vfx.js:339 | visual/depuração |
+| `vfx.ground.variant` | Variante | seletor | 0 | 3 | 1 | 3 | src/view/vfx.js:348 | visual/depuração |
+| `vfx.ground.radius` | Raio | m | 0.2 | 4 | 0.01 | 2.9 | src/view/vfx.js:313 | visual/depuração |
+| `vfx.ground.density` | Densidade | × | 0.1 | 4 | 0.01 | 1.52 | src/view/vfx.js:346 | visual/depuração |
 | `vfx.ground.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.82 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.ground.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1.57 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.ground.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 3.5 | src/view/solid-fx.js:243 | visual/depuração |
 | `vfx.ground.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.85 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.ground.particleSize` | Tamanho das partículas | m | 0.02 | 1 | 0.01 | 0.22 | src/view/vfx.js:552 | visual/depuração |
-| `vfx.ground.elevation` | Elevação | × | 0 | 3 | 0.01 | 0.5 | src/view/vfx.js:552 | visual/depuração |
+| `vfx.ground.particleSize` | Tamanho das partículas | m | 0.02 | 1 | 0.01 | 0.22 | src/view/vfx.js:559 | visual/depuração |
+| `vfx.ground.elevation` | Elevação | × | 0 | 3 | 0.01 | 0.5 | src/view/vfx.js:559 | visual/depuração |
 | `vfx.ground.color` | Cor | cor | 0 | 16777200 | 1 | 15134200 | src/view/solid-fx.js:166 | visual/depuração |
 | `vfx.ground.minImpact` | Impacto mínimo para disparar | m/s | 0 | 15 | 0.1 | 2 | src/view/quarks/bridge.js:79 | visual/depuração |
-| `vfx.ground.mixA` | Combinado (D): poeira (A) | × | 0 | 2 | 0.01 | 1 | src/view/vfx.js:563 | visual/depuração |
-| `vfx.ground.mixB` | Combinado (D): anel (B) | × | 0 | 2 | 0.01 | 0.8 | src/view/vfx.js:563 | visual/depuração |
-| `vfx.ground.mixC` | Combinado (D): estilhaços (C) | × | 0 | 2 | 0.01 | 0.6 | src/view/vfx.js:563 | visual/depuração |
+| `vfx.ground.mixA` | Combinado (D): poeira (A) | × | 0 | 2 | 0.01 | 1 | src/view/vfx.js:570 | visual/depuração |
+| `vfx.ground.mixB` | Combinado (D): anel (B) | × | 0 | 2 | 0.01 | 0.8 | src/view/vfx.js:570 | visual/depuração |
+| `vfx.ground.mixC` | Combinado (D): estilhaços (C) | × | 0 | 2 | 0.01 | 0.6 | src/view/vfx.js:570 | visual/depuração |
 
 ## VFX · Pouso do pulo regular
 
@@ -1262,16 +1262,16 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `vfx.jumpLanding.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.jumpLanding.variant` | Variante | seletor | 0 | 0 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
-| `vfx.jumpLanding.radius` | Raio | m | 0.2 | 4 | 0.01 | 1.3 | src/view/vfx.js:306 | visual/depuração |
+| `vfx.jumpLanding.radius` | Raio | m | 0.2 | 4 | 0.01 | 1.3 | src/view/vfx.js:313 | visual/depuração |
 | `vfx.jumpLanding.rings` | Quantidade de ondas (pouso do pulo) | — | 1 | 3 | 1 | 1 | src/view/vfx/runtime.js:382 | visual/depuração |
-| `vfx.jumpLanding.expansion` | Expansão | × | 0 | 3 | 0.01 | 1 | src/view/vfx.js:331 | visual/depuração |
+| `vfx.jumpLanding.expansion` | Expansão | × | 0 | 3 | 0.01 | 1 | src/view/vfx.js:338 | visual/depuração |
 | `vfx.jumpLanding.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.35 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.jumpLanding.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1.4 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.jumpLanding.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.8 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.jumpLanding.color` | Cor | cor | 0 | 16777200 | 1 | 14674400 | src/view/solid-fx.js:166 | visual/depuração |
 | `vfx.jumpLanding.fade` | Dissipação | — | 0.3 | 4 | 0.01 | 1.4 | src/view/solid-fx.js:291 | visual/depuração |
-| `vfx.jumpLanding.minImpact` | Impacto mínimo para disparar | m/s | 0 | 15 | 0.1 | 1.5 | src/view/vfx.js:244 | visual/depuração |
-| `vfx.jumpLanding.fallScale` | Escala pela velocidade da queda (pouso do pulo) | % | 0 | 1 | 0.01 | 0.5 | src/view/vfx.js:370 | visual/depuração |
+| `vfx.jumpLanding.minImpact` | Impacto mínimo para disparar | m/s | 0 | 15 | 0.1 | 1.5 | src/view/vfx.js:251 | visual/depuração |
+| `vfx.jumpLanding.fallScale` | Escala pela velocidade da queda (pouso do pulo) | % | 0 | 1 | 0.01 | 0.5 | src/view/vfx.js:377 | visual/depuração |
 
 ## VFX · Impacto vertical em paredes e objetos
 
@@ -1287,26 +1287,26 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.wallImpact.color2` | Cor secundária | cor | 0 | 16777200 | 1 | 16777200 | src/view/solid-fx.js:230 | visual/depuração |
 | `vfx.wallImpact.glow` | Brilho | × | 0.2 | 4 | 0.01 | 1.2 | src/view/solid-fx.js:447 | visual/depuração |
 | `vfx.wallImpact.fade` | Dissipação | — | 0.3 | 4 | 0.01 | 1.6 | src/view/solid-fx.js:291 | visual/depuração |
-| `vfx.wallImpact.minSpeed` | Velocidade mínima do choque | m/s | 0 | 15 | 0.1 | 3 | src/view/vfx.js:292 | visual/depuração |
-| `vfx.wallImpact.cooldown` | Intervalo entre impactos do mesmo lutador | s | 0 | 2 | 0.05 | 0.35 | src/view/vfx.js:293 | visual/depuração |
-| `vfx.wallImpact.speedScale` | Escala pela velocidade do choque | % | 0 | 1 | 0.01 | 0.6 | src/view/vfx.js:377 | visual/depuração |
-| `vfx.wallImpact.arenaOn` | Parede da arena (extremidades) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:290 | visual/depuração |
-| `vfx.wallImpact.arenaScale` | Escala do impacto na parede da arena | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:377 | visual/depuração |
-| `vfx.wallImpact.arenaHeight` | Altura equivalente da parede da arena | m | 0.2 | 6 | 0.1 | 2 | src/view/vfx.js:304 | visual/depuração |
-| `vfx.wallImpact.objectsOn` | Objetos do cenário (pilares, caixas, plataformas, destrutíveis) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:290 | visual/depuração |
-| `vfx.wallImpact.objectScale` | Escala do impacto em objetos | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:377 | visual/depuração |
-| `vfx.wallImpact.sizeInfluence` | Influência do tamanho do objeto | % | 0 | 1 | 0.01 | 1 | src/view/vfx.js:377 | visual/depuração |
-| `vfx.wallImpact.refSize` | Tamanho de referência do objeto | m | 0.5 | 6 | 0.1 | 2 | src/view/vfx.js:303 | visual/depuração |
-| `vfx.wallImpact.wallRing` | Onda circular no plano da parede | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:380 | visual/depuração |
-| `vfx.wallImpact.wallRingSize` | Expansão da onda da parede | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:380 | visual/depuração |
-| `vfx.wallImpact.wallStreak` | Faixa vertical de luz | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:381 | visual/depuração |
-| `vfx.wallImpact.wallStreakLength` | Comprimento da faixa vertical | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:381 | visual/depuração |
-| `vfx.wallImpact.wallSparks` | Faíscas ao longo da parede | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:382 | visual/depuração |
-| `vfx.wallImpact.wallSparkCount` | Quantidade de faíscas da parede | — | 0 | 40 | 1 | 10 | src/view/vfx.js:382 | visual/depuração |
-| `vfx.wallImpact.wallSparkLength` | Comprimento das faíscas da parede | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:382 | visual/depuração |
-| `vfx.wallImpact.wallDust` | Poeira que sobe pela parede | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:386 | visual/depuração |
-| `vfx.wallImpact.wallDustAmount` | Quantidade de poeira da parede | × | 0 | 4 | 0.05 | 1 | src/view/vfx.js:386 | visual/depuração |
-| `vfx.wallImpact.wallDustRise` | Subida da poeira | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:386 | visual/depuração |
+| `vfx.wallImpact.minSpeed` | Velocidade mínima do choque | m/s | 0 | 15 | 0.1 | 3 | src/view/vfx.js:299 | visual/depuração |
+| `vfx.wallImpact.cooldown` | Intervalo entre impactos do mesmo lutador | s | 0 | 2 | 0.05 | 0.35 | src/view/vfx.js:300 | visual/depuração |
+| `vfx.wallImpact.speedScale` | Escala pela velocidade do choque | % | 0 | 1 | 0.01 | 0.6 | src/view/vfx.js:384 | visual/depuração |
+| `vfx.wallImpact.arenaOn` | Parede da arena (extremidades) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:297 | visual/depuração |
+| `vfx.wallImpact.arenaScale` | Escala do impacto na parede da arena | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:384 | visual/depuração |
+| `vfx.wallImpact.arenaHeight` | Altura equivalente da parede da arena | m | 0.2 | 6 | 0.1 | 2 | src/view/vfx.js:311 | visual/depuração |
+| `vfx.wallImpact.objectsOn` | Objetos do cenário (pilares, caixas, plataformas, destrutíveis) | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:297 | visual/depuração |
+| `vfx.wallImpact.objectScale` | Escala do impacto em objetos | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:384 | visual/depuração |
+| `vfx.wallImpact.sizeInfluence` | Influência do tamanho do objeto | % | 0 | 1 | 0.01 | 1 | src/view/vfx.js:384 | visual/depuração |
+| `vfx.wallImpact.refSize` | Tamanho de referência do objeto | m | 0.5 | 6 | 0.1 | 2 | src/view/vfx.js:310 | visual/depuração |
+| `vfx.wallImpact.wallRing` | Onda circular no plano da parede | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:387 | visual/depuração |
+| `vfx.wallImpact.wallRingSize` | Expansão da onda da parede | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:387 | visual/depuração |
+| `vfx.wallImpact.wallStreak` | Faixa vertical de luz | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:388 | visual/depuração |
+| `vfx.wallImpact.wallStreakLength` | Comprimento da faixa vertical | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:388 | visual/depuração |
+| `vfx.wallImpact.wallSparks` | Faíscas ao longo da parede | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:389 | visual/depuração |
+| `vfx.wallImpact.wallSparkCount` | Quantidade de faíscas da parede | — | 0 | 40 | 1 | 10 | src/view/vfx.js:389 | visual/depuração |
+| `vfx.wallImpact.wallSparkLength` | Comprimento das faíscas da parede | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:389 | visual/depuração |
+| `vfx.wallImpact.wallDust` | Poeira que sobe pela parede | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:393 | visual/depuração |
+| `vfx.wallImpact.wallDustAmount` | Quantidade de poeira da parede | × | 0 | 4 | 0.05 | 1 | src/view/vfx.js:393 | visual/depuração |
+| `vfx.wallImpact.wallDustRise` | Subida da poeira | × | 0 | 3 | 0.05 | 1 | src/view/vfx.js:393 | visual/depuração |
 
 ## VFX · Clash entre tackles
 
@@ -1320,7 +1320,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.clash.count` | Quantidade de partículas | — | 1 | 80 | 1 | 30 | src/view/solid-fx.js:67 | visual/depuração |
 | `vfx.clash.color` | Cor | cor | 0 | 16777200 | 1 | 16770400 | src/view/solid-fx.js:166 | visual/depuração |
 | `vfx.clash.color2` | Cor secundária | cor | 0 | 16777200 | 1 | 16743000 | src/view/solid-fx.js:230 | visual/depuração |
-| `vfx.clash.radius` | Raio | m | 0.2 | 4 | 0.01 | 1.6 | src/view/vfx.js:306 | visual/depuração |
+| `vfx.clash.radius` | Raio | m | 0.2 | 4 | 0.01 | 1.6 | src/view/vfx.js:313 | visual/depuração |
 | `vfx.clash.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 7 | src/view/solid-fx.js:243 | visual/depuração |
 | `vfx.clash.glow` | Brilho | × | 0.2 | 4 | 0.01 | 1.6 | src/view/solid-fx.js:447 | visual/depuração |
 
@@ -1330,15 +1330,15 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 |---|---|---|---|---|---|---|---|---|
 | `vfx.exhaust.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.exhaust.variant` | Variante | seletor | 0 | 2 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
-| `vfx.exhaust.target` | Mostrar em | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:266 | visual/depuração |
+| `vfx.exhaust.target` | Mostrar em | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:273 | visual/depuração |
 | `vfx.exhaust.count` | Quantidade de partículas | — | 1 | 80 | 1 | 5 | src/view/solid-fx.js:67 | visual/depuração |
-| `vfx.exhaust.fallSpeed` | Velocidade de queda | m/s | 0.1 | 6 | 0.01 | 1.1 | src/view/vfx.js:600 | visual/depuração |
-| `vfx.exhaust.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.55 | src/view/vfx.js:450 | visual/depuração |
+| `vfx.exhaust.fallSpeed` | Velocidade de queda | m/s | 0.1 | 6 | 0.01 | 1.1 | src/view/vfx.js:607 | visual/depuração |
+| `vfx.exhaust.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.55 | src/view/vfx.js:457 | visual/depuração |
 | `vfx.exhaust.size` | Tamanho | × | 0.2 | 3 | 0.01 | 0.26 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.exhaust.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.85 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.exhaust.glow` | Brilho | × | 0.2 | 4 | 0.01 | 0.65 | src/view/solid-fx.js:447 | visual/depuração |
-| `vfx.exhaust.startHeight` | Altura inicial | m | 0.3 | 4 | 0.01 | 2.1 | src/view/vfx.js:600 | visual/depuração |
-| `vfx.exhaust.interval` | Intervalo | s | 0.005 | 0.4 | 0.005 | 0.14 | src/view/vfx.js:339 | visual/depuração |
+| `vfx.exhaust.startHeight` | Altura inicial | m | 0.3 | 4 | 0.01 | 2.1 | src/view/vfx.js:607 | visual/depuração |
+| `vfx.exhaust.interval` | Intervalo | s | 0.005 | 0.4 | 0.005 | 0.14 | src/view/vfx.js:346 | visual/depuração |
 | `vfx.exhaust.color` | Cor | cor | 0 | 16777200 | 1 | 5219330 | src/view/solid-fx.js:166 | visual/depuração |
 
 ## VFX · Regeneração de stamina (amarelo)
@@ -1348,15 +1348,15 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.regen.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.regen.variant` | Variante | seletor | 0 | 2 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
 | `vfx.regen.count` | Quantidade de partículas | — | 1 | 80 | 1 | 3 | src/view/solid-fx.js:67 | visual/depuração |
-| `vfx.regen.frequency` | Frequência | /s | 1 | 80 | 1 | 7 | src/view/vfx.js:339 | visual/depuração |
+| `vfx.regen.frequency` | Frequência | /s | 1 | 80 | 1 | 7 | src/view/vfx.js:346 | visual/depuração |
 | `vfx.regen.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 1.2 | src/view/solid-fx.js:243 | visual/depuração |
 | `vfx.regen.height` | Altura | m | 0.3 | 4 | 0.01 | 1.8 | src/view/solid-fx.js:223 | visual/depuração |
 | `vfx.regen.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 2.23 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.regen.size` | Tamanho | × | 0.2 | 3 | 0.01 | 0.28 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.regen.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.8 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.regen.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.5 | src/view/vfx.js:450 | visual/depuração |
+| `vfx.regen.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.5 | src/view/vfx.js:457 | visual/depuração |
 | `vfx.regen.color` | Cor | cor | 0 | 16777200 | 1 | 16765800 | src/view/solid-fx.js:166 | visual/depuração |
-| `vfx.regen.scaleWithRate` | Intensidade acompanha a taxa de recuperação | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:611 | visual/depuração |
+| `vfx.regen.scaleWithRate` | Intensidade acompanha a taxa de recuperação | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:618 | visual/depuração |
 
 ## VFX · Rochas telecinéticas (Psyshock)
 
@@ -1413,84 +1413,84 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.shakeGuard.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
-| `vfx.shakeGuard.profile` | Perfil | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:733 | visual/depuração |
-| `vfx.shakeGuard.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.05 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeGuard.profile` | Perfil | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:740 | visual/depuração |
+| `vfx.shakeGuard.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.05 | src/view/vfx.js:749 | visual/depuração |
 | `vfx.shakeGuard.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.16 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeGuard.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.shakeGuard.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:747 | visual/depuração |
-| `vfx.shakeGuard.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:752 | visual/depuração |
+| `vfx.shakeGuard.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:346 | visual/depuração |
+| `vfx.shakeGuard.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:754 | visual/depuração |
+| `vfx.shakeGuard.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:759 | visual/depuração |
 | `vfx.shakeGuard.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeGuard.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeGuard.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:749 | visual/depuração |
 
 ## Tremor · Tremor ao sofrer hit
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.shakeHit.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
-| `vfx.shakeHit.profile` | Perfil | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:733 | visual/depuração |
-| `vfx.shakeHit.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.12 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeHit.profile` | Perfil | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:740 | visual/depuração |
+| `vfx.shakeHit.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.12 | src/view/vfx.js:749 | visual/depuração |
 | `vfx.shakeHit.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.28 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeHit.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.shakeHit.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:747 | visual/depuração |
-| `vfx.shakeHit.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:752 | visual/depuração |
+| `vfx.shakeHit.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:346 | visual/depuração |
+| `vfx.shakeHit.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:754 | visual/depuração |
+| `vfx.shakeHit.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:759 | visual/depuração |
 | `vfx.shakeHit.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeHit.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeHit.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:749 | visual/depuração |
 
 ## Tremor · Tremor ao colidir com o chão
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.shakeGround.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
-| `vfx.shakeGround.profile` | Perfil | seletor | 0 | 2 | 1 | 1 | src/view/vfx.js:733 | visual/depuração |
-| `vfx.shakeGround.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.09 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeGround.profile` | Perfil | seletor | 0 | 2 | 1 | 1 | src/view/vfx.js:740 | visual/depuração |
+| `vfx.shakeGround.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.09 | src/view/vfx.js:749 | visual/depuração |
 | `vfx.shakeGround.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.3 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeGround.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.shakeGround.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:747 | visual/depuração |
-| `vfx.shakeGround.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:752 | visual/depuração |
+| `vfx.shakeGround.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:346 | visual/depuração |
+| `vfx.shakeGround.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:754 | visual/depuração |
+| `vfx.shakeGround.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:759 | visual/depuração |
 | `vfx.shakeGround.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeGround.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeGround.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:749 | visual/depuração |
 
 ## Tremor · Tremor na defesa perfeita
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.shakePerfect.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
-| `vfx.shakePerfect.profile` | Perfil | seletor | 0 | 2 | 1 | 2 | src/view/vfx.js:733 | visual/depuração |
-| `vfx.shakePerfect.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.1 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakePerfect.profile` | Perfil | seletor | 0 | 2 | 1 | 2 | src/view/vfx.js:740 | visual/depuração |
+| `vfx.shakePerfect.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.1 | src/view/vfx.js:749 | visual/depuração |
 | `vfx.shakePerfect.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.3 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakePerfect.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.shakePerfect.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:747 | visual/depuração |
-| `vfx.shakePerfect.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:752 | visual/depuração |
+| `vfx.shakePerfect.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:346 | visual/depuração |
+| `vfx.shakePerfect.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:754 | visual/depuração |
+| `vfx.shakePerfect.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:759 | visual/depuração |
 | `vfx.shakePerfect.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakePerfect.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakePerfect.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:749 | visual/depuração |
 
 ## Tremor · Tremor no clash entre tackles
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.shakeClash.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
-| `vfx.shakeClash.profile` | Perfil | seletor | 0 | 2 | 1 | 1 | src/view/vfx.js:733 | visual/depuração |
-| `vfx.shakeClash.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.18 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeClash.profile` | Perfil | seletor | 0 | 2 | 1 | 1 | src/view/vfx.js:740 | visual/depuração |
+| `vfx.shakeClash.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.18 | src/view/vfx.js:749 | visual/depuração |
 | `vfx.shakeClash.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.42 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeClash.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.shakeClash.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:747 | visual/depuração |
-| `vfx.shakeClash.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:752 | visual/depuração |
+| `vfx.shakeClash.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:346 | visual/depuração |
+| `vfx.shakeClash.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:754 | visual/depuração |
+| `vfx.shakeClash.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:759 | visual/depuração |
 | `vfx.shakeClash.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeClash.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeClash.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:749 | visual/depuração |
 
 ## Tremor · Tremor ao bater em parede ou objeto
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.shakeWall.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/solid-fx.js:124 | visual/depuração |
-| `vfx.shakeWall.profile` | Perfil | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:733 | visual/depuração |
-| `vfx.shakeWall.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.06 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeWall.profile` | Perfil | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:740 | visual/depuração |
+| `vfx.shakeWall.amplitude` | Amplitude | m | 0 | 0.6 | 0.005 | 0.06 | src/view/vfx.js:749 | visual/depuração |
 | `vfx.shakeWall.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.2 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeWall.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.shakeWall.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:747 | visual/depuração |
-| `vfx.shakeWall.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:752 | visual/depuração |
+| `vfx.shakeWall.frequency` | Frequência | /s | 1 | 80 | 1 | 26 | src/view/vfx.js:346 | visual/depuração |
+| `vfx.shakeWall.damping` | Amortecimento | — | 0 | 30 | 0.1 | 7 | src/view/vfx.js:754 | visual/depuração |
+| `vfx.shakeWall.angular` | Deslocamento angular | × | 0 | 3 | 0.01 | 0.6 | src/view/vfx.js:759 | visual/depuração |
 | `vfx.shakeWall.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.shakeWall.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:742 | visual/depuração |
+| `vfx.shakeWall.limit` | Limite máximo | m | 0 | 1 | 0.01 | 0.45 | src/view/vfx.js:749 | visual/depuração |
 
 ## Teclas do vermelho (controle manual)
 
@@ -1514,7 +1514,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `vfx.laser.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:738 | visual/depuração |
+| `vfx.laser.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:745 | visual/depuração |
 | `vfx.laser.pl` | Power Level do laser de prévia | PL | 1 | 3 | 1 | 1 | src/view/vfx/beam-renderer.js:211 | visual/depuração |
 | `vfx.laser.coreWidth1` | Largura do núcleo (PL1) | m | 0.01 | 0.8 | 0.005 | 0.04 | src/view/vfx/beam-renderer.js:215 | visual/depuração |
 | `vfx.laser.coreWidth2` | Largura do núcleo (PL2) | m | 0.01 | 0.8 | 0.005 | 0.065 | src/view/vfx/beam-renderer.js:215 | visual/depuração |
@@ -1534,23 +1534,23 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.laser.reflectionActive` | Nó de reflexão visível | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx/beam-renderer.js:331 | visual/depuração |
 | `vfx.laser.neutralizeActive` | Desbotamento de neutralização | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx/beam-renderer.js:290 | visual/depuração |
 | `vfx.laser.quality` | Qualidade dos efeitos 3D | seletor | 0 | 2 | 1 | 1 | src/view/vfx/beam-renderer.js:148 | visual/depuração |
-| `vfx.laser.noFlash` | Sem flashes (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:715 | visual/depuração |
-| `vfx.laser.reduceMotion` | Reduzir movimento (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:174 | visual/depuração |
-| `vfx.laser.highContrast` | Alto contraste (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:175 | visual/depuração |
+| `vfx.laser.noFlash` | Sem flashes (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:722 | visual/depuração |
+| `vfx.laser.reduceMotion` | Reduzir movimento (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:181 | visual/depuração |
+| `vfx.laser.highContrast` | Alto contraste (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:182 | visual/depuração |
 
 ## Sombras
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `display.shadow.style` | Estilo da sombra | seletor | 0 | 2 | 1 | 2 | src/sim/graphics.js:8 | visual/depuração |
-| `display.shadow.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.55 | src/view/view.js:331 | visual/depuração |
-| `display.shadow.radius` | Raio | m | 0.1 | 2 | 0.01 | 0.62 | src/view/view.js:329 | visual/depuração |
-| `display.shadow.scaleX` | Escala X | × | 0.2 | 3 | 0.01 | 1 | src/view/view.js:330 | visual/depuração |
-| `display.shadow.scaleZ` | Escala Z | × | 0.2 | 3 | 0.01 | 1 | src/view/view.js:330 | visual/depuração |
-| `display.shadow.softness` | Suavidade | % | 0 | 1 | 0.05 | 0.6 | src/view/view.js:282 | visual/depuração |
-| `display.shadow.offsetX` | Deslocamento X | m | -1 | 1 | 0.01 | 0 | src/view/view.js:328 | visual/depuração |
-| `display.shadow.offsetZ` | Deslocamento Z | m | -1 | 1 | 0.01 | 0 | src/view/view.js:328 | visual/depuração |
-| `display.shadow.intensity` | Intensidade | × | 0 | 2 | 0.01 | 1 | src/view/view.js:331 | visual/depuração |
+| `display.shadow.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.55 | src/view/view.js:343 | visual/depuração |
+| `display.shadow.radius` | Raio | m | 0.1 | 2 | 0.01 | 0.62 | src/view/view.js:341 | visual/depuração |
+| `display.shadow.scaleX` | Escala X | × | 0.2 | 3 | 0.01 | 1 | src/view/view.js:342 | visual/depuração |
+| `display.shadow.scaleZ` | Escala Z | × | 0.2 | 3 | 0.01 | 1 | src/view/view.js:342 | visual/depuração |
+| `display.shadow.softness` | Suavidade | % | 0 | 1 | 0.05 | 0.6 | src/view/view.js:284 | visual/depuração |
+| `display.shadow.offsetX` | Deslocamento X | m | -1 | 1 | 0.01 | 0 | src/view/view.js:340 | visual/depuração |
+| `display.shadow.offsetZ` | Deslocamento Z | m | -1 | 1 | 0.01 | 0 | src/view/view.js:340 | visual/depuração |
+| `display.shadow.intensity` | Intensidade | × | 0 | 2 | 0.01 | 1 | src/view/view.js:343 | visual/depuração |
 
 ## HUD
 
@@ -1584,9 +1584,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `display.cancelRing.inner` | Raio interno do indicador C → X | m | 0.2 | 3 | 0.01 | 1.05 | src/view/view.js:558 | visual/depuração |
-| `display.cancelRing.width` | Largura do indicador C → X | m | 0.02 | 1 | 0.01 | 0.25 | src/view/view.js:558 | visual/depuração |
-| `display.cancelRing.opacity` | Opacidade do indicador C → X | % | 0 | 1 | 0.01 | 0.75 | src/view/view.js:558 | visual/depuração |
+| `display.cancelRing.inner` | Raio interno do indicador C → X | m | 0.2 | 3 | 0.01 | 1.05 | src/view/view.js:571 | visual/depuração |
+| `display.cancelRing.width` | Largura do indicador C → X | m | 0.02 | 1 | 0.01 | 0.25 | src/view/view.js:571 | visual/depuração |
+| `display.cancelRing.opacity` | Opacidade do indicador C → X | % | 0 | 1 | 0.01 | 0.75 | src/view/view.js:571 | visual/depuração |
 
 ## Animação: transições
 
@@ -1601,7 +1601,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `display.diagnostics.toast` | Aviso curto na arena | seletor | 0 | 2 | 1 | 1 | src/app/live-panels.js:46 | visual/depuração |
+| `display.diagnostics.toast` | Aviso curto na arena | seletor | 0 | 2 | 1 | 1 | src/app/live-panels.js:47 | visual/depuração |
 | `display.diagnostics.toastMs` | Duração do aviso | ms | 300 | 5000 | 50 | 1400 | src/ui/diagnostics-panel.js:28 | visual/depuração |
 | `display.diagnostics.logExecuted` | Registrar também comandos executados | liga/desliga | 0 | 1 | 1 | 0 | src/ui/diagnostics-panel.js:19 | visual/depuração |
 
@@ -1758,7 +1758,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `vfx.quarks.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:90 | visual/depuração |
+| `vfx.quarks.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:92 | visual/depuração |
 
 ## IA · Navegação Yuka (experimental)
 
@@ -1775,7 +1775,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `extras.nav.stuckDistance` | Detecção de travamento: deslocamento mínimo (m) | m | 0.05 | 6 | 0.05 | 0.12 | src/nav/nav-planner.js:10 | pendente (nav) |
 | `extras.nav.attackMaxHeightDiff` | Alvo inalcançável: diferença de altura (m) | m | 0.05 | 6 | 0.05 | 0.8 | src/nav/nav-planner.js:10 | pendente (nav) |
 | `extras.nav.suppressBlockedAttacks` | Não atacar alvo inalcançável | liga/desliga | 0 | 1 | 1 | 1 | src/nav/nav-assist.js:33 | muda · navPlataforma |
-| `extras.nav.showDebug` | Mostrar rotas e nós de navegação | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:412 | visual/depuração |
+| `extras.nav.showDebug` | Mostrar rotas e nós de navegação | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:425 | visual/depuração |
 | `extras.nav.jumpPenalty` | Custo do salto na rota (× · alto = prefere contornar pelo chão) | × | 1 | 20 | 0.5 | 6 | src/nav/nav-graph.js:26 | muda · navPlataforma |
 | `extras.nav.dropPenalty` | Custo da queda na rota (× · alto = evita descer de plataforma) | × | 1 | 20 | 0.5 | 6 | src/nav/nav-graph.js:27 | muda · navPlataforma |
 
@@ -1783,7 +1783,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `vfx.post.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:503 | visual/depuração |
+| `vfx.post.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:516 | visual/depuração |
 | `vfx.post.bloomOn` | Bloom ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/post/post-params.js:23 | visual/depuração |
 | `vfx.post.bloomMode` | Modo do bloom (limiar × seleção) | seletor | 0 | 1 | 1 | 0 | src/view/post/post-pipeline.js:25 | visual/depuração |
 | `vfx.post.bloomIntensity` | Bloom: intensidade | × | 0 | 4 | 0.05 | 0.9 | src/view/post/post-params.js:21 | visual/depuração |
@@ -1794,7 +1794,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.post.distortOn` | Distorção de tela ligada | liga/desliga | 0 | 1 | 1 | 1 | src/view/post/post-params.js:22 | visual/depuração |
 | `vfx.post.distortStrength` | Distorção: intensidade | × | 0 | 4 | 0.05 | 0.5 | src/view/post/post-pipeline.js:84 | visual/depuração |
 | `vfx.post.distortSize` | Distorção: largura da onda | — | 0 | 1.5 | 0.01 | 0.28 | src/view/post/post-pipeline.js:84 | visual/depuração |
-| `vfx.post.distortMinDamage` | Distorção: dano mínimo do impacto (HP) | HP | 0 | 40 | 1 | 12 | src/view/view.js:512 | visual/depuração |
+| `vfx.post.distortMinDamage` | Distorção: dano mínimo do impacto (HP) | HP | 0 | 40 | 1 | 12 | src/view/view.js:525 | visual/depuração |
 | `vfx.post.chromaOn` | Aberração cromática ligada | liga/desliga | 0 | 1 | 1 | 1 | src/view/post/post-params.js:23 | visual/depuração |
 | `vfx.post.chromaOffset` | Aberração: base | — | 0 | 0.006 | 0.0001 | 0.0008 | src/view/post/post-params.js:22 | visual/depuração |
 | `vfx.post.chromaImpact` | Aberração: pulso no impacto | — | 0 | 0.02 | 0.0005 | 0.004 | src/view/post/post-params.js:22 | visual/depuração |
@@ -1942,9 +1942,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.airSlash.visualWidth` | Desenho: largura (só aparência) | m | 0.2 | 6 | 0.05 | 1.2 | src/sim/moves/air-slash.js:26 | visual/depuração |
 | `world.airSlash.visualHeight` | Desenho: altura (só aparência) | m | 0.2 | 4 | 0.05 | 0.7 | src/sim/moves/air-slash.js:26 | visual/depuração |
 | `world.airSlash.visualThickness` | Desenho: espessura (só aparência) | m | 0.05 | 2 | 0.01 | 0.22 | src/sim/moves/air-slash.js:26 | visual/depuração |
-| `world.airSlash.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.airSlash.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.airSlash.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.airSlash.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.airSlash.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.airSlash.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Bounce
 
@@ -1986,7 +1986,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.bulletPunch.slow` | Redução da velocidade na preparação | % | 0 | 1.9 | 0.05 | 0.7 | src/sim/controller/ctrl-moves.js:265 | muda · bullet-punch/duelo |
 | `world.bulletPunch.maxRise` | Altura de apoio na chegada (técnico) | m | 0 | 12 | 0.25 | 2 | src/sim/aim-marker.js:20 | pendente (move) |
 | `world.bulletPunch.fxLines` | Linhas de velocidade no sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/aim-marker-view.js:66 | visual/depuração |
-| `world.bulletPunch.fxHideBody` | Ocultar o corpo durante o sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:342 | visual/depuração |
+| `world.bulletPunch.fxHideBody` | Ocultar o corpo durante o sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:354 | visual/depuração |
 | `world.bulletPunch.airReach` | Alcance vertical anti-aéreo | m | 0 | 16 | 0.25 | 3 | src/sim/moves/bullet-punch/bullet-punch.js:85 | pendente (move) |
 | `world.bulletPunch.rayStep` | Passo da varredura contra paredes (técnico) | m | 0.05 | 2 | 0.05 | 0.25 | src/sim/moves/bullet-punch/bullet-punch.js:51 | pendente (move) |
 | `world.bulletPunch.freeSearchRadius` | Raio máximo de busca por espaço livre (técnico) | m | 1 | 24 | 0.5 | 6 | src/sim/moves/bullet-punch/bullet-punch.js:64 | pendente (move) |
@@ -2029,9 +2029,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.emergingStone.rockBaseHeight` | Altura base da rocha | m | 0.5 | 16 | 0.25 | 3 | src/sim/stone.js:110 | muda · emerging-stone/perto |
 | `world.emergingStone.rockSearchStep` | Passo da busca de posicionamento (técnico) | m | 0.05 | 2 | 0.05 | 0.25 | src/sim/stone.js:112 | pendente (move) |
 | `world.emergingStone.supportTolerance` | Tolerância vertical de apoio da rocha (técnico) | m | 0.01 | 0.6 | 0.01 | 0.06 | src/sim/stone.js:143 | pendente (move) |
-| `world.emergingStone.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.emergingStone.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.emergingStone.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.emergingStone.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.emergingStone.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.emergingStone.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Feint
 
@@ -2075,9 +2075,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.fireSpin.startDistance` | Distância inicial do marcador | m | 0.5 | 20 | 0.25 | 3 | src/sim/aim-marker.js:45 | pendente (move) |
 | `world.fireSpin.maxRise` | Altura máxima de apoio acima dos pés | m | 0 | 12 | 0.25 | 2 | src/sim/aim-marker.js:20 | pendente (move) |
 | `world.fireSpin.pulsePl` | Power Level dos pulsos | inteiro | 1 | 3 | 1 | 1 | src/sim/moves/fire-spin.js:28 | pendente (move) |
-| `world.fireSpin.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.fireSpin.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.fireSpin.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.fireSpin.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.fireSpin.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.fireSpin.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Guard Break
 
@@ -2161,9 +2161,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.psyshock.knockbackSpeedFactor` | Empurrão acompanha a velocidade da pedra | % | 0 | 3.2 | 0.05 | 0 | src/sim/moves/psyshock.js:89 | muda · psyshock/perto |
 | `world.psyshock.counterStagger` | Counter Stagger | s | 0 | 2 | 0.01 | 0.2 | src/sim/moves/psyshock.js:93 | pendente (move) |
 | `world.psyshock.radius` | Raio de colisão da pedra | m | 0.05 | 1 | 0.01 | 0.2 | src/sim/moves/psyshock.js:48 | muda · psyshock/perto |
-| `world.psyshock.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.psyshock.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 6 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.psyshock.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 5 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.psyshock.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.psyshock.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 6 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.psyshock.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 5 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Quick Attack
 
@@ -2180,7 +2180,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.quickAttack.knockbackV` | Knockback vertical | m/s | 0 | 15 | 0.1 | 0 | src/sim/moves/quick-attack.js:29 | muda · quick-attack/perto |
 | `world.quickAttack.invulnerableSeconds` | Invulnerabilidade do atacante | s | 0 | 2 | 0.01 | 0 | src/sim/moves/quick-attack.js:30 | pendente (move) |
 | `world.quickAttack.fxLines` | Linhas de velocidade no sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/aim-marker-view.js:66 | visual/depuração |
-| `world.quickAttack.fxHideBody` | Ocultar o corpo durante o sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:342 | visual/depuração |
+| `world.quickAttack.fxHideBody` | Ocultar o corpo durante o sumiço | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:354 | visual/depuração |
 | `world.quickAttack.airReach` | Alcance vertical anti-aéreo | m | 0 | 16 | 0.25 | 3 | src/sim/controller/ctrl-moves.js:101 | pendente (move) |
 | `world.quickAttack.approachStopDist` | Tolerância de chegada na ida | m | 0.02 | 2 | 0.01 | 0.15 | src/sim/moves/quick-attack.js:49 | muda · quick-attack/perto |
 | `world.quickAttack.returnStopDist` | Tolerância de chegada no retorno | m | 0.02 | 2 | 0.01 | 0.08 | src/sim/moves/quick-attack.js:49 | muda · quick-attack/perto |
@@ -2215,9 +2215,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.reflect.burstDamage` | Pulso ao invocar: dano | % | 0 | 4 | 0.01 | 0 | src/sim/moves/reflect.js:80 | pendente (move) |
 | `world.reflect.burstPush` | Pulso ao invocar: causa empurrão? | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/reflect.js:80 | pendente (move) |
 | `world.reflect.burstHurt` | Pulso ao invocar: causa dano? | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/reflect.js:80 | pendente (move) |
-| `world.reflect.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.reflect.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 6 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.reflect.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 5 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.reflect.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.reflect.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 6 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.reflect.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 5 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Riposte
 
@@ -2234,8 +2234,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.riposte.strikeRange` | Alcance do contra-golpe | m | 0.3 | 12 | 0.1 | 3.8 | src/sim/controller/ctrl-moves.js:130 | muda · riposte/contra-ataque |
 | `world.riposte.strikePl` | Power Level do contra-golpe | inteiro | 1 | 8 | 1 | 4 | src/sim/controller/ctrl-moves.js:127 | pendente (move) |
 | `world.riposte.minStrikeDuration` | Duração mínima do contra-golpe | s | 0.05 | 2 | 0.01 | 0.1 | src/sim/controller/ctrl-moves.js:125 | muda · riposte/contra-ataque |
-| `world.riposte.hitstopMult` | Pausa de impacto do contra-golpe (×) | número | 0 | 16 | 0.1 | 2.5 | src/sim/game.js:117 | muda · riposte/contra-ataque |
-| `world.riposte.shakeMult` | Tremor de tela do contra-golpe (×) | número | 0 | 16 | 0.1 | 2.4 | src/view/vfx.js:208 | pendente (move) |
+| `world.riposte.hitstopMult` | Pausa de impacto do contra-golpe (×) | número | 0 | 16 | 0.1 | 2.5 | src/sim/game.js:118 | muda · riposte/contra-ataque |
+| `world.riposte.shakeMult` | Tremor de tela do contra-golpe (×) | número | 0 | 16 | 0.1 | 2.4 | src/view/vfx.js:215 | pendente (move) |
 | `world.riposte.blastOn` | Explosão visual do contra-golpe | número | 0 | 1 | 1 | 1 | src/view/riposte-fx.js:53 | visual/depuração |
 | `world.riposte.blastSize` | Tamanho da explosão visual | número | 0.3 | 10 | 0.1 | 1.5 | src/view/riposte-fx.js:55 | visual/depuração |
 | `world.riposte.fxOn` | Efeito visual: ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/riposte-fx.js:23 | visual/depuração |
@@ -2256,47 +2256,47 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.sandWave.waveSpeed` | Velocidade de avanço da onda | m/s | 0.25 | 80 | 0.05 | 13.3333 | src/sim/moves/sand-wave/sand-wave.js:29 | muda · sand-wave/perto |
 | `world.sandWave.waveAccel` | Aceleração da frente da onda | m/s² | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-wave.js:25 | muda · sand-wave/perto |
 | `world.sandWave.dissipate` | Dissipação visual | s | 0 | 6 | 0.05 | 0.75 | src/sim/moves/sand-wave/sand-wave.js:31 | muda · sand-wave/perto |
-| `world.sandWave.damage` | Dano fixo | número | 0 | 80 | 0.5 | 6 | src/sim/sand.js:133 | muda · sand-wave/perto |
-| `world.sandWave.knockbackH` | Knockback horizontal (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:133 | muda · sand-wave/perto |
-| `world.sandWave.knockbackV` | Knockback vertical (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:133 | muda · sand-wave/perto |
-| `world.sandWave.accel` | Empurrão contínuo (aceleração) | m/s² | 0 | 80 | 0.5 | 12 | src/sim/sand.js:173 | muda · sand-wave/perto |
-| `world.sandWave.pushSpeed` | Impulso inicial do empurrão | m/s | 0 | 40 | 0.5 | 0 | src/sim/sand.js:143 | muda · sand-wave/perto |
+| `world.sandWave.damage` | Dano fixo | número | 0 | 80 | 0.5 | 6 | src/sim/sand.js:135 | muda · sand-wave/perto |
+| `world.sandWave.knockbackH` | Knockback horizontal (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:135 | muda · sand-wave/perto |
+| `world.sandWave.knockbackV` | Knockback vertical (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:135 | muda · sand-wave/perto |
+| `world.sandWave.accel` | Empurrão contínuo (aceleração) | m/s² | 0 | 80 | 0.5 | 12 | src/sim/sand.js:175 | muda · sand-wave/perto |
+| `world.sandWave.pushSpeed` | Impulso inicial do empurrão | m/s | 0 | 40 | 0.5 | 0 | src/sim/sand.js:145 | muda · sand-wave/perto |
 | `world.sandWave.pushDuration` | Limite de tempo do empurrão | s | 0 | 6 | 0.05 | 0 | src/sim/moves/sand-wave/sand-push.js:61 | pendente (move) |
 | `world.sandWave.pushDurationMode` | Duração do empurrão | inteiro | 0 | 3 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:46 | muda · sand-wave/perto |
 | `world.sandWave.pushContinueAfterActive` | Modo legado: continua depois da janela de dano | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:66 | pendente (move) |
 | `world.sandWave.pushContinuesOutsideArea` | Empurrão continua fora do retângulo (experimental) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:113 | muda · sand-wave/perto |
 | `world.sandWave.pushReleaseDelay` | Tolerância ao perder contato | s | 0 | 1 | 0.05 | 0 | src/sim/moves/sand-wave/sand-push.js:109 | muda · sand-wave/perto |
 | `world.sandWave.pushContinuesDuringStagger` | Empurrão continua durante stagger/recuperação | liga/desliga | 0 | 1 | 1 | 1 | src/sim/moves/sand-wave/sand-push.js:116 | muda · sand-wave/defesa |
-| `world.sandWave.pushPreserveVelocity` | Velocidade própria preservada no contato | % | 0 | 1 | 0.05 | 0 | src/sim/sand.js:140 | pendente (move) |
+| `world.sandWave.pushPreserveVelocity` | Velocidade própria preservada no contato | % | 0 | 1 | 0.05 | 0 | src/sim/sand.js:142 | pendente (move) |
 | `world.sandWave.pushMaxSpeed` | Velocidade máxima do empurrão | m/s | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-wave.js:36 | pendente (move) |
 | `world.sandWave.pushAccelerationMode` | Modo de aceleração do empurrão | inteiro | 0 | 2 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:50 | muda · sand-wave/perto |
 | `world.sandWave.pushCurvePower` | Expoente da curva de aceleração | número | 0.25 | 4 | 0.05 | 1 | src/sim/moves/sand-wave/sand-push.js:139 | muda · sand-wave/perto |
 | `world.sandWave.pushTargetSpeed` | Velocidade-alvo do empurrão | m/s | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-push.js:143 | pendente (move) |
 | `world.sandWave.pushRampTime` | Constante de tempo da velocidade-alvo | s | 0.01 | 2 | 0.01 | 0.2 | src/sim/moves/sand-wave/sand-push.js:144 | pendente (move) |
-| `world.sandWave.pushClearsLocomotion` | Zerar movimento próprio no primeiro contato | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:140 | pendente (move) |
-| `world.sandWave.pushCancelsDodge` | Empurrão bloqueia nova esquiva | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:165 | pendente (move) |
-| `world.sandWave.pushCancelsExistingDodge` | Empurrão interrompe esquiva em andamento | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:165 | pendente (move) |
-| `world.sandWave.partialFactor` | Fator do empurrão na defesa parcial | número | 0 | 2 | 0.05 | 0.5 | src/sim/sand.js:143 | muda · sand-wave/defesa |
-| `world.sandWave.blind` | Duração da cegueira | s | 0 | 30 | 0.25 | 4 | src/sim/sand.js:147 | muda · sand-wave/perto |
-| `world.sandWave.blindOnPartial` | Cegar também na defesa parcial | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:147 | muda · sand-wave/defesa |
-| `world.sandWave.wallStagger` | Stagger contra a parede | s | 0 | 4 | 0.05 | 0.3 | src/sim/sand.js:208 | pendente (move) |
-| `world.sandWave.wallStaggerOn` | Ativar stagger ao ser prensado contra parede | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:207 | pendente (move) |
+| `world.sandWave.pushClearsLocomotion` | Zerar movimento próprio no primeiro contato | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:142 | pendente (move) |
+| `world.sandWave.pushCancelsDodge` | Empurrão bloqueia nova esquiva | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:167 | pendente (move) |
+| `world.sandWave.pushCancelsExistingDodge` | Empurrão interrompe esquiva em andamento | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:167 | pendente (move) |
+| `world.sandWave.partialFactor` | Fator do empurrão na defesa parcial | número | 0 | 2 | 0.05 | 0.5 | src/sim/sand.js:145 | muda · sand-wave/defesa |
+| `world.sandWave.blind` | Duração da cegueira | s | 0 | 30 | 0.25 | 4 | src/sim/sand.js:149 | muda · sand-wave/perto |
+| `world.sandWave.blindOnPartial` | Cegar também na defesa parcial | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:149 | muda · sand-wave/defesa |
+| `world.sandWave.wallStagger` | Stagger contra a parede | s | 0 | 4 | 0.05 | 0.3 | src/sim/sand.js:210 | pendente (move) |
+| `world.sandWave.wallStaggerOn` | Ativar stagger ao ser prensado contra parede | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:209 | pendente (move) |
 | `world.sandWave.visionRadius` | Raio de visão do cegado | m | 2 | 60 | 0.5 | 10 | src/sim/vision.js:13 | muda · sand-wave/contra-ataque |
-| `world.sandWave.fogDarkness` | Escurecimento do fog (só a câmera do cegado) | % | 0 | 2 | 0.05 | 0.6 | src/view/view.js:399 | pendente (move) |
-| `world.sandWave.cell` | Resolução do caminho livre (técnico) | m | 0.1 | 2 | 0.05 | 0.25 | src/sim/sand.js:46 | pendente (move) |
-| `world.sandWave.detour` | Margem de desvio (técnico) | m | 0 | 20 | 0.5 | 3 | src/sim/sand.js:46 | pendente (move) |
-| `world.sandWave.replanSteps` | Recalcular obstáculos a cada (passos) | inteiro | 1 | 120 | 1 | 6 | src/sim/sand.js:104 | pendente (move) |
+| `world.sandWave.fogDarkness` | Escurecimento do fog (só a câmera do cegado) | % | 0 | 2 | 0.05 | 0.6 | src/view/view.js:412 | pendente (move) |
+| `world.sandWave.cell` | Resolução do caminho livre (técnico) | m | 0.1 | 2 | 0.05 | 0.25 | src/sim/sand.js:48 | pendente (move) |
+| `world.sandWave.detour` | Margem de desvio (técnico) | m | 0 | 20 | 0.5 | 3 | src/sim/sand.js:48 | pendente (move) |
+| `world.sandWave.replanSteps` | Recalcular obstáculos a cada (passos) | inteiro | 1 | 120 | 1 | 6 | src/sim/sand.js:106 | pendente (move) |
 | `world.sandWave.waveHeight` | Altura mecânica da barragem | m | 0.1 | 6 | 0.05 | 0.35 | src/sim/moves/sand-wave/sand-wave.js:33 | pendente (move) |
-| `world.sandWave.wallPressMinSpeed` | Velocidade mínima para pressão na parede (técnico) | m/s | 0.1 | 10 | 0.1 | 0.6 | src/sim/sand.js:106 | pendente (move) |
-| `world.sandWave.wallPressMoveRatio` | Limiar de frenagem contra parede (técnico) | % | 0.05 | 1.8 | 0.05 | 0.25 | src/sim/sand.js:106 | muda · sand-wave/perto |
-| `world.sandWave.wallPressStopRatio` | Fração da intenção que conta como parada na parede | % | 0 | 2 | 0.05 | 0.3 | src/sim/sand.js:206 | muda · sand-wave/perto |
-| `world.sandWave.wallUnpinDistance` | Distância para soltar da parede | m | 0 | 1 | 0.005 | 0.01 | src/sim/sand.js:154 | pendente (move) |
-| `world.sandWave.waveBottomTolerance` | Tolerância da base da onda (técnico) | m | 0 | 2 | 0.01 | 0.2 | src/sim/sand.js:119 | pendente (move) |
-| `world.sandWave.hitsAirborne` | Acertar alvos em voo baixo | liga/desliga | 0 | 1 | 1 | 0 | src/sim/sand.js:117 | pendente (move) |
-| `world.sandWave.maxTargets` | Máximo de alvos por execução | inteiro | 1 | 32 | 1 | 16 | src/sim/sand.js:107 | pendente (move) |
-| `world.sandWave.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.sandWave.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.sandWave.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.sandWave.wallPressMinSpeed` | Velocidade mínima para pressão na parede (técnico) | m/s | 0.1 | 10 | 0.1 | 0.6 | src/sim/sand.js:108 | pendente (move) |
+| `world.sandWave.wallPressMoveRatio` | Limiar de frenagem contra parede (técnico) | % | 0.05 | 1.8 | 0.05 | 0.25 | src/sim/sand.js:108 | muda · sand-wave/perto |
+| `world.sandWave.wallPressStopRatio` | Fração da intenção que conta como parada na parede | % | 0 | 2 | 0.05 | 0.3 | src/sim/sand.js:208 | muda · sand-wave/perto |
+| `world.sandWave.wallUnpinDistance` | Distância para soltar da parede | m | 0 | 1 | 0.005 | 0.01 | src/sim/sand.js:156 | pendente (move) |
+| `world.sandWave.waveBottomTolerance` | Tolerância da base da onda (técnico) | m | 0 | 2 | 0.01 | 0.2 | src/sim/sand.js:121 | pendente (move) |
+| `world.sandWave.hitsAirborne` | Acertar alvos em voo baixo | liga/desliga | 0 | 1 | 1 | 0 | src/sim/sand.js:119 | pendente (move) |
+| `world.sandWave.maxTargets` | Máximo de alvos por execução | inteiro | 1 | 32 | 1 | 16 | src/sim/sand.js:109 | pendente (move) |
+| `world.sandWave.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.sandWave.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.sandWave.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Second Wind
 
@@ -2340,9 +2340,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.seedBomb.allowOccupied` | Permitir destino sobre um lutador | liga/desliga | 0 | 1 | 1 | 1 | src/sim/aim-marker.js:31 | muda · seed-bomb/perto |
 | `world.seedBomb.counterStagger` | Counter Stagger | s | 0 | 2 | 0.01 | 0.2 | src/sim/moves/seed-bomb.js:44 | pendente (move) |
 | `world.seedBomb.seedPl` | Power Level da semente | inteiro | 1 | 3 | 1 | 1 | src/sim/moves/seed-bomb.js:40 | pendente (move) |
-| `world.seedBomb.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.seedBomb.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.seedBomb.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.seedBomb.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.seedBomb.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.seedBomb.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Spikes
 
@@ -2366,9 +2366,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.spikes.trapHeight` | Altura da região ofensiva | m | 0.3 | 8 | 0.1 | 1.2 | src/sim/moves/spikes.js:23 | pendente (move) |
 | `world.spikes.supportTolerance` | Tolerância de perda de apoio | m | 0.01 | 1 | 0.01 | 0.06 | src/sim/moves/spikes.js:23 | pendente (move) |
 | `world.spikes.trapPl` | Power Level da armadilha | inteiro | 1 | 3 | 1 | 1 | src/sim/moves/spikes.js:24 | pendente (move) |
-| `world.spikes.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.spikes.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.spikes.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.spikes.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.spikes.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.spikes.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Swift
 
@@ -2395,9 +2395,9 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.swift.heightStep` | Alternância vertical de altura | m | 0 | 1.6 | 0.05 | 0.15 | src/sim/moves/swift.js:26 | muda · swift/perto |
 | `world.swift.aimHeightMin` | Fração mínima de altura no alvo (lock-on) | número | 0 | 2 | 0.05 | 0.05 | src/sim/moves/swift.js:34 | muda · swift/perto |
 | `world.swift.aimHeightMax` | Fração máxima de altura no alvo (lock-on) | número | 0.1 | 2.4 | 0.05 | 0.95 | src/sim/moves/swift.js:34 | muda · swift/perto |
-| `world.swift.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.swift.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.swift.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.swift.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.swift.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.swift.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 
 ## Moves · Water Pulse
 
@@ -2423,6 +2423,6 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.waterPulse.pierce` | Corpos que a esfera atravessa | inteiro | 1 | 3 | 1 | 1 | src/sim/moves/water-pulse/water-pulse.js:33 | muda · water-pulse/perto |
 | `world.waterPulse.counterStagger` | Counter Stagger | s | 0 | 2 | 0.01 | 0.2 | src/sim/moves/water-pulse/water-pulse.js:35 | pendente (move) |
 | `world.waterPulse.plScaleBonus` | Crescimento da esfera por PL | % | 0 | 2 | 0.05 | 0.25 | src/sim/moves/water-pulse/water-pulse.js:31 | pendente (move) |
-| `world.waterPulse.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:47 | visual/depuração |
-| `world.waterPulse.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
-| `world.waterPulse.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:47 | visual/depuração |
+| `world.waterPulse.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
+| `world.waterPulse.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
+| `world.waterPulse.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |

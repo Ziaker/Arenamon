@@ -4,6 +4,7 @@
 // Uso: node prototypes/combat-lab/test/moves-ab-sensitivity.test.mjs
 import assert from 'node:assert/strict';
 import {C, resetConfig, defaults} from '../src/sim/config.js';
+import {baseAnterior} from './base-anterior.mjs';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -39,7 +40,7 @@ test('A/B: todos os 19 Moves alteram resultado mecânico mensurável quando seus
     {id: 'quick-attack', stage: {distance: 4, target: 'still'}, key: 'approachStopDist', valB: 2.5},
     {id: 'emerging-stone', stage: {distance: 5, target: 'still', hold: 0.35}, key: 'damage', valB: 18},
     {id: 'emerging-stone', key: 'rockHp', valB: 45, verify: () => {
-      resetConfig(defaults());
+      resetConfig(baseAnterior());
       C.world.emergingStone.rockHp = 45;
       C.world.emergingStone.rockBaseWidth = 3.6;
       const g = new Game({seed: 7});g.start();
@@ -56,7 +57,7 @@ test('A/B: todos os 19 Moves alteram resultado mecânico mensurável quando seus
     }},
     {id: 'sand-wave', key: 'damage', valB: 15},
     {id: 'sand-wave', key: 'waveHeight', valB: 2.5, verify: () => {
-      resetConfig(defaults());
+      resetConfig(baseAnterior());
       C.world.sandWave.waveHeight = 2.5;
       const g = new Game({seed: 7});g.start();
       g.setLoadout(0, ['sand-wave']);
@@ -76,7 +77,7 @@ test('A/B: todos os 19 Moves alteram resultado mecânico mensurável quando seus
     {id: 'swift', key: 'damage', valB: 10},
     {id: 'air-slash', key: 'damage', valB: 14},
     {id: 'air-slash', key: 'pierce', valB: 3, verify: () => {
-      resetConfig(defaults());
+      resetConfig(baseAnterior());
       C.world.airSlash.pierce = 3;
       const g = new Game({seed: 7});g.start();
       g.setLoadout(0, ['air-slash']);
@@ -89,7 +90,7 @@ test('A/B: todos os 19 Moves alteram resultado mecânico mensurável quando seus
     {id: 'second-wind', key: 'duration', valB: 9},
     {id: 'second-wind', key: 'regenPctPerSecond', valB: 1.5, verify: () => {
       const stamWith = (rate, regenInterval) => {
-        resetConfig(defaults());
+        resetConfig(baseAnterior());
         C.world.secondWind.regenPctPerSecond = rate;
         C.world.secondWind.regenInterval = regenInterval;
         const g = new Game({seed: 7});g.start();
@@ -109,7 +110,7 @@ test('A/B: todos os 19 Moves alteram resultado mecânico mensurável quando seus
   ];
 
   for (const c of cases) {
-    resetConfig(defaults());
+    resetConfig(baseAnterior());
     const m = editableMove(c.id);
     assert.ok(m, `Move ${c.id} encontrado`);
     const base = defaultValues(m);
@@ -125,17 +126,17 @@ test('A/B: todos os 19 Moves alteram resultado mecânico mensurável quando seus
     const laneDiff = JSON.stringify(A.lanes) !== JSON.stringify(B.lanes);
     assert.ok(diffs.length > 0 || laneDiff, `Esperava diferença A/B ao mudar ${c.id}.${c.key} para ${c.valB}`);
   }
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
 });
 
 // 2. Invariância em meio à execução (Regra M28.4)
 test('M28.4: alterar C.world[group] após o início da execução não corrompe nem altera a execução já iniciada', () => {
   for (const id of ['sand-wave', 'air-slash', 'swift', 'fire-spin', 'harden']) {
-    resetConfig(defaults());
+    resetConfig(baseAnterior());
     const m = editableMove(id);
     // Execução 1: sem mutação no meio
     const runClean = () => {
-      resetConfig(defaults());
+      resetConfig(baseAnterior());
       const g = new Game({seed: 11});g.start();
       g.fighters[0].position = vec(0, -1.5);g.fighters[1].position = vec(0, 1.5);
       g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
@@ -147,7 +148,7 @@ test('M28.4: alterar C.world[group] após o início da execução não corrompe 
     };
     // Execução 2: muta cost e cooldown logo depois do tick 1 (quando a ação já cobrou custo/recarga e capturou params)
     const runMutatedMidFlight = () => {
-      resetConfig(defaults());
+      resetConfig(baseAnterior());
       const g = new Game({seed: 11});g.start();
       g.fighters[0].position = vec(0, -1.5);g.fighters[1].position = vec(0, 1.5);
       g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
@@ -165,14 +166,14 @@ test('M28.4: alterar C.world[group] após o início da execução não corrompe 
     };
     assert.deepEqual(runClean(), runMutatedMidFlight(), `Execução em andamento de ${id} permaneceu imune a edições após o disparo`);
   }
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
 });
 
 // 3. Estabilidade em combinações extremas (todos os sliders no mínimo e no máximo)
 test('Estabilidade em extremos: todos os 19 Moves rodam com parâmetros no mínimo e no máximo sem NaN nem exceção', () => {
   for (const m of EDITABLE_MOVES) {
     for (const mode of ['min', 'max']) {
-      resetConfig(defaults());
+      resetConfig(baseAnterior());
       for (const r of m.params.rows) {
         if (String(r.key).startsWith('hitShake')) continue;
         if (r.key === 'cost' && mode === 'max') {
@@ -188,12 +189,12 @@ test('Estabilidade em extremos: todos os 19 Moves rodam com parâmetros no míni
       }
     }
   }
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
 });
 
 // 4. Determinismo estrito do traceMove
 test('Determinismo: duas análises seguidas de qualquer Move produzem exatamente os mesmos hits, faixas e métricas', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   for (const m of EDITABLE_MOVES) {
     const vals = defaultValues(m);
     const st = {distance: 3.5, target: 'still', arena: 'open', hold: m.def.charge ? 1.1 : m.def.aimMode ? 0.3 : 0};

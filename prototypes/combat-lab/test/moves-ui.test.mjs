@@ -2,6 +2,7 @@
 // técnicos repetíveis (esperado × obtido) com os ajustes atuais. Cobre M16.7, M28.3, M28.5, M28.8.
 import assert from 'node:assert/strict';
 import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {baseAnterior} from './base-anterior.mjs';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {vec} from '../src/sim/math.js';
@@ -15,7 +16,7 @@ import {MOVES_HOMOLOG} from '../src/ui/moves-panel.js';
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 const cmd = o => ({...emptyCommand(), ...o});
 registerStandardMoves();
-const arena = () => {resetConfig(defaults());const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.setLoadout(0, ['reflect', 'psyshock']);return g;};
+const arena = () => {resetConfig(baseAnterior());const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(0, -3), vec(0, 3)]});g.setLoadout(0, ['reflect', 'psyshock']);return g;};
 const H = [true, false, false, false];
 
 {
@@ -44,7 +45,7 @@ ok('estado dos slots: pronto, carregando (% e PL), recarga, recuperação e bloq
 }
 ok('a tela usa as mesmas permissões do controlador (sem apoio no chão: bloqueado)');
 {
-  resetConfig(defaults());const all = runMoveScenarios();
+  resetConfig(baseAnterior());const all = runMoveScenarios();
   assert.equal(all.length, MOVE_SCENARIOS.length);assert.equal(all.length, 12);
   const bad = all.flatMap(s => s.rows.filter(r => !r.ok).map(r => `${s.name}: ${r.what} (${r.expected} × ${r.got})`));
   assert.deepEqual(bad, [], 'todos os cenários passam com os padrões');
@@ -55,11 +56,11 @@ ok('a tela usa as mesmas permissões do controlador (sem apoio no chão: bloquea
 }
 ok('12 cenários técnicos passam com os padrões, devolvem esperado × obtido e são repetíveis');
 {
-  resetConfig(defaults());C.world.reflect.widthMax = 2;C.world.psyshock.successiveFactor = .5;C.world.psyshock.maxStones = 6;
+  resetConfig(baseAnterior());C.world.reflect.widthMax = 2;C.world.psyshock.successiveFactor = .5;C.world.psyshock.maxStones = 6;
   const all = runMoveScenarios(), bad = all.flatMap(s => s.rows.filter(r => !r.ok).map(r => `${s.name}: ${r.what} (${r.expected} × ${r.got})`));
   assert.deepEqual(bad, [], 'os cenários acompanham os ajustes atuais (esperado calculado a partir dos sliders)');
   const r = all.find(s => s.id === 'reflect-tamanho').rows.at(-1);assert.match(r.expected, /^2 m/);
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
 }
 ok('os cenários usam os ajustes atuais: mexer nos sliders muda o esperado e o obtido juntos');
 {
@@ -67,5 +68,5 @@ ok('os cenários usam os ajustes atuais: mexer nos sliders muda o esperado e o o
 }
 ok('há um checklist de avaliação jogável dos Moves, separado dos testes automáticos (M28.9)');
 
-clearMoves();clearEffects();resetConfig(defaults());
+clearMoves();clearEffects();resetConfig(baseAnterior());
 console.log(`\n${n} verificações da interface dos Moves (Fase 6, sem navegador) aprovadas.`);

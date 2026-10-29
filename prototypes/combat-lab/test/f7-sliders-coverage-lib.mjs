@@ -8,6 +8,7 @@ import {readdirSync, readFileSync, statSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {build} from 'esbuild';
 import {C, resetConfig, defaults, ROOT_KEYS} from '../src/sim/config.js';
+import {baseAnterior} from './base-anterior.mjs';
 import {Game} from '../src/sim/game.js';
 import {emptyCommand} from '../src/sim/entity.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
@@ -432,7 +433,7 @@ const printOf = g => JSON.stringify([g.fighters.map(f => [rnd(f.position.x), rnd
 /** A e B em PASSO TRAVADO: dois Games, o caminho do slider trocado para o valor de cada um antes de cada passo (o resto de C é igual); para na primeira
  * amostra diferente. Devolve o passo da divergência ou -1. O controle (mesmo valor nos dois lados) nunca diverge: conferido no teste. */
 function lockstep(sc, path, va, vb, enable = []) {
-  resetConfig(defaults());sc.config?.();for (const [p, x] of enable) setPath(p, x);
+  resetConfig(baseAnterior());sc.config?.();for (const [p, x] of enable) setPath(p, x);
   const make = v => {setPath(path, v);const g = new Game({seed: 7});sc.setup(g);g.start();return g;};
   const gA = make(va), gB = make(vb), n = Math.round(sc.seconds * 120);
   try {
@@ -445,7 +446,7 @@ function lockstep(sc, path, va, vb, enable = []) {
       if (sA !== sB) return t;
     }
     return -1;
-  } finally {resetConfig(defaults());}
+  } finally {resetConfig(baseAnterior());}
 }
 /** Aplica um valor no caminho de C (respeitando o atalho de enableInfiniteStamina do painel). */
 function setPath(path, v) {

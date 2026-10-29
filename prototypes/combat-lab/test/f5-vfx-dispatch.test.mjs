@@ -10,6 +10,7 @@ import {fileURLToPath} from 'node:url';
 import * as THREE from 'three';
 import * as Quarks from 'three.quarks';
 import {C, defaults, resetConfig} from '../src/sim/config.js';
+import {baseAnterior} from './base-anterior.mjs';
 import {Game} from '../src/sim/game.js';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {SCENARIOS, runScenario} from '../src/sim/scenarios.js';
@@ -36,13 +37,13 @@ function emittedResults() {
   const orig = Game.prototype.step, seen = new Set();
   Game.prototype.step = function (...a) {orig.apply(this, a);for (const e of this.lastStepEvents) seen.add(e.result);};
   try {
-    for (const def of SCENARIOS) {resetConfig(defaults());runScenario(def);}
-    resetConfig(defaults());runMoveScenarios();
+    for (const def of SCENARIOS) {resetConfig(baseAnterior());runScenario(def);}
+    resetConfig(baseAnterior());runMoveScenarios();
     for (const seed of [1, 2, 3, 4]) {
-      resetConfig(defaults());const g = new Game({seed});g.start();g.mode = 'tactical';C.extras.toggles.enablePlayerAI = 1;
+      resetConfig(baseAnterior());const g = new Game({seed});g.start();g.mode = 'tactical';C.extras.toggles.enablePlayerAI = 1;
       for (let t = 0; t < 3000 && g.phase === 'playing'; t++) g.step(g.playerBrain.command(g.fighters[0], g.fighters[1], 'tactical', C.test.step));
     }
-  } finally {Game.prototype.step = orig;resetConfig(defaults());}
+  } finally {Game.prototype.step = orig;resetConfig(baseAnterior());}
   return seen;
 }
 
@@ -83,7 +84,7 @@ function rig() {
 }
 
 test('emissão sem filtro = tabela: nos modos base, quem emite partículas para cada resultado é exatamente o dono declarado', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   for (const useNewVfx of [false, true]) {
     const r = rig();r.vfx.ownsParticles = null;r.rt.ownsParticles = null;   // sem filtro: o comportamento cru de cada consumidor
     const hits = r.run({useNewVfx, quarks: false}), who = useNewVfx ? 'runtime' : 'vfx';
@@ -95,7 +96,7 @@ test('emissão sem filtro = tabela: nos modos base, quem emite partículas para 
 });
 
 test('nenhum resultado tem dois donos de partículas no mesmo modo (com o filtro do despachante aplicado)', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   for (const mode of MODES) {
     const r = rig();applyParticleOwners({vfx: r.vfx, runtime: r.rt}, mode);
     const hits = r.run(mode);
@@ -112,7 +113,7 @@ test('nenhum resultado tem dois donos de partículas no mesmo modo (com o filtro
 });
 
 test('quarks ligado: o VFX legado cede só as partículas — o tremor de câmera continua dele', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const r = rig();applyParticleOwners({vfx: r.vfx, runtime: r.rt}, {useNewVfx: false, quarks: true});
   const shakes = /** @type {string[]} */ ([]);r.vfx.shake = (key) => {shakes.push(key);};
   r.vfx.update(fighters(), [evFor('impact')], .016);
@@ -120,7 +121,7 @@ test('quarks ligado: o VFX legado cede só as partículas — o tremor de câmer
 });
 
 test('runtime.update com resultado não mapeado (reflected, blocked, inventado) não lança e não desenha', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const scene = new THREE.Scene(), rt = new VfxRuntime(scene, {camera: new THREE.PerspectiveCamera(), quality: 'medium', maxParticles: 64});registerAllEffects(rt);
   let spawned = 0;const orig = rt.spawnEffect.bind(rt);rt.spawnEffect = (...a) => {spawned++;return orig(...a);};
   assert.doesNotThrow(() => rt.update(fighters(), ['reflected', 'blocked', 'resultadoInventado'].map(evFor), .016, {tick: 1}));

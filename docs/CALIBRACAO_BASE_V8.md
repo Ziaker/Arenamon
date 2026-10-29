@@ -28,3 +28,29 @@ Stamina máx. 7,1 e regeneração 1,25 s · gravidade de lançamento 39,6 (lanç
 
 ## 2ª exportação (22/10/2026 12:12 -03, laboratório v1.15.7)
 O arquivo `arenamon-calibracao-v8.json` enviado depois sobrescreve a base anterior: 34 linhas tiveram o valor trocado e 26 foram acrescentadas (184 no total; **180** desde a rodada de 22/10 à tarde, que retirou as 4 linhas do marcador do Bullet Punch — `searchRadius`, `startDistance`, `maxDistance`, `growTime` — porque o marcador deixou de existir; o valor `reach` 6 m segue valendo e agora é o alcance do Move), por exemplo stamina máx. **11,1** e regeneração **4 s**, Tackle **0,65 s / 1,55 m**, `recoilFraction` 0,8, janela da defesa perfeita 0,34 s, salto 2,4 m com controle aéreo 0,85, footstool com rebote 11,1, VFX de impacto (`vfx.hit.*`), Riposte (custo 1,55, recarga 8 s, janela 0–0,59 s, knockback 16,8/6,6, alcance 3,8) e Bullet Punch (alcance 6, `impactMult` 2,6). Conferido por script: `defaults()` = JSON em todos os valores numéricos. O `config.ts` do jogo recebeu `recoilFraction .8`, `perfect .34`, `staminaMax 11.1` e `regenTime 4`. Os 4 slots estão em `1 2 3 4` (`Digit1`–`Digit4`) como no export.
+
+## 3ª exportação (28/10/2026 19:36 -03, laboratório v1.43) — passa a ser o padrão
+Pedido do responsável: «faça ser as configs principais». O arquivo `arenamon-calibracao-v8.json` («arenamon-tuning» v9) foi guardado sem alteração em `docs/calibracao/arenamon-calibracao-v8-2026-10-28.json` e a tabela de `calibration-base.js` foi regenerada por `node scripts/gen-calibration-base.mjs` (trilha de auditoria: compara cada folha do JSON com os valores de fábrica; linha = [caminho, valor do JSON, valor de fábrica]).
+
+**Contagem:** 180 → 168 linhas · 12 com valor trocado · 4 acrescentadas · 16 retiradas (o JSON voltou ao valor de fábrica ou ao valor que o código já tem) · 0 caminhos ignorados.
+
+| Parâmetro | Base de 22/10 | Base de 28/10 | Fábrica |
+|---|---|---|---|
+| `rules.staminaMax` | 11,1 | **23,1** | 3 |
+| `rules.regenTime` | 4 | **1,4** | 5 |
+| `rules.recoil` | 0,514 | **0,61** | 0,3 |
+| `rules.guardStun` | 0,514 | **0,505** | 0,2 |
+| `rules.landingRecovery` | 0,629 | **0,467** | 0,19 |
+| `rules.chargeTackleSpeed2 / 3` | 1,5 / 2,2 | **1,94 / 2,71** | 1,25 / 1,6 |
+| `rules.tackleFriction1 / 3` | 1,8 / 1,8 | **1,1 / 1** | 0 / 0 |
+| `actions.dodge.duration` | 0,5 | **0,657** | 0,4 |
+| `actions.tackle.duration` | 0,65 | **1,143** | 0,4 |
+| `extras.visual.smear.smearOpacity` | 1 | **0,75** | 0,85 |
+| acrescentadas | — | `rules.chargeTackleMove` 0,9 · `rules.regenDelay` 0 · `smearColorMode` 1 · `dodgeSquashScale` 1,3 | — |
+
+**Testes:** os testes de mecânica escritos contra a base de 22/10 (`moves-ui`, `moves-ab-sensitivity`, `move-editor`, `f5-vfx-dispatch` e o A/B da matriz F7) passaram a usar uma cópia congelada dessa base (`test/fixtures/calibration-base-2026-10-22.mjs` via `test/base-anterior.mjs`); ela não é usada pelo jogo. O padrão atual é coberto por `calibration-base.test.mjs` e `env-integration.test.mjs`. O cenário de colisão com destrutível usa distância derivada do alcance do Tackle (antes `z = 3` fixo).
+
+**Pendências desta base (não resolvidas):**
+- `env-integration.test.mjs` falha com a nova base: na semente 12 um lutador no estado «pushed» fica 2 ticks «afundado» em `rock_1002` (mapa denso 8 + 8). É um resíduo de colisão real a investigar.
+- `f5-vfx-dispatch` falha com a nova base no modo three.quarks LIGADO (desligado por padrão): o impacto sai do VFX legado e do quarks ao mesmo tempo. Com a base de 22/10 não ocorre.
+- Não verificado: sensação de jogo com a nova base; GPU real.

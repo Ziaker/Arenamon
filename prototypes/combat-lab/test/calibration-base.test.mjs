@@ -19,7 +19,7 @@ const get = (o, path) => path.split('.').reduce((a, k) => a?.[k], o);
 const flat = (o, p = '', out = {}) => {for (const [k, v] of Object.entries(o)) {const q = p ? p + '.' + k : k;if (v && typeof v === 'object' && !Array.isArray(v)) flat(v, q, out);else out[q] = v;}return out;};
 const fac = factoryDefaults(), base = defaults();
 
-assert.equal(CALIBRATION_BASE.length, 180);ok('a tabela tem as 180 linhas (1ª exportação de 21/10 + 2ª de 22/10 12:12, que sobrescreve 34 valores e acrescenta 26; menos 4 linhas do marcador do Bullet Punch, que deixou de existir em 22/10 tarde)');
+assert.equal(CALIBRATION_BASE.length, 168);ok('a tabela tem as 168 linhas (1ª exportação de 21/10 + 2ª de 22/10 12:12 − 4 do marcador do Bullet Punch = 180; 3ª de 28/10, gerada por scripts/gen-calibration-base.mjs: troca 12 valores, acrescenta 4 e retira 16 linhas sem efeito, cujo valor novo era o de fábrica)');
 for (const [path, value, old] of CALIBRATION_BASE) {
   assert.notEqual(get(fac, path), undefined, `parâmetro inexistente: ${path}`);
   assert.deepEqual(get(fac, path), old, `valor anterior de ${path} não é o de fábrica`);
@@ -33,11 +33,20 @@ ok('cada linha: o parâmetro existe, o valor anterior é o de fábrica e o valor
 ok('defaults() = fábrica + tabela; nenhuma outra diferença');
 {
   resetConfig(defaults());
-  const want = {'rules.staminaMax': 11.1, 'rules.regenTime': 4, 'rules.recoilFraction': 0.8, 'rules.perfect': 0.34, 'extras.combat.perfectGuardCounterWindow': 1.98, 'vfx.hit.size': 2.23, 'rules.launchGravity': 39.6, 'actions.tackle.duration': 0.65, 'actions.tackle.distance': 1.55, 'actions.dodge.duration': 0.5, 'actions.dodge.distance': 2.05, 'test.arenaHalf': 16, 'profiles.balanced.speed': 4.19, 'profiles.agile.speed': 6, 'profiles.resistant.speed': 4.08,
+  const want = {'rules.staminaMax': 23.1, 'rules.regenTime': 1.4, 'rules.regenDelay': 0, 'rules.recoil': 0.61, 'rules.guardStun': 0.505, 'rules.landingRecovery': 0.467, 'rules.chargeTackleMove': 0.9, 'rules.chargeTackleSpeed2': 1.94, 'rules.chargeTackleSpeed3': 2.71, 'rules.tackleFriction1': 1.1, 'rules.tackleFriction3': 1,
+    'extras.visual.smear.smearOpacity': 0.75, 'extras.visual.smear.smearColorMode': 1, 'extras.visual.squashStretch.dodgeSquashScale': 1.3, 'test.arenaRadius': 50,
+    'rules.recoilFraction': 0.8, 'rules.perfect': 0.34, 'extras.combat.perfectGuardCounterWindow': 1.98, 'vfx.hit.size': 2.23, 'rules.launchGravity': 39.6, 'actions.tackle.duration': 1.143, 'actions.tackle.distance': 1.55, 'actions.dodge.duration': 0.657, 'actions.dodge.distance': 2.05, 'test.arenaHalf': 16, 'profiles.balanced.speed': 4.19, 'profiles.agile.speed': 6, 'profiles.resistant.speed': 4.08,
     'locomotion.acceleration': 40, 'locomotion.braking': 34, 'locomotion.reversal': 62, 'camera.maxDistance': 24, 'camera.closeRange': 1.3, 'map.jumpHeight': 2.4, 'map.jumpAirControl': 0.85, 'map.footstoolBounce': 11.1, 'extras.ai.revision': 1, 'world.riposte.cooldown': 8, 'world.riposte.cost': 1.55, 'world.riposte.knockbackH': 16.8, 'world.bulletPunch.impactMult': 2.6};
   for (const [p, v] of Object.entries(want)) assert.equal(get(C, p), v, p);
 }
-ok('valores-chave do JSON do responsável (stamina 11,1 · regen 4 s · gravidade de lançamento 39,6 · Tackle 0,65 s/1,55 m · esquiva 0,5 s/2,05 m · perfis · locomoção · câmera · salto 2,3 · IA revisão 1 · Riposte · Bullet Punch)');
+{
+  // 3ª exportação (28/10/2026): defaults() reproduz o JSON do responsável folha a folha (números com tolerância de ruído; arrays/textos por valor).
+  const json = JSON.parse(readFileSync(fileURLToPath(new URL('../../../docs/calibracao/arenamon-calibracao-v8-2026-10-28.json', import.meta.url)), 'utf8')).values;
+  const J = flat(json), B = flat(base), diff = Object.keys(J).filter(k => typeof J[k] === 'number' ? !(Math.abs(J[k] - B[k]) <= 1e-12 * Math.max(1, Math.abs(J[k]))) : JSON.stringify(J[k]) !== JSON.stringify(B[k]));
+  assert.deepEqual(diff, [], `defaults() difere do JSON de 28/10: ${diff.slice(0, 5)}`);
+}
+ok('defaults() = arenamon-calibracao-v8-2026-10-28.json em todas as folhas de values');
+ok('valores-chave do JSON do responsável (3ª exportação 28/10: stamina 23,1 · regen 1,4 s sem espera · recuo 0,61 · guard stun 0,505 · pouso 0,467 · Tackle 1,143 s/1,55 m · esquiva 0,657 s/2,05 m · gravidade de lançamento 39,6 · perfis · locomoção · câmera · salto 2,3 · IA revisão 1 · Riposte · Bullet Punch)');
 {
   const text = readFileSync(fileURLToPath(new URL('../../game/src/config.ts', import.meta.url)), 'utf8');
   for (const re of [/recoil: \.514, recoilFraction: \.8, blend: \.1, guardStun: \.514/, /perfect: \.34, perfectCooldown: 2, staminaMax: 11\.1, regenDelay: 1, regenTime: 4/, /arenaHalf: 16/, /speed: 4\.8/, /acceleration: 40, braking: 34, reversal: 62/, /maxDistance: 24/, /balanced: \{ attack: TEST\.attack, defense: TEST\.defense, speed: 4\.19/, /agile: \{ attack: 16, defense: 35, speed: 6,/, /resistant: \{ attack: 24, defense: 80, speed: 4\.08,/]) assert.match(text, re, String(re));

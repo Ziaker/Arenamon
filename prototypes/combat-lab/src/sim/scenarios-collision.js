@@ -96,7 +96,9 @@ export const COLLISION_SCENARIOS = [
     id: 'col-tackle-destructible', name: 'Colisão: Tackle contra objeto destrutível',
     description: 'O azul investe contra um destrutível (30 HP). O objeto leva o dano do Tackle uma vez; o azul não atravessa enquanto ele existir.',
     positions: [vec(0, 0), FAR], overrides: CIRCLE, ticks: () => steps(2.5),
-    setup: (/** @type {any} */ g) => {g.mapState.destructibles = [dest('d1', 0, 3)];},
+    // Objeto a 1,3 m (meia-largura 0,8 + meio corpo 0,5) + 75% do alcance do Tackle: o contato acontece COM o Tackle ainda andando, qualquer que seja a
+    // calibração. Antes era z = 3 fixo: com o Tackle de 1,143 s × 1,55 m (base de 28/10/2026) o azul parava 4,5 mm antes da face (1,695 m de 1,700).
+    setup: (/** @type {any} */ g) => {g.mapState.destructibles = [dest('d1', 0, .8 + C.test.halfExtent + .75 * C.actions.tackle.distance)];},
     script: (/** @type {number} */ t, /** @type {any} */ g, /** @type {any} */ s) => {if (g.mapState.destructibles[0].state === 'solid') track(s, 'pen', mapPen(g, g.fighters[0]));return [t === 0 ? cmd({tackle: true, move: vec(0, 1)}) : cmd({move: vec(0, 1)}), cmd()];},
     checks: ({game, scratch}) => {const d = game.mapState.destructibles[0], dmg = C.rules.tackleDamage ?? 10;return [check('Penetração enquanto sólido (m)', (scratch.pen ?? 0) <= 1e-3, '≤ 0,001', scratch.pen ?? 0), check('Dano ao objeto: exatamente um Tackle', Math.abs((d.maxHp - d.hp) - dmg) < 1e-6, `${dmg} (uma vez)`, d.maxHp - d.hp)];},
   },

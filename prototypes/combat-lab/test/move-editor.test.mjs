@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import {runScenario} from '../src/sim/scenarios.js';
 import {C, resetConfig, defaults} from '../src/sim/config.js';
+import {baseAnterior} from './base-anterior.mjs';
 import {registerStandardMoves} from '../src/sim/moves/standard.js';
 import {EDITABLE_MOVES, editableMove} from '../src/editor/editable-moves.js';
 import {makeMoveScenario, currentMoveJson, observeSeconds, needsHold, suggestedHold, DISTANCE_RANGE, HOLD_RANGE, TARGET_STATES, STAGE_ARENAS} from '../src/editor/move-editor-model.js';
@@ -12,7 +13,7 @@ registerStandardMoves();
 const sand = editableMove('sand-wave');
 let n = 0;
 const ok = (name, fn) => {try {fn();n++;console.log('  ✓ ' + name);} catch (e) {console.log('  ✗ ' + name + '\n' + (e.stack || e.message).split('\n').slice(0, 4).join('\n'));process.exitCode = 1;}};
-const run = stage => { resetConfig(defaults()); return runScenario(makeMoveScenario(sand, stage)); };
+const run = stage => { resetConfig(baseAnterior()); return runScenario(makeMoveScenario(sand, stage)); };
 const val = (r, label) => r.checks.find(c => c.label === label).actual;
 
 ok('todos os Moves estão na lista do editor (19)', () => { assert.ok(sand); assert.equal(sand.group, 'sandWave'); assert.ok(EDITABLE_MOVES.length >= 19, String(EDITABLE_MOVES.length)); });
@@ -28,12 +29,12 @@ ok('executar com o alvo fora do alcance: não acerta', () => {
   assert.equal(val(r, 'Dano causado ao alvo'), '0.0 HP');
 });
 ok('mudar o slider de dano muda o resultado do play', () => {
-  resetConfig(defaults());C.world.sandWave.damage = 15;
+  resetConfig(baseAnterior());C.world.sandWave.damage = 15;
   const r = runScenario(makeMoveScenario(sand, {distance: 3}));
   assert.equal(val(r, 'Dano causado ao alvo'), '15.0 HP');
 });
 ok('mudar o alcance (length) deixa o mesmo alvo de fora', () => {
-  resetConfig(defaults());C.world.sandWave.length = 1.5;
+  resetConfig(baseAnterior());C.world.sandWave.length = 1.5;
   const r = runScenario(makeMoveScenario(sand, {distance: 3}));
   assert.equal(val(r, 'Acertou o alvo'), 'não');
 });
@@ -48,23 +49,23 @@ ok('a distância é limitada à faixa do palco', () => {
   assert.equal(s.positions[1].z - s.positions[0].z, DISTANCE_RANGE.max);
 });
 ok('o tempo observado cobre preparação + janela ativa + dissipação', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   assert.ok(observeSeconds(sand) >= C.world.sandWave.cast + C.world.sandWave.active + C.world.sandWave.dissipate);
 });
 ok('o move.json exportado é válido e carrega os valores atuais dos sliders', () => {
-  resetConfig(defaults());C.world.sandWave.damage = 11;C.world.sandWave.cooldown = 7;
+  resetConfig(baseAnterior());C.world.sandWave.damage = 11;C.world.sandWave.cooldown = 7;
   const doc = currentMoveJson(sand);
   assert.deepEqual(validateMoveData(doc), []);
   assert.equal(doc.params.rows.find(r => r.key === 'damage').value, 11);
   assert.equal(doc.def.cooldown, 7);
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
 });
 
 // ---- Todos os Moves no palco ----
 const val2 = (r, label) => r.checks.find(c => c.label === label)?.actual;
 ok('cada Move migrado roda no palco sem erro, com o resumo completo e custo igual ao slider', () => {
   for (const m of EDITABLE_MOVES) {
-    resetConfig(defaults());
+    resetConfig(baseAnterior());
     const r = runScenario(makeMoveScenario(m, {distance: 3}));
     assert.ok(r.checks.length >= 9, m.id);
     const cost = (C.world[m.group]?.cost ?? m.def.cost ?? 0).toFixed(2);
@@ -73,7 +74,7 @@ ok('cada Move migrado roda no palco sem erro, com o resumo completo e custo igua
 });
 ok('golpes e projéteis acertam o alvo a 3 m (Sand Wave, Air Slash, Lunge, Quick Attack, Swift, Water Pulse)', () => {
   for (const id of ['sand-wave', 'air-slash', 'lunge', 'quick-attack', 'swift', 'water-pulse']) {
-    resetConfig(defaults());
+    resetConfig(baseAnterior());
     const r = runScenario(makeMoveScenario(editableMove(id), {distance: 3}));
     assert.ok(val2(r, 'Acertou o alvo').startsWith('sim'), id + ': ' + val2(r, 'Acertou o alvo'));
     assert.ok(parseFloat(val2(r, 'Dano causado ao alvo')) > 0, id);
@@ -81,7 +82,7 @@ ok('golpes e projéteis acertam o alvo a 3 m (Sand Wave, Air Slash, Lunge, Quick
 });
 ok('buffs mostram o status no azul (Harden, Second Wind)', () => {
   for (const [id, st] of [['harden', 'harden'], ['second-wind', 'second-wind']]) {
-    resetConfig(defaults());
+    resetConfig(baseAnterior());
     const r = runScenario(makeMoveScenario(editableMove(id), {distance: 3}));
     assert.ok(val2(r, 'Status no azul').includes(st), id + ': ' + val2(r, 'Status no azul'));
   }
@@ -89,28 +90,28 @@ ok('buffs mostram o status no azul (Harden, Second Wind)', () => {
 ok('campos e projéteis mostram as entidades criadas (Fire Spin, Seed Bomb, Emerging Stone, Air Slash)', () => {
   const want = {'fire-spin': 'area', 'seed-bomb': 'projectile', 'emerging-stone': 'burrow', 'air-slash': 'projectile'};
   for (const [id, kind] of Object.entries(want)) {
-    resetConfig(defaults());
+    resetConfig(baseAnterior());
     const r = runScenario(makeMoveScenario(editableMove(id), {distance: 3}));
     assert.ok(val2(r, 'Entidades criadas').includes(kind), id + ': ' + val2(r, 'Entidades criadas'));
   }
 });
 ok('Spikes avisa o motivo quando o marcador cai em cima do alvo e arma quando o alvo está longe', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const perto = runScenario(makeMoveScenario(editableMove('spikes'), {distance: 3}));
   assert.ok(val2(perto, 'Falha ao usar o Move').includes('marcador inválido'), val2(perto, 'Falha ao usar o Move'));
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const longe = runScenario(makeMoveScenario(editableMove('spikes'), {distance: 12}));
   assert.ok(val2(longe, 'Entidades criadas').includes('trap'), val2(longe, 'Entidades criadas'));
 });
 ok('Reflect e Psyshock (agora em dado) rodam no palco: barreira só com a carga mínima; pedras acertam e crescem com a carga', () => {
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const curto = runScenario(makeMoveScenario(editableMove('reflect'), {distance: 3, hold: 0.3}));
   assert.ok(val2(curto, 'Falha ao usar o Move').includes('carga mínima'), val2(curto, 'Falha ao usar o Move'));
   assert.equal(val2(curto, 'Entidades criadas'), 'nenhum');
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const longo = runScenario(makeMoveScenario(editableMove('reflect'), {distance: 3, hold: 1.2}));
   assert.ok(val2(longo, 'Entidades criadas').includes('barrier'), val2(longo, 'Entidades criadas'));
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const p1 = runScenario(makeMoveScenario(editableMove('psyshock'), {distance: 3, hold: 0.3})), p2 = runScenario(makeMoveScenario(editableMove('psyshock'), {distance: 3, hold: 2.4}));
   assert.ok(val2(p1, 'Acertou o alvo').startsWith('sim'));
   assert.ok(parseFloat(val2(p2, 'Dano causado ao alvo')) > parseFloat(val2(p1, 'Dano causado ao alvo')), 'mais carga, mais pedras, mais dano');
@@ -129,11 +130,11 @@ ok('palco expandido (Fase 6): suporta distância até 40 m, botão até 5 s, est
   assert.equal(HOLD_RANGE.max, 5);
   assert.ok(TARGET_STATES.length >= 7);
   assert.ok(STAGE_ARENAS.length >= 5);
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   C.world.seedBomb.maxSpeed = 40;
   const sb = runScenario(makeMoveScenario(editableMove('seed-bomb'), {distance: 20, hold: 0.4}));
   assert.ok(val2(sb, 'Entidades criadas').includes('projectile'), 'Seed Bomb alcança 20 m no palco');
-  resetConfig(defaults());
+  resetConfig(baseAnterior());
   const blocked = runScenario(makeMoveScenario(editableMove('air-slash'), {distance: 6, arena: 'wall'}));
   assert.equal(val2(blocked, 'Acertou o alvo'), 'não', 'parede entre os dois bloqueia projétil reto');
 });
