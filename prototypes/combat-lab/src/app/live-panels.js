@@ -11,6 +11,7 @@ import * as T from 'three';
 import {$, actionsDrawer, diagnostics, editorHooks, game, homologation, input, movement, movesPanel, perfPanel, presets, recorder, renderCharacters, tuning, ui, view} from '../main.js';
 import {renderStudioEvents} from './characters-sync.js';
 import {renderGameDiff, syncCompareOptions} from './tuning-sync.js';
+import {fighterTitle} from '../ui/fighter-identity.js';
 
 export function renderLive() {
   const [a, b] = game.fighters;if (!a) return;const d = length(sub(b.position, a.position)), rel = sub(a.velocity, b.velocity), n = d > 1e-6 ? {x: (b.position.x - a.position.x) / d, z: (b.position.z - a.position.z) / d} : {x: 0, z: 0};
@@ -44,7 +45,7 @@ export function renderHistory() {$('input-history').innerHTML = input.history.ma
 export function syncButtons() {
   const hb = $('arena-hitboxes-toggle'), on = !!C.extras.toggles.showHitboxes;hb.setAttribute('aria-checked', String(on));
   $('arena-toast-toggle').setAttribute('aria-checked', String(!!C.display.diagnostics.toast));const eb = $('arena-enemy-ai-toggle');eb.setAttribute('aria-checked', String(!!C.extras.toggles.enableEnemyAI));
-  const ab = $('arena-autoplay-toggle'), ai = !!C.extras.toggles.enablePlayerAI;ab.setAttribute('aria-checked', String(ai));$('name0').textContent = ai ? 'JOGADOR IA · AZUL' : 'JOGADOR · AZUL';
+  const ab = $('arena-autoplay-toggle'), ai = !!C.extras.toggles.enablePlayerAI;ab.setAttribute('aria-checked', String(ai));$('name0').textContent = fighterTitle(0, {playerAI: ai});
   $('pause').textContent = ui.paused ? '▶ Continuar' : '❚❚ Pausar';$('rp-play').textContent = ui.paused ? '▶' : '❚❚';
   const zb = $('arena-zen-toggle');
   if (zb) {

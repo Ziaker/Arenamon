@@ -12,6 +12,7 @@ import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
 import {MeteorFx} from './meteor-fx.js';
 import {LimbSmear} from './smear-mesh.js';
+import {BoostRings} from './boost-ring.js';
 import {PassiveAbilitySystem} from './passive-abilities.js';
 import {createPassiveBanners} from '../ui/passive-banner.js';
 import {WorldView} from './world-view.js';
@@ -81,6 +82,7 @@ export class View {
     this.vfxRuntime = new VfxRuntime(this.scene, {camera: this.camera, canvas, flashEl: document.getElementById('vfx-flash'), quality: 'medium'});
     registerAllEffects(this.vfxRuntime);
     this.solid = new SolidFx(this.scene); // malhas 3D sólidas (poeira do dash, esquiva, impactos); independe do renderizador de sprites
+    this.boostRings = new BoostRings(this.scene); // anel no chão quando um Move tem a recarga acelerada com stamina (cooldownBoost)
     this.meteorFx = new MeteorFx(this.scene); // rastro de fogo do meteor slam (só na queda)
     this.abilityBanners = createPassiveBanners();
     this.passives = new PassiveAbilitySystem(this.scene, {notify: (id, name) => this.abilityBanners.show(id, name)});
@@ -161,7 +163,7 @@ export class View {
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
     this.quarks?.reset();this.post?.pulses.reset();
-    this.solid.reset();this.meteorFx?.reset();for (const smear of this.smears) smear?.reset();
+    this.solid.reset();this.meteorFx?.reset();this.boostRings?.reset();for (const smear of this.smears) smear?.reset();
     this.passives.reset();this.abilityBanners.clear();
     this.cinematic?.clearAll();
     this.cinematic?.triggerRoundIntro();
@@ -292,6 +294,16 @@ export class View {
     }
     return sh;
   }
+  /**
+   * Anel de choque no chão do lutador que acelerou a recarga de um Move pagando stamina (evento `cooldownBoost`).
+   * Chamado pelo BoostFeedback; não toca a simulação.
+   * @param {any} f lutador da simulação (usa a posição física)
+   * @param {string | null} hex cor do lutador
+   */
+  boostBurst(f, hex) {
+    if (!f) return;
+    this.boostRings?.fire(f.position.x, f.groundY ?? 0, f.position.z, hex);
+  }
   draw(fighters, events = [], dt = 1 / 60, {paused = false, tick = 0, sources = [], realDt = dt, world = null, navGame = null} = {}) {
     const X = C.extras, V = X.visual, S = C.display.shadow, G = C.display.grounding, now = () => performance.now(), tm = this.timings = {anim: 0, vfx: 0, render: 0, overlays: 0};let t0;
     const visualScale = this.cinematic?.getVisualTimeScale?.() ?? 1.0;
@@ -344,6 +356,7 @@ export class View {
       else if (this.absentSeen?.[f.id]) {shadow.visible = true;if (character?.root) character.root.visible = true;this.absentSeen[f.id] = false;}
       t0 = now();this.smears[f.id]?.update(f, paused ? 0 : animDt, V.smear, tick, !!X.hud.fxVisible && !!C.vfx.master.enabled && !C.vfx.master.reduceMotion);tm.vfx += now() - t0;
     }
+    this.boostRings?.update(paused ? 0 : dt);
     t0 = now();this.drawOverlays(fighters, paused ? 0 : dt, world);this.worldView.update(world, {fighters, events: fresh, dt: paused ? 0 : dt, skipBeams: this.useNewVfx, camera: this.camera});tm.overlays = now() - t0;
     if (!this.rig.initialized) this.rig.reset(fighters[0]);
     const basePose = this.rig.pose();

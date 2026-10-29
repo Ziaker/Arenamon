@@ -2,6 +2,7 @@
 import {C} from '../sim/config.js';
 import {isInvulnerable, isOffensive} from '../sim/entity.js';
 import {AI_MODES} from '../sim/ai.js';
+import {fighterColorHex, fighterGlyph, fighterTitle} from './fighter-identity.js';
 
 export const STATE_NAMES = {neutral: 'Livre', ledgeHang: 'Pendurado na borda', ledgeClimb: 'Subindo a borda', tackleCharge: 'Carregando tackle', meteorPrep: 'Meteor: preparação', meteorDive: 'Meteor: mergulho', meteorGround: 'Meteor: no chão', moving: 'Movimentação', airborne: 'Lançado', landing: 'Aterrissando', guard: 'Defesa', dodge: 'Esquiva', tackle: 'Tackle', guardStun: 'Guard stun', recoil: 'Recuo', pushed: 'Empurrão', defeated: 'Derrotado'};
 export const RESULT_NAMES = {impact: 'Impacto', clash: 'CLASH!', partial: 'Bloqueio parcial', reflected: 'Reflexão', barrierBroken: 'Barreira destruída', neutralized: 'Projétil neutralizado', stoneClash: 'Choque de pedras', counter: 'Counter de PL', tackleClash: 'Tackle × pedra (Clash)', counterStagger: 'Counter Stagger', shielded: 'Protegido pela barreira', moveFailed: 'Movimento falhou', perfect: 'Defesa perfeita', perfectDodge: 'Esquiva perfeita', invulnerable: 'Invulnerável', wallSplat: 'Wall-splat!'};
@@ -22,6 +23,21 @@ export class Hud {
     const aiText = C.extras.toggles.enableEnemyAI ? 'IA: ' + modeShort : 'IA: desligada';
     if ($('ai-chip').textContent !== aiText) {$('ai-chip').textContent = aiText;$('ai-chip').title = C.extras.toggles.enableEnemyAI ? 'Modo da IA do adversário: ' + modeFull : 'IA do oponente desligada (botão 🧠)';}
     for (const f of game.fighters) {
+      const titleEl = $(`name${f.id}`);
+      if (titleEl) {
+        // Identidade visual: a cor escolhida no pré-jogo vale para o HUD inteiro; o símbolo (◆/●) distingue
+        // os dois lutadores sem depender da cor (daltonismo).
+        const title = fighterTitle(f.id, {playerAI});
+        if (titleEl.textContent !== title) titleEl.textContent = title;
+        if (titleEl.dataset.glyph !== fighterGlyph(f.id)) titleEl.dataset.glyph = fighterGlyph(f.id);
+        const card = titleEl.parentElement;
+        if (card && card.dataset.slot !== String(f.id)) card.dataset.slot = String(f.id);
+        const hex = fighterColorHex(f.id);
+        if (card) {
+          if (hex && card.style.getPropertyValue('--fc') !== hex) card.style.setProperty('--fc', hex);
+          else if (!hex && card.style.getPropertyValue('--fc')) card.style.removeProperty('--fc');
+        }
+      }
       const maxStamina = C.rules.staminaMax + (f.stages?.staminaMax || 0);
       $(`hp${f.id}`).value = f.hp / f.attributes.hp;
       $(`stamina${f.id}`).value = f.stamina / maxStamina;

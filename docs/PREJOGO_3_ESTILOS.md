@@ -23,6 +23,26 @@ Ordem do diretor: `ARENAMON_PROMPT_CLAUDE_PRE_JOGO_3_ESTILOS.docx` (22/10/2026).
 | `src/menu-styles.css` + `build-lib.mjs` | CSS das três telas, concatenado ao mesmo `<style>` do build. |
 | `src/template.html`, `src/main.js` | Contêiner `#menu-styled` e ligação (`menuStyles`, exposto em `window.__lab`). |
 | `prototypes/hud-moves/` | **Não foi alterado.** Só o conjunto de ícones (`data.js`) é importado. |
+| `src/ui/fighter-identity.js` (novo) | Identidade única (cor, rótulo e símbolo) usada pelo HUD da arena, pelos cabeçalhos do menu e pelo indicador de recarga acelerada. |
+| `src/ui/boost-feedback.js` (novo) | Lê o evento `cooldownBoost` e dispara a faixa `#boost-flash`, o flash do slot e o anel no chão. |
+| `src/view/boost-ring.js` (novo) | Duas ondas de anel no chão, na cor do lutador, com pool fixo de 8 malhas. |
+
+## Cor do lutador no HUD da arena (itens 1 e 4)
+A cor escolhida no pré-jogo agora vale também **dentro da partida**, não só na prévia:
+
+- `hud.js` escreve o nome (`JOGADOR · ROXO`, `ADVERSÁRIO · AMARELO`), `data-glyph`, `data-slot` e `--fc` em cada cartão. Vida e stamina continuam com as cores semânticas; a cor do lutador pinta nome, borda, brilho, medidores e o rótulo dos slots de Move.
+- **Pista sem cor:** o jogador usa `◆` e o adversário `●`, e o fundo do cartão difere (lavagem sólida × hachura diagonal). Quem não distingue cor (daltonismo, captura em preto e branco) continua identificando os dois lados.
+- `menu-quick.js` passou a sincronizar o cabeçalho do menu (`◆ Lutador Roxo`, `● Adversário Amarelo`) pela mesma fonte, em vez do texto fixo "Lutador Azul"/"Adversário Vermelho".
+- Sem tingimento (`Automática` sem conflito de modelos) o nome fica só `JOGADOR`/`ADVERSÁRIO` e o cartão usa o azul/vermelho padrão de cada lado.
+
+## Indicador de recarga acelerada (`cooldownBoost`)
+Apertar de novo o botão de um Move **em recarga** gasta stamina e encurta o cooldown (`sim/charge.js` → `boostPlan`, `ctrl-moves.js` → `boostCooldown`). O motor já emitia `cooldownBoost {attacker, move, slot, reduced, cost}`, mas a tela não mostrava nada. Agora, a cada evento novo:
+
+1. **Faixa `#boost-flash`** (abaixo do HUD, no lado do lutador): kicker `RECARGA ACELERADA`, `+0,85 s` grande, `−2,15 ST` e `JOGADOR · ROXO · NOME DO MOVE`, com pop, anel de contorno e brilho na cor do lutador.
+2. **Slot do Move** (`moves-hud.js`): o cartão dá um soco (escala 1,15), ganha borda/brilho na cor do lutador e uma varredura de luz (`data-boost="1"`, ~0,7 s).
+3. **Anel no chão** (`view/boost-ring.js`): duas ondas concêntricas na posição do lutador, na cor dele.
+
+Detalhes: o `BoostFeedback` deduplica por identidade do objeto (WeakSet), só dispara com a partida **ao vivo** (`live`) e marca os eventos mesmo pausado — voltar no replay não repete o flash. Não altera a simulação nem o despachante de VFX. Com `prefers-reduced-motion`, a faixa encurta, o anel de contorno some e o slot troca a animação por um contorno estático. Sem cor escolhida, a faixa usa dourado (`#ffd23f`).
 
 ## Matriz de correspondência (componente novo → original → alteração justificada)
 Fonte dos originais: `prototypes/hud-moves/src/css/hud-a.css`, `hud-b.css`, `hud-c.css`.

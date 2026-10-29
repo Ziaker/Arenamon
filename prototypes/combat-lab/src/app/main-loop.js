@@ -5,7 +5,7 @@ import {applyInterpolation} from '../sim/interpolation.js';
 import {C} from '../sim/config.js';
 import {Character} from '../view/characters.js';
 import {length} from '../sim/math.js';
-import {$, canvas, cinePanel, clock, diagnostics, dock, game, hud, hudProposals, input, movesHud, passivesHud, perfPanel, progressHud, renderCharacterLive, replay, ui, view, visualPanel, windowsOverlay} from '../main.js';
+import {$, boostFeedback, canvas, cinePanel, clock, diagnostics, dock, game, hud, hudProposals, input, movesHud, passivesHud, perfPanel, progressHud, renderCharacterLive, replay, ui, view, visualPanel, windowsOverlay} from '../main.js';
 import {stepOnce} from './match-flow.js';
 import {checkKoTrigger, lastKoHandled, moveNotices} from './match-stats.js';
 import {renderHistory, renderLive, updateActionHintPill, updateDojoAdvantageBadge, updateOffscreenArrow} from './live-panels.js';
@@ -27,6 +27,7 @@ export function frame(now) {
   const back = replay.length ? (replay.length - 1 - replay.cursor) : 0;
   hud.render(game, ui.fps, {locked: input.locked, paused: ui.paused && game.phase !== 'menu', replay: back ? `−${back} passos (${(back * C.test.step * 1000).toFixed(0)} ms) · ▶ retoma daqui` : 'último passo · , e . avançam/voltam', playerAI: !!C.extras.toggles.enablePlayerAI});
   movesHud.render(game);moveNotices();progressHud.render(game);
+  boostFeedback.update(game, {live, view, movesHud});
   passivesHud.render(game, C.extras.toggles.enablePassives !== 0);
   $('rp-readout').textContent = `passo ${game.tick}${back ? ` · −${(back * C.test.step).toFixed(2)} s` : ''}${clock.timeScale !== 1 ? ` · ${clock.timeScale}×` : ''}`;
   dock.render();updateDojoAdvantageBadge();hudProposals.render(game, live ? dt * clock.timeScale : 0);windowsOverlay.update();perfPanel.frame({frameMs: dt * 1000, simMs, steps});cinePanel?.updateBadge?.();updateOffscreenArrow(canvas.clientWidth, canvas.clientHeight);updateActionHintPill();if (game.phase === 'result' && !lastKoHandled) checkKoTrigger();

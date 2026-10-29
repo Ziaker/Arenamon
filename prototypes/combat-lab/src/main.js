@@ -36,6 +36,7 @@ import {createTrainingPanel} from './ui/training-panel.js';
 import {createMovesPanel, MOVE_INFO} from './ui/moves-panel.js';
 import {createMovesVisual} from './ui/moves-vfx-panel.js';
 import {MovesHud} from './ui/moves-hud.js';
+import {BoostFeedback} from './ui/boost-feedback.js';
 import {createPassivesPanel} from './ui/passives-panel.js';
 import {installHoverTip} from './ui/hover-tip.js';
 import {deterministicCapture} from './view/visual-random.js';   // captura determinística dos testes de paridade (só __lab)
@@ -152,6 +153,8 @@ export const movesPanel = createMovesPanel({$, game, download, tuning, view, ui,
     refreshActions: () => {if (!$('moves-drawer').hidden) actionsDrawer.render();}}});
 export const actionsDrawer = createActionsDrawer({$, tuning, ui, renderMoves: c => movesPanel.renderActions(c), renderAiMoves: c => movesPanel.renderAiParams(c), onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 export const movesHud = new MovesHud($('moves-hud'));
+// Recarga acelerada (novo toque durante o cooldown paga stamina): faixa no HUD, flash do slot e anel no chão.
+export const boostFeedback = new BoostFeedback();
 // Passivas: painel de seleção (Partida), HUD da arena e VFX de ativação (§16/§17).
 installHoverTip();
 export const passivesPanel = createPassivesPanel({getCharacterNames: () => [ui.characters[0]?.source?.name ?? null, ui.characters[1]?.source?.name ?? null]});

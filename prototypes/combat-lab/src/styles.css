@@ -1033,7 +1033,7 @@ dialog.editor-dialog .editor-actions{justify-content:flex-end}
 .editor-keys-help{margin:8px 12px 0;padding:8px 10px;border:1px solid var(--line,#2a3446);border-radius:8px;font-size:12px;line-height:1.7;background:rgba(10,16,26,.85)}
 .editor-keys-help kbd{padding:0 5px;border:1px solid #4a5870;border-radius:4px;font-size:11px}
 body.modo-moves .top-actions,body.modo-moves .top-info,body.modo-moves .rail,body.modo-moves #panel,body.modo-moves #panel-resizer,body.modo-moves .dock,
-body.modo-moves #menu,body.modo-moves #overlay,body.modo-moves #moves-hud,body.modo-moves #passives-hud,body.modo-moves #input-history,body.modo-moves .zen-badge,
+body.modo-moves #menu,body.modo-moves #overlay,body.modo-moves #moves-hud,body.modo-moves #boost-flash,body.modo-moves #passives-hud,body.modo-moves #input-history,body.modo-moves .zen-badge,
 body.modo-moves #editor-close,body.modo-moves #editor-popout,body.modo-moves #moves-drawer,body.modo-moves #chars-drawer{display:none!important}
 body.modo-moves .top .brand small::after{content:" · Estúdio de Moves";color:#7dd3fc}
 body.modo-moves #move-editor{display:flex!important;width:min(520px,46vw);max-width:none}
@@ -1067,3 +1067,42 @@ body.modo-moves #editor-open-actions{display:none!important}
 .move-editor .coverage-table th,.move-editor .coverage-table td{padding:2px 3px}
 .move-editor .coverage-table td{white-space:nowrap}
 .move-editor .coverage-table th{white-space:normal;line-height:1.15}
+
+/* ---------- Identidade do lutador no HUD (cor escolhida no pré-jogo + pista sem cor) ---------- */
+/* --fc vem de ui/fighter-identity.js via hud.js (style inline no cartão do lutador). O símbolo ◆/● e o
+   padrão do fundo (lavagem sólida x hachura) distinguem os dois lutadores mesmo sem perceber cor. */
+.fighter{--fc:#3f7cff;border-color:color-mix(in srgb,var(--fc) 45%,#ffffff1a);box-shadow:inset 0 0 16px color-mix(in srgb,var(--fc) 12%,transparent)}
+.fighter.enemy{--fc:#ff4d47}
+.fighter strong{color:var(--fc);text-shadow:0 0 9px color-mix(in srgb,var(--fc) 45%,transparent)}
+.fighter strong::before{content:attr(data-glyph);display:inline-block;margin-right:6px;font-size:10px;opacity:.92}
+.fighter.enemy strong::before{margin-right:0;margin-left:6px}
+.fighter meter{accent-color:var(--fc)}
+.fighter[data-slot="0"]{background-image:linear-gradient(100deg,color-mix(in srgb,var(--fc) 20%,transparent),transparent 62%)}
+.fighter[data-slot="1"]{background-image:repeating-linear-gradient(135deg,color-mix(in srgb,var(--fc) 13%,transparent) 0 6px,transparent 6px 12px)}
+
+/* ---------- Recarga acelerada (novo toque durante o cooldown paga stamina) ---------- */
+#boost-flash{position:absolute;top:clamp(198px,25%,270px);left:12px;z-index:8;pointer-events:none;display:flex;flex-direction:column;gap:2px;padding:8px 15px 9px;border-radius:11px;--fc:#ffd23f;
+ border:1px solid color-mix(in srgb,var(--fc) 65%,#ffffff33);background:linear-gradient(135deg,color-mix(in srgb,var(--fc) 26%,#050a10f2),#050a10f2 70%);
+ box-shadow:0 0 0 1px #0006,0 10px 28px #000a,0 0 30px color-mix(in srgb,var(--fc) 50%,transparent);transform-origin:left center}
+#boost-flash[data-fighter="1"]{left:auto;right:12px;transform-origin:right center;text-align:right;align-items:flex-end}
+#boost-flash .bf-kicker{font:800 9.5px/1 Inter,system-ui,sans-serif;letter-spacing:.17em;color:color-mix(in srgb,var(--fc) 60%,#fff)}
+#boost-flash .bf-main{display:flex;align-items:baseline;gap:9px}
+#boost-flash .bf-amount{font:900 27px/.95 Inter,system-ui,sans-serif;color:#fff;letter-spacing:-.01em;text-shadow:0 0 14px var(--fc),0 0 34px color-mix(in srgb,var(--fc) 60%,transparent)}
+#boost-flash .bf-cost{font:800 12.5px/1 Inter,system-ui,sans-serif;color:color-mix(in srgb,var(--fc) 45%,#fff);letter-spacing:.03em}
+#boost-flash .bf-move{font:700 9.5px/1.2 Inter,system-ui,sans-serif;letter-spacing:.09em;text-transform:uppercase;color:#b9cad9;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#boost-flash.on{animation:bf-pop .95s cubic-bezier(.18,1.5,.32,1) forwards}
+#boost-flash.on::after{content:'';position:absolute;inset:-7px;border-radius:16px;border:2px solid color-mix(in srgb,var(--fc) 80%,transparent);animation:bf-ring .66s ease-out forwards;pointer-events:none}
+@keyframes bf-pop{0%{opacity:0;transform:scale(.55) translateY(10px)}16%{opacity:1;transform:scale(1.13) translateY(0)}28%{transform:scale(.97)}40%{transform:scale(1.04)}68%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1) translateY(-7px)}}
+@keyframes bf-ring{0%{opacity:.95;transform:scale(.8)}100%{opacity:0;transform:scale(1.55)}}
+/* Slot do Move: o cooldown salta para a frente e o cartão dá um soco com varredura de luz. */
+.mvp-slot[data-boost="1"]{z-index:2;animation:mvp-boost .7s cubic-bezier(.2,1.4,.3,1);border-color:color-mix(in srgb,var(--fc) 85%,#fff)}
+.mvp-slot[data-boost="1"]::after{content:'';position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen;
+ background:linear-gradient(100deg,transparent 18%,color-mix(in srgb,var(--fc) 55%,#fff) 50%,transparent 82%);animation:mvp-sweep .7s ease-out}
+@keyframes mvp-boost{0%{transform:scale(1);box-shadow:0 0 0 0 color-mix(in srgb,var(--fc) 85%,transparent)}22%{transform:scale(1.15);box-shadow:0 0 0 3px color-mix(in srgb,var(--fc) 50%,transparent),0 0 24px color-mix(in srgb,var(--fc) 70%,transparent)}58%{transform:scale(1.02)}100%{transform:scale(1);box-shadow:0 0 0 0 transparent}}
+@keyframes mvp-sweep{0%{transform:translateX(-130%);opacity:0}22%{opacity:.95}100%{transform:translateX(130%);opacity:0}}
+@media (prefers-reduced-motion: reduce){
+ #boost-flash.on{animation-duration:.22s}
+ #boost-flash.on::after{display:none}
+ .mvp-slot[data-boost="1"]{animation:none;box-shadow:0 0 0 2px color-mix(in srgb,var(--fc) 70%,transparent)}
+ .mvp-slot[data-boost="1"]::after{animation:none;opacity:0}
+}

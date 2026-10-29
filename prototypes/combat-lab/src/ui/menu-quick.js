@@ -6,6 +6,7 @@ import {listMoves} from '../sim/moves.js';
 import {PASSIVE_SLOTS, exclusivePassives, genericPassives, speciesFromName, validateLoadout} from '../sim/passives.js';
 import {createMenuPreview} from './menu-preview.js';
 import {COLOR_OPTIONS, COLOR_IDS, colorHex, effectiveColor, sameModel} from '../view/character-colors.js';
+import {fighterColorLabel, fighterGlyph, setFighterIdentity} from './fighter-identity.js';
 
 const escape = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[c]));
 const SLOTS = [0, 1];
@@ -52,12 +53,23 @@ export function createQuickMenu({$, game, ui, passivesPanel}) {
     const sel = $(`quick-color-${slot}`);
     if (sel && sel.value !== state.color[slot]) sel.value = state.color[slot];
   }
+  /** Cabeçalho do bloco do menu: acompanha a cor escolhida (antes era "Lutador Azul"/"Adversário Vermelho" fixo). */
+  function syncHeader(slot, hex) {
+    const h = $(`quick-head-${slot}`);
+    if (!h) return;
+    const label = fighterColorLabel(slot);
+    const pretty = label ? ' ' + label.charAt(0) + label.slice(1).toLowerCase() : '';
+    h.textContent = `${fighterGlyph(slot)} ${slot ? 'Adversário' : 'Lutador'}${pretty}`;
+    if (hex) h.style.color = hex; else h.style.removeProperty('color');
+  }
   /** Aplica a cor nos DOIS lutadores: prévia 3D e Character usado na partida. */
   function applyColors() {
     for (const slot of SLOTS) {
-      const hex = colorHex(colorOf(slot));
+      const id = colorOf(slot), hex = colorHex(id);
       previews[slot].setTint(hex);
       ui.characters[slot]?.setTint?.(hex);
+      setFighterIdentity(slot, id);   // HUD da arena, slots de Move e indicador de recarga acelerada
+      syncHeader(slot, hex);
     }
   }
   /** ÚNICO caminho de escrita da cor (select do menu atual e botões das telas A/B/C). */

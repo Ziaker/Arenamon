@@ -10,6 +10,7 @@ import {MOVE_INFO} from '../src/ui/moves-panel.js';
 import {moveCatalog, passiveCatalog, invalidReasons, iconForMove, keyLabel, usageLine, MOVE_ICON, moveClass, MOVE_CLASSES, PASSIVE_CLASSES} from '../src/ui/menu-styles-model.js';
 import {genericPassives, exclusivePassives, PASSIVE_SPECIES, PASSIVES} from '../src/sim/passives.js';
 import {COLOR_IDS, colorHex, effectiveColor, sameModel, tintColor} from '../src/view/character-colors.js';
+import {setFighterIdentity, fighterTitle, fighterColorHex, fighterColorLabel, fighterGlyph} from '../src/ui/fighter-identity.js';
 
 let passed = 0, failed = 0;
 const test = (name, fn) => {try {fn();passed++;console.log(`  ✓ ${name}`);} catch (e) {failed++;console.error(`  ✗ ${name}: ${e.message}`);}};
@@ -98,6 +99,20 @@ test('tintColor preserva a cor original sem cor e é mais forte em modelo sem te
   const plain = tintColor(0x888888, '#ff0000', false), mapped = tintColor(0x888888, '#ff0000', true);
   const dist = c => Math.hypot(c.r - 1, c.g, c.b);
   assert.ok(dist(plain) < dist(mapped), 'sem textura fica mais perto do vermelho');
+});
+test('identidade do HUD segue a cor escolhida e mantém pista sem cor (◆/●)', () => {
+  setFighterIdentity(0, 'purple'); setFighterIdentity(1, 'yellow');
+  assert.equal(fighterTitle(0), 'JOGADOR · ROXO');
+  assert.equal(fighterTitle(1), 'ADVERSÁRIO · AMARELO');
+  assert.equal(fighterTitle(0, {playerAI: true}), 'JOGADOR IA · ROXO');
+  assert.equal(fighterColorHex(0), '#a45cff');
+  assert.equal(fighterColorLabel(1), 'AMARELO');
+  assert.equal(fighterGlyph(0), '◆');
+  assert.equal(fighterGlyph(1), '●');
+  setFighterIdentity(0, 'auto'); setFighterIdentity(1, null);
+  assert.equal(fighterColorHex(0), null, 'automática sem conflito não tinge');
+  assert.equal(fighterTitle(0), 'JOGADOR');
+  assert.equal(fighterTitle(1), 'ADVERSÁRIO');
 });
 
 console.log(`\n${passed} passaram, ${failed} falharam`);
