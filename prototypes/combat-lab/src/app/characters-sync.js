@@ -35,7 +35,7 @@ export function moveCastTargets(ch) {
   const src = Number($('char-sync-source').value), id = ui.characters[src] === ch ? src : 1 - src, f = game.fighters[id], out = [];
   for (let slot = 0; slot < C.world.slots; slot++) {
     const def = Moves.getMove(f?.loadout?.[slot]);
-    if (def?.group && !def.durationKeys && !def.charge && !def.aimMode && typeof C.world[def.group]?.cast === 'number' && tuning.byPath.has(`world.${def.group}.cast`)) out.push({slot, cast: `world.${def.group}.cast`, name: def.name ?? def.id});
+    if (def?.group && !def.durationKeys && !def.charge && !def.aimMode && typeof C.world[def.group]?.cast === 'number' && tuning.byPath.has(`world.${def.group}.cast`)) out.push({moveId: def.id, slot, cast: `world.${def.group}.cast`, name: def.name ?? def.id});
   }
   return out;
 }

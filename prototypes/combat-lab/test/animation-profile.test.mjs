@@ -55,3 +55,12 @@ assert.deepEqual(validateEntry({duration: 1, values: {}, hitboxes: [], hasClip: 
 assert.ok(validateEntry({duration: 0, values: {}, hasClip: false}).some(i => i.level === 'aviso'));
 assert.ok(FIELDS.every(f => f.id && f.group && f.tip), 'todo campo tem grupo e tooltip');
 console.log('animation-profile: ok');
+
+// Fases da simulação → faixas de referência (fração da ação).
+import {gameTracksFromPhases} from '../src/sim/animation-profile.js';
+const gt = gameTracksFromPhases({duration: 1, startup: [0, .2], active: [[.2, .5]], recovery: [.5, 1], cancel: [.7, 1], invulnerable: [[0, .1]], impacts: []});
+assert.deepEqual(gt.map(x => x.kind), ['startup', 'active', 'recovery', 'cancel', 'invuln']);
+assert.equal(gt[1].end, .5);
+assert.deepEqual(gameTracksFromPhases(null), []);
+assert.ok(buildTimeline({duration: 2, speed: 1, gameTracks: gt}).tracks.some(x => x.origin === 'jogo'));
+console.log('animation-profile (regras do jogo): ok');

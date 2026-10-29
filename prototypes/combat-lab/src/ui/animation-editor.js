@@ -5,9 +5,13 @@
 // trava de root motion/chão, variantes) e acrescenta o perfil por ação/variante (animation-profile.js). Nada é removido.
 import {
   ANIMATION_GROUPS, FIELDS, FIELD_BY_ID, TRACK_KINDS, entryKey, resolveField, setField, setHitboxes, setMarkers, normalizeHitbox, normalizeMarker,
-  buildTimeline, validateEntry, migrateProfile, JUMP_PHASES, PRINCIPLES,
+  buildTimeline, validateEntry, migrateProfile, JUMP_PHASES, PRINCIPLES, gameTracksFromPhases,
 } from '../sim/animation-profile.js';
 import * as THREE from 'three';
+import {listMoves, getMove} from '../sim/moves.js';
+import {effectiveMovePhases} from '../sim/move-phases.js';
+import {presentationActionCandidates} from '../sim/move-presentation.js';
+import {C} from '../sim/config.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const TABS = [['geral', 'Visão geral'], ['fases', 'Fases e janelas'], ['mov', 'Movimento'], ['trans', 'Transições'], ['hit', 'Hitboxes'], ['ev', 'Eventos VFX e áudio'], ['prin', 'Princípios'], ['jogo', 'Parâmetros do jogo'], ['diag', 'Diagnóstico']];
@@ -23,7 +27,9 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
   if (!root) return {open() {}, close() {}, isOpen: () => false};
   const S = {slot: 0, action: 'idle', variantIdx: null, tab: 'geral', scope: 'action', search: '', onlyMissing: false, hit: 0, play: false, loop: true, paused: false, seek: 0, undo: [], redo: [], open: false, saved: true};
   const ch = () => ui.characters[S.slot] || null;
-  const labelOf = id => ACTION_LABELS[id] || STATE_LABELS[id] || id;
+  /** Move pela identidade (`move_<id>`): clipe próprio de um Move, usado antes de move_1…4 e do tackle. */
+  const moveIdentity = id => {const m = /^move_(.+)$/.exec(id || '');return m && !ACTION_IDS.includes(id) ? getMove(m[1]) : null;};
+  const labelOf = id => (moveIdentity(id) ? `Move: ${moveIdentity(id).name ?? moveIdentity(id).id}` : ACTION_LABELS[id] || STATE_LABELS[id] || id);
   const lay = (() => {try {return JSON.parse(localStorage.getItem(PREF + 'v1') || '{}');} catch {return {};}})();
   const L = {left: lay.left ?? 250, right: lay.right ?? 340, bottom: lay.bottom ?? 210, cl: !!lay.cl, cr: !!lay.cr, cb: !!lay.cb};
   const saveLayout = () => {try {localStorage.setItem(PREF + 'v1', JSON.stringify(L));} catch { /* sem armazenamento */ }};
@@ -114,6 +120,9 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
       if (!shown.length) continue;
       html += `<div class="ae-group"><div class="ae-group-h">${esc(name)}</div>${shown.map(r => `<button type="button" class="ae-item${r.id === S.action ? ' on' : ''}${r.st.ok ? '' : ' miss'}" data-act="${r.id}" title="${r.st.ok ? r.st.n + ' clipe(s) associado(s)' : 'Sem clipe próprio: o jogo usa o clipe de reserva. Associe ou importe um clipe.'}"><span>${esc(labelOf(r.id))}</span><i>${r.st.ok ? (r.st.n > 1 ? r.st.n + '×' : '✓') : 'ausente'}</i></button>`).join('')}</div>`;
     }
+    // Moves registrados: uma linha por identidade (`move_<id>`), aditiva aos blocos move_1…4.
+    const moveRows = listMoves().map(d => ({id: `move_${d.id}`, st: statusOf(c, `move_${d.id}`)})).filter(r => (!q || labelOf(r.id).toLowerCase().includes(q) || r.id.includes(q)) && (!S.onlyMissing || !r.st.ok));
+    if (moveRows.length) html += `<div class="ae-group"><div class="ae-group-h" title="Clipe próprio por Move. Vale antes de move_1…4 e do clipe do tackle.">Moves (por identidade)</div>${moveRows.map(r => `<button type="button" class="ae-item${r.id === S.action ? ' on' : ''}${r.st.ok ? '' : ' miss'}" data-act="${r.id}" title="${r.st.ok ? r.st.n + ' clipe(s) associado(s)' : 'Sem clipe próprio: o Move usa a animação padrão (tackle ou move_N). Associe um clipe para dar identidade.'}"><span>${esc(labelOf(r.id))}</span><i>${r.st.ok ? '✓' : 'padrão'}</i></button>`).join('')}</div>`;
     box.innerHTML = html || '<p class="hint">Nenhuma animação corresponde ao filtro.</p>';
     root.querySelector('[data-count]').textContent = `${total - missing} de ${total} com clipe · ${missing} ausentes`;
     for (const b of box.querySelectorAll('[data-act]')) b.onclick = () => select(b.dataset.act);
@@ -149,6 +158,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
         if (fs.length) html += `<div class="ae-sec"><b>${g}</b>${fs.map(f => fieldRow(c, f)).join('')}</div>`;
       }
       if (S.tab === 'mov') html += `<div class="ae-sec"><b>Global do personagem</b><label class="ae-row" title="Trava o deslocamento horizontal (X/Z) gravado nos clipes de TODAS as animações deste personagem (padrão ligado). A sobrescrita por animação fica acima."><span>Travar deslocamento horizontal (X/Z)</span><input type="checkbox" data-g="lockRootMotion" ${c.lockRootMotion ? 'checked' : ''}></label><label class="ae-row" title="Remove o sobe/desce gravado nos clipes (pés sempre no chão)."><span>Travar no chão</span><input type="checkbox" data-g="lockToGround" ${c.lockToGround ? 'checked' : ''}></label><label class="ae-row" title="Apoia o ponto mais baixo de cada clipe no piso automaticamente."><span>Ajuste automático ao chão</span><input type="checkbox" data-g="autoGround" ${c.autoGround ? 'checked' : ''}></label></div><p class="hint">O que não for liberado por animação (X/Z) segue travado pela física.</p>`;
+      if (S.tab === 'fases' && moveIdentity(S.action)) html += gameRulesHtml();
       if (S.tab === 'fases') html += `<p class="hint">As faixas «registrado» ficam salvas e aparecem na timeline; o jogo ainda deriva startup/ativo/recovery do GLB e das regras. A edição não altera o combate até a integração ser autorizada.</p>`;
       if (S.tab === 'geral' && S.action.startsWith('jump')) html += `<p class="hint">Fases do salto: se nenhuma delas tiver clipe, o jogo usa o clipe «Salto» inteiro como antes. Associando um clipe a qualquer fase, o salto passa a seguir a velocidade vertical (início → subida → pico → queda).</p>`;
     }
@@ -176,6 +186,10 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     const opts = c.clips.map((cl, i) => c.clipInfo[i]?.compatible ? `<option value="${i}">${esc(cl.name)} (${cl.duration.toFixed(2)} s)</option>` : '').join('');
     return `<div class="ae-clip">${st.ok ? vs.map(i => `<button type="button" class="ae-chip${i === cur ? ' on' : ''}" data-var="${i}" title="Selecionar esta variante">${esc(c.clips[i].name)}<span data-rm="${i}" title="Remover a associação (o clipe continua na biblioteca)">✕</span></button>`).join('') : '<span class="ae-miss">⚠ Sem clipe próprio — usando a reserva do estado</span>'}</div>
       <div class="ae-clip-add"><select data-addclip title="Associa outro clipe da biblioteca a esta animação (vira uma variante)"><option value="">+ Associar clipe…</option>${opts}</select><label class="btn-file" title="Importar clipes de outro .glb para a biblioteca"><input type="file" accept=".glb,.gltf" data-import hidden>⇪ Importar</label></div>`;
+  }
+  function gameRulesHtml() {
+    const mv = moveIdentity(S.action), ph = effectiveMovePhases(mv, mv.group ? C.world[mv.group] : null), r = x => x ? `${x[0].toFixed(3)}–${x[1].toFixed(3)} s` : '—';
+    return `<div class="ae-sec"><b>Regras do jogo (somente leitura)</b><p class="hint">Duração ${ph.duration.toFixed(3)} s · startup ${r(ph.startup)} · ativo ${ph.active.length ? ph.active.map(r).join(', ') : '— (sem hitbox declarada)'} · recovery ${r(ph.recovery)} · cancelável ${r(ph.cancel)} · invencível ${ph.invulnerable.length ? ph.invulnerable.map(r).join(', ') : '—'}.<br>Essas faixas aparecem na timeline como «Regra: …». Ajustá-las é feito nos sliders do Move (aba Parâmetros do jogo).</p></div>`;
   }
   function principlesHtml(c) {
     return `<p class="hint">Os 12 princípios da animação ligados aos controles reais do jogo. Cada bloco reúne os sliders globais e os campos desta animação.</p>` + PRINCIPLES.map(pr => {
@@ -210,8 +224,10 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     }
     const jogo = box.querySelector('[data-jogo]');
     if (jogo) {
-      const grp = ANIMATION_GROUPS.find(([, , ids]) => ids.includes(S.action)), tab = ACTION_TABS[GAME_TAB[grp?.[0]] || 'tackle'];
+      const grp = ANIMATION_GROUPS.find(([, , ids]) => ids.includes(S.action)) ?? (moveIdentity(S.action) ? ['moves', 'Moves (por identidade)'] : null), tab = ACTION_TABS[GAME_TAB[grp?.[0]] || 'tackle'], mv = moveIdentity(S.action);
       const sections = [['🎞 Animação (global)', ['display.animation.fade', 'display.animation.actionFade', 'display.animation.locomotionHold', 'display.animation.speed', 'display.grounding.autoGround', 'display.grounding.visualOffset'], true], ...(tab?.sections || [])];
+      const mvPaths = mv ? tuning.manifest.filter(m => mv.group && m.path.startsWith(`world.${mv.group}.`)).map(m => m.path) : [];
+      if (mvPaths.length) sections.unshift([`✦ Sliders do Move «${mv.name ?? mv.id}»`, mvPaths, true]);
       jogo.innerHTML = `<p class="hint">Todos os sliders globais ligados a «${esc(grp?.[1] || 'esta animação')}». São os mesmos controles de Ajustes e Ações (entram no desfazer do jogo).</p>`;
       for (const [title, spec, open] of sections) {
         const paths = pathsOf(spec);if (!paths.length) continue;
@@ -223,8 +239,10 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
   }
   function transitionsHtml(c) {
     const users = Object.entries(STATE_ACTIONS).filter(([, chain]) => chain.includes(S.action));
+    const mv = moveIdentity(S.action), slotMatch = /^move_([1-4])$/.exec(S.action);
     const chain = STATE_ACTIONS[S.action] || null;
-    return `<div class="ae-sec"><b>Estados que usam esta animação</b>${users.length ? `<ul class="ae-list">${users.map(([k, chain2]) => `<li><b>${esc(STATE_LABELS[k] || k)}</b> — ordem de preferência: ${chain2.map(a => a === S.action ? `<u>${esc(labelOf(a))}</u>` : esc(labelOf(a))).join(' → ')}</li>`).join('')}</ul>` : '<p class="hint">Nenhum estado usa esta animação diretamente.</p>'}</div>
+    const moveOrder = mv ? `<div class="ae-sec"><b>Ordem real do Move «${esc(mv.name ?? mv.id)}»</b><p class="hint">Ação: ${['move_' + mv.id, ...presentationActionCandidates(mv, 0, 'action')].filter((v, i, a) => a.indexOf(v) === i).map(a => esc(labelOf(a))).join(' → ')}.<br>Carga: ${presentationActionCandidates(mv, 0, 'charge').map(a => esc(labelOf(a))).join(' → ')}.<br>Disparo: ${presentationActionCandidates(mv, 0, 'release').map(a => esc(labelOf(a))).join(' → ')}.</p><p class="hint">Moves que usam a física do Tackle mantêm primeiro o clipe do tackle; o clipe desta identidade vence quando associado.</p></div>` : slotMatch ? `<div class="ae-sec"><b>Moves que usam este bloco</b><p class="hint">move_${slotMatch[1]} é o clipe do slot ${slotMatch[1]}. Moves de física de Tackle (Lunge, Quick Attack…) tocam o clipe do tackle antes dele; para dar um clipe a um Move específico use «Moves (por identidade)».</p></div>` : '';
+    return moveOrder + `<div class="ae-sec"><b>Estados que usam esta animação</b>${users.length ? `<ul class="ae-list">${users.map(([k, chain2]) => `<li><b>${esc(STATE_LABELS[k] || k)}</b> — ordem de preferência: ${chain2.map(a => a === S.action ? `<u>${esc(labelOf(a))}</u>` : esc(labelOf(a))).join(' → ')}</li>`).join('')}</ul>` : '<p class="hint">Nenhum estado usa esta animação diretamente.</p>'}</div>
       <div class="ae-sec"><b>Reserva (fallback)</b><p class="hint">${chain ? `Se faltar clipe, ${esc(labelOf(S.action))} usa: ${chain.map(a => esc(labelOf(a))).join(' → ')}.` : 'Esta animação é um bloco direto; sem clipe, o estado cai para a reserva do estado que a usa.'}</p></div>
       <p class="hint">As ordens acima são as regras atuais do jogo (somente leitura). Editar condições, tempo mínimo e animação seguinte ainda não faz parte desta versão.</p>`;
   }
@@ -330,13 +348,18 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     el.querySelector('[data-play]').textContent = playing ? '⏸ Pausar' : '▶ Tocar';
     el.querySelector('[data-loop]').checked = S.loop;
   }
+  /** Fases que a simulação declara para o Move da identidade selecionada (referência somente leitura). */
+  function gameTracksOf() {
+    const mv = moveIdentity(S.action);
+    return mv ? gameTracksFromPhases(effectiveMovePhases(mv, mv.group ? C.world[mv.group] : null)) : [];
+  }
   function renderTimeline() {
     const c = ch(), box = root.querySelector('[data-tl]');
     if (!c) {box.innerHTML = '';return;}
     const i = clipIndex(c);
     if (i == null) {box.innerHTML = `<p class="hint">Sem clipe associado a «${esc(labelOf(S.action))}»: não há timeline. Associe ou importe um clipe na aba Visão geral.</p>`;return;}
     const dur = c.clips[i].duration, values = allValues(c), speed = values.speed || 1, key = profileKey(c);
-    const tl = buildTimeline({duration: dur, speed, glbEvents: c.source.eventsByClip?.[i] || [], values: {...values, loop: values.loop}, hitboxes: c.animProfile.hitboxes[key] || [], markers: c.animProfile.markers[key] || []});
+    const tl = buildTimeline({duration: dur, speed, glbEvents: c.source.eventsByClip?.[i] || [], values: {...values, loop: values.loop}, hitboxes: c.animProfile.hitboxes[key] || [], markers: c.animProfile.markers[key] || [], gameTracks: gameTracksOf()});
     const [t0, t1] = [values.trimStart / 100, values.trimEnd / 100];
     const ticks = Array.from({length: 11}, (_, n) => `<span style="left:${n * 10}%">${(tl.playSeconds * n / 10).toFixed(2)}</span>`).join('');
     const rows = tl.tracks.map(t => {
@@ -472,7 +495,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
   function refresh({keepList = false} = {}) {
     const c = ch();
     root.querySelector('[data-title]').textContent = labelOf(S.action);
-    const grp = ANIMATION_GROUPS.find(([, , ids]) => ids.includes(S.action));
+    const grp = ANIMATION_GROUPS.find(([, , ids]) => ids.includes(S.action)) ?? (moveIdentity(S.action) ? ['moves', 'Moves (por identidade)'] : null);
     root.querySelector('[data-path]').textContent = `${c ? c.source.name : 'sem personagem'} › ${grp ? grp[1] : '—'} › ${S.action}${c && clipName(c) ? ' › ' + clipName(c) : ''}`;
     root.querySelector('[data-undo]').disabled = !S.undo.length;root.querySelector('[data-redo]').disabled = !S.redo.length;
     root.querySelector('[data-saved]').textContent = S.saved ? '✓ Salvo' : '● Alterado';

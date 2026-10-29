@@ -189,7 +189,7 @@ export function clipTimeAt({elapsed, duration, loop, trim, loopRange: lr}) {
  * Faixas da timeline de uma animação. Entrada: duração (s), velocidade, eventos do GLB (somente leitura), campos
  * resolvidos, hitboxes e marcadores locais. Saída: faixas {kind,start,end} em fração + valor em segundos de jogo.
  */
-export function buildTimeline({duration, speed = 1, glbEvents = [], values = {}, hitboxes = [], markers = []}) {
+export function buildTimeline({duration, speed = 1, glbEvents = [], values = {}, hitboxes = [], markers = [], gameTracks = []}) {
   const d = Math.max(1e-3, duration), play = d / Math.max(.05, speed);
   const frac = t => clamp(t / d, 0, 1);
   const seg = (kind, a, b, origin, label = TRACK_KINDS[kind].label) => ({kind, start: clamp(a, 0, 1), end: clamp(b, 0, 1), seconds: [clamp(a, 0, 1) * play, clamp(b, 0, 1) * play], origin, label});
@@ -213,6 +213,7 @@ export function buildTimeline({duration, speed = 1, glbEvents = [], values = {},
   const [l0, l1] = loopRange(values);
   if (values.loop) tracks.push(seg('loop', l0, l1, 'local'));
   for (const h of hitboxes) tracks.push({...seg('hitbox', h.start, h.end, 'local', `Hitbox ${h.shape}`), id: h.id});
+  for (const g of gameTracks) tracks.push(seg(g.kind, g.start, g.end, 'jogo', g.label || 'Regra: ' + TRACK_KINDS[g.kind].label));
   const events = [];
   for (const e of glbEvents) events.push({kind: 'event', at: frac(e.time), seconds: frac(e.time) * play, label: e.type, origin: 'glb'});
   for (const m of markers) events.push({kind: 'event', sub: m.kind, at: m.at, seconds: m.at * play, label: m.name || m.kind, origin: 'local', id: m.id});
@@ -282,3 +283,19 @@ export const PRINCIPLES = [
   {id: 'appeal', n: 12, name: 'Apelo (appeal)', tip: 'Personalidade e leitura visual: cor do lutador, escala e identidade. Cor e tamanho ficam no menu rápido e em Personagens.',
     paths: [], fields: [], char: ['heightScale', 'widthScale']},
 ];
+
+/**
+ * Fases que a SIMULAÇÃO declara (saída de effectiveMovePhases, em segundos da ação) → faixas de referência da timeline.
+ * O clipe é esticado para a duração da ação, então a fração é segundos ÷ duração. Somente leitura: não inventa nada.
+ */
+export function gameTracksFromPhases(phases) {
+  const out = [];
+  if (!phases || !phases.duration) return out;
+  const f = s => s / phases.duration;
+  if (phases.startup && phases.startup[1] > phases.startup[0]) out.push({kind: 'startup', start: f(phases.startup[0]), end: f(phases.startup[1])});
+  for (const a of phases.active || []) out.push({kind: 'active', start: f(a[0]), end: f(a[1])});
+  if (phases.recovery && phases.recovery[1] > phases.recovery[0]) out.push({kind: 'recovery', start: f(phases.recovery[0]), end: f(phases.recovery[1])});
+  if (phases.cancel) out.push({kind: 'cancel', start: f(phases.cancel[0]), end: f(phases.cancel[1])});
+  for (const v of phases.invulnerable || []) out.push({kind: 'invuln', start: f(v[0]), end: f(v[1])});
+  return out;
+}

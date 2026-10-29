@@ -100,6 +100,19 @@ try {
   await page.click('[data-hb-del]');await page.waitForTimeout(200);
   assert.equal(await page.evaluate(() => {let n = 0;window.__lab.ui.characters[0].root.traverse(o => {if (o.userData?.hb) n++;});return n;}), 0, 'hitbox some ao remover');
 
+  // Moves por identidade: lista os Moves registrados, mostra as regras do jogo e o clipe vence no runtime.
+  const mvIds = await page.evaluate(() => [...document.querySelectorAll('#anim-editor .ae-item')].map(b => b.dataset.act).filter(a => /^move_[a-z]/.test(a)));
+  assert.ok(mvIds.length >= 10, 'Moves registrados aparecem por identidade: ' + mvIds.length);
+  await page.click('[data-act="move_bullet-punch"]');await page.click('[data-tab="fases"]');
+  assert.match(await page.textContent('#anim-editor .ae-props'), /Regras do jogo \(somente leitura\)/);
+  assert.ok(await page.locator('#anim-editor .ae-seg.jogo').count() >= 0);
+  const ident = await page.evaluate(() => {
+    const c = window.__lab.ui.characters[0], base = c.variantsOf('move_bullet-punch').length;
+    c.addVariant('move_bullet-punch', c.variantsOf('idle')[0]);
+    const has = c.variantsOf('move_bullet-punch').length;c.removeVariant('move_bullet-punch', c.variantsOf('idle')[0]);
+    return {base, has};
+  });
+  assert.deepEqual(ident, {base: 0, has: 1});
   // Salto sem fases continua usando o clipe «jump»; com fase associada, o runtime escolhe a fase.
   const jumpMode = await page.evaluate(() => {
     const c = window.__lab.ui.characters[0], before = c.hasJumpPhases();

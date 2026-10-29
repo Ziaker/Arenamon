@@ -653,7 +653,9 @@ export class Character {
       const loadoutSlot = liveMoveId ? (f.loadout?.indexOf(liveMoveId) ?? -1) : -1;
       const moveSlot = f.action?.slot ?? f.charge?.slot ?? (loadoutSlot >= 0 ? loadoutSlot : 0);
       const movePhase = phaseMatch?.[1] ?? 'action';
-      const moveAction = moveDef ? firstAvailablePresentationAction(moveDef, moveSlot, movePhase, candidate => this.variantsOf(candidate).length > 0) : null;
+      // Identidade do Move atribuída no editor de animações (`move_<id>`) vence a ordem padrão na ação; sem clipe nela vale o contrato dos Moves.
+      const identity = moveDef && movePhase === 'action' ? `move_${moveDef.id}` : null;
+      const moveAction = moveDef ? (identity && this.variantsOf(identity).length ? identity : firstAvailablePresentationAction(moveDef, moveSlot, movePhase, candidate => this.variantsOf(candidate).length > 0)) : null;
       const id = p ? 'preview' : moveAction ?? this.actionFor(key);
       if (id) {
         const index = p ? p.index : (mp ? (mp.phase === 'charge' ? mp.chargeIdx : mp.releaseIdx) : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial)));
@@ -888,7 +890,7 @@ export class Character {
     set('rules.recoil', own('blocked'), 'blocked');set('rules.guardStun', own('guard_impact'), 'guard_impact');
     set('rules.landingRecovery', own('land') ?? own('recover'), this.variantsOf('land').length ? 'land' : 'recover');
     // Moves equipados com clipe próprio (move_N): a duração do clipe ÷ velocidade vira o tempo de cast do Move; é nele que o término do movimento libera as outras ações.
-    for (const {slot, cast, name} of moves) set(cast, own('move_' + (slot + 1)), `move_${slot + 1} (${name})`);
+    for (const {slot, cast, name, moveId} of moves) set(cast, (moveId ? own('move_' + moveId) : null) ?? own('move_' + (slot + 1)), `move_${slot + 1} (${name})`);
     // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
     return out;
   }

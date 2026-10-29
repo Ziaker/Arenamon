@@ -1159,3 +1159,4 @@ body.modo-moves #editor-open-actions{display:none!important}
 .ae-pr{border:1px solid #223a50;border-radius:8px;padding:4px 7px}.ae-pr>summary{cursor:pointer;color:#9fd0ff}
 .ae-props .act-controls{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .ae-log{font-size:11px;padding:1px 0;border-bottom:1px solid #1b3144}.ae-log.warn{color:#f5c04a}.ae-log small{color:#8fa6bb}
+.ae-seg.jogo{background-image:repeating-linear-gradient(45deg,#0004 0 4px,transparent 4px 8px);opacity:.75}
