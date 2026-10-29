@@ -44,7 +44,7 @@ export function movePermission(f, def, slot = null, opts = null) {
  * Custo e recarga na confirmação (Burst); o custo da ação cancelada NÃO volta (MV-P26).
  */
 function pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag) {
-  const deny = (reason, detail) => {if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', reason, detail});};
+  const deny = (reason, detail) => {setMoveCommandFeedback(f, {result: 'denied', slot, move: def.id, reason, detail});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', reason, detail});};
   const perm = movePermission(f, def, slot);
   if (!perm.ok) return deny(perm.reason, perm.detail);
   const P = C.world[def.group], cur = f.action;
@@ -65,6 +65,7 @@ function pressFeint(f, cmd, def, slot, move, desiredHeading, hasTarget, diag) {
     f.action.heading = dir ? angleOf(dir) : f.facing + Math.PI;f.action.startAngle = f.action.heading;   // para o lado do input, ou para trás
     moveEvent(f, {result: 'feint', move: def.id, slot, cancelled});
   }
+  setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot});
   if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: whiff ? 'fora da janela: gasto sem efeito' : cancelled ? `cancelou ${cancelled}` : 'recuo'});
 }
 /** Inicia o movimento: cobra a stamina, inicia a recarga e agenda a linha do tempo (disparada em updateMove). */
@@ -338,7 +339,7 @@ export function cancelCharge(f, why) {
 /** Aceleração manual da recarga: novo toque (M7.9) gasta stamina para encurtá-la; permitida durante outro Charge (M17.8). */
 function boostCooldown(f, def, slot, diag) {
   const left = f.moveCooldowns?.[def.id] ?? 0, plan = boostPlan(left, chargeParams(def)), cost = costOf(f, plan.cost);
-  const deny = why => {if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', ...why});};
+  const deny = why => {setMoveCommandFeedback(f, {result: 'denied', slot, move: def.id, ...why});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'denied', ...why});};
   if (f.exhausted && cost > 0) return deny({reason: 'exhausted', detail: {value: f.stamina, refill: getFighterMaxStamina(f)}});
   if (f.stamina < cost - 1e-8) return deny({reason: 'stamina', detail: {value: f.stamina, required: cost}});
   f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
@@ -350,7 +351,7 @@ function boostCooldown(f, def, slot, diag) {
 /** Toque num slot (borda do botão): inicia o movimento, encurta a recarga, guarda no buffer ou nega com motivo. */
 export function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighters = [], world = null) {
   const slot = cmd.skill, def = moveInSlot(f, slot), onCooldown = !!def && (f.moveCooldowns?.[def.id] ?? 0) > 1e-8;
-  const deny = (reason, detail) => {setMoveCommandFeedback(f, {result: 'denied', slot, move: def?.id ?? null, reason});if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
+  const deny = (reason, detail) => {setMoveCommandFeedback(f, {result: 'denied', slot, move: def?.id ?? null, reason, detail});if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: 'denied', reason, detail});};
   f.skillBuffer = null;
   if (def && def.cooldownBoost !== false && onCooldown) return boostCooldown(f, def, slot, diag);   // M5.8/M5.9: vale para TODO Move (novo toque + stamina); `cooldownBoost: false` desliga num Move específico
   if (def && isVaultArc(f) && airKind(def) !== 'none' && (airKind(def) === 'cast' || def.charge || def.aimMode) && (def.charge ? chargePermission(f, def, slot) : movePermission(f, def, slot)).ok) vaultToFlight(f);   // arco do vault: vira voo normal e o Move segue o caminho do salto (air.js)
@@ -360,7 +361,7 @@ export function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighte
   if (def?.charge) {
     const perm = chargePermission(f, def, slot);
     if (perm.ok) {startCharge(f, def, slot, cmd.guard);setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'carga iniciada'});}
-    else if (perm.buffer) {f.skillBuffer = {slot, ticks: 0, max: chargeParams(def).bufferTicks};setMoveCommandFeedback(f, {result: 'buffered', move: def.id, slot, reason: perm.reason});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'buffered', reason: perm.reason, detail: perm.detail});}
+    else if (perm.buffer) {f.skillBuffer = {slot, ticks: 0, max: chargeParams(def).bufferTicks};setMoveCommandFeedback(f, {result: 'buffered', move: def.id, slot, reason: perm.reason, detail: perm.detail});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'buffered', reason: perm.reason, detail: perm.detail});}
     else deny(perm.reason, perm.detail);
     return;
   }
@@ -369,7 +370,7 @@ export function pressSkill(f, cmd, move, desiredHeading, hasTarget, diag, fighte
   if (perm.ok && def.aimMode) {startAim(f, def, slot, fighters, world, hasTarget ? cmd.target : null);setMoveCommandFeedback(f, {result: 'executed', move: def.id, slot});if (diag) report(f, {kind: 'skill', slot, move: def.id, result: 'executed', note: 'marcador aberto'});return;}
   if (perm.ok && def.tackle && !def.moveCast) startTackleMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection}, desiredHeading, hasTarget, cmd.guard, fighters);
   else if (perm.ok) startMove(f, def, slot, {move, dodgeDirection: cmd.dodgeDirection, lock: hasTarget ? cmd.target ?? null : null}, desiredHeading, hasTarget, cmd.guard);
-  setMoveCommandFeedback(f, {result: perm.ok ? 'executed' : 'denied', move: def?.id ?? null, slot, reason: perm.reason});
+  setMoveCommandFeedback(f, {result: perm.ok ? 'executed' : 'denied', move: def?.id ?? null, slot, reason: perm.reason, detail: perm.detail});
   if (diag) report(f, {kind: 'skill', slot, move: def?.id ?? null, result: perm.ok ? 'executed' : 'denied', reason: perm.reason, detail: perm.detail});
 }
 /** Comando de Move guardado no fim da esquiva (M16.3): sai assim que a esquiva termina o deslocamento principal. */

@@ -37,6 +37,8 @@ for (const id of IDS) {
     f.moveCooldowns[id] = 5;f.stamina = f.regenBase = .2;f.regenAge = 0;
     g.step(cmd(press), cmd());
     assert.ok(!g.lastStepEvents.some(e => e.result === 'cooldownBoost'));
+    assert.equal(f.moveCommandFeedback?.kind, 'denied');assert.equal(f.moveCommandFeedback?.reason, 'stamina');
+    assert.ok(f.moveCommandFeedback?.detail?.required > f.moveCommandFeedback?.detail?.value, 'o HUD recebe os valores reais da negação');
     assert.ok(5 - f.moveCooldowns[id] < .02, `recarga 5 → ${f.moveCooldowns[id]}`);
     assert.ok(!f.action && !f.charge && !f.aim);
   });

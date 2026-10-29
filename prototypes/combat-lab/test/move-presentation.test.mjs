@@ -2,20 +2,20 @@ import assert from 'node:assert/strict';
 import {firstAvailablePresentationAction, presentationActionCandidates} from '../src/sim/move-presentation.js';
 
 assert.deepEqual(
-  presentationActionCandidates({id: 'quick-attack', presentation: {action: 'quick_attack'}}, 2, 'action'),
-  ['quick_attack', 'move_3', 'tackle', 'idle'],
+  presentationActionCandidates({id: 'quick-attack', tackle: 'quick-attack', presentation: {action: 'quick_attack'}}, 2, 'action'),
+  ['quick_attack', 'tackle', 'move_3', 'idle'],
   'a identidade específica vence o slot, preservando todos os fallbacks legados',
 );
 
 assert.equal(
   firstAvailablePresentationAction(
-    {id: 'quick-attack', presentation: {action: 'quick_attack'}},
+    {id: 'quick-attack', tackle: 'quick-attack', presentation: {action: 'quick_attack'}},
     2,
     'action',
     key => key === 'move_3' || key === 'idle',
   ),
   'move_3',
-  'clipe específico ausente cai para o slot atual',
+  'clipe específico ausente percorre tackle e cai para o slot atual quando disponível',
 );
 assert.equal(
   firstAvailablePresentationAction(

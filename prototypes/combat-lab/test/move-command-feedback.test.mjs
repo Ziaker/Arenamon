@@ -11,8 +11,9 @@ assert.deepEqual(
   {kind: 'buffered', move: 'reflect', slot: 0, reason: 'chain', ttl: .7},
 );
 assert.deepEqual(
-  moveCommandFeedback({result: 'denied', move: 'sand-wave', slot: 3, reason: 'stamina'}),
-  {kind: 'denied', move: 'sand-wave', slot: 3, reason: 'stamina', ttl: .7},
+  moveCommandFeedback({result: 'denied', move: 'sand-wave', slot: 3, reason: 'stamina', detail: {value: 1, required: 2}}),
+  {kind: 'denied', move: 'sand-wave', slot: 3, reason: 'stamina', detail: {value: 1, required: 2}, ttl: .7},
+  'detalhes necessários para a mensagem do HUD não são descartados',
 );
 assert.equal(moveCommandFeedback({result: 'expired', move: 'swift', slot: 1}), null, 'eventos fora do contrato não inventam feedback');
 assert.equal(moveCommandFeedbackText({kind: 'accepted', reason: null}), 'comando aceito');

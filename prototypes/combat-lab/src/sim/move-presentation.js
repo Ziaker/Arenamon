@@ -6,7 +6,7 @@ const clampSlot = (/** @type {number} */ slot) => Math.max(0, Math.min(3, Number
 const unique = (/** @type {(string | null | undefined)[]} */ values) => /** @type {string[]} */ ([...new Set(values.filter((/** @returns {v is string} */ v => typeof v === 'string' && v.length > 0)))]);
 
 /**
- * @param {{id?: string, presentation?: {action?: string, charge?: string, release?: string}}} def
+ * @param {{id?: string, tackle?: unknown, moveCast?: unknown, presentation?: {action?: string, charge?: string, release?: string}}} def
  * @param {number} slot
  * @param {'action'|'charge'|'release'|string} phase
  * @returns {string[]}
@@ -15,7 +15,9 @@ export function presentationActionCandidates(def, slot = 0, phase = 'action') {
   const moveSlot = `move_${clampSlot(slot) + 1}`, p = def?.presentation ?? {}, id = def?.id ?? '';
   if (phase === 'charge') return unique([p.charge, id ? `charge_${id}` : null, 'idle']);
   if (phase === 'release') return unique([p.release, id ? `release_${id}` : null, moveSlot, 'tackle', 'idle']);
-  return unique([p.action, moveSlot, 'tackle', 'idle']);
+  // Moves que reutilizam a física de Tackle conservam primeiro a animação
+  // corporal legada; a identidade específica entra quando houver um clipe próprio.
+  return unique(def?.tackle && !def?.moveCast ? [p.action, 'tackle', moveSlot, 'idle'] : [p.action, moveSlot, 'tackle', 'idle']);
 }
 
 /**

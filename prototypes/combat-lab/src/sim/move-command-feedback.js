@@ -8,7 +8,11 @@ const TTL = Object.freeze({accepted: .45, buffered: .7, denied: .7});
 export function moveCommandFeedback(event) {
   const kind = event?.result === 'executed' ? 'accepted' : event?.result === 'buffered' ? 'buffered' : event?.result === 'denied' ? 'denied' : null;
   if (!kind) return null;
-  return {kind, move: event.move ?? null, slot: event.slot ?? null, reason: event.reason ?? null, ttl: TTL[kind]};
+  return {
+    kind, move: event.move ?? null, slot: event.slot ?? null, reason: event.reason ?? null,
+    ...(event.detail !== undefined ? {detail: event.detail} : {}),
+    ttl: TTL[kind],
+  };
 }
 
 /** @param {{kind?: string, reason?: string|null}|null} feedback @param {string|null} [reasonText] */

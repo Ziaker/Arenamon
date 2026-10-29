@@ -104,10 +104,12 @@ test('em recarga um novo toque NÃO reinicia a Finta: acelera a recarga (M5.8: �
   g.step(pressSlot(0), cmd());run(g, secs(.3));
   const cd = b.moveCooldowns.feint, st = b.stamina, started = b.action?.elapsed;
   g.step(pressSlot(0), cmd());assert.ok(!b.action || b.action.elapsed > .01 || b.action.elapsed === started, 'em recarga: nada novo começou');
+  assert.equal(b.moveCommandFeedback?.kind, 'accepted', 'a aceleração aceita aparece imediatamente no HUD');
   assert.ok(g.lastStepEvents.some(e => e.result === 'cooldownBoost' && e.move === 'feint'), 'evento de aceleração');
   assert.ok(Math.abs((cd - b.moveCooldowns.feint) - 1) < .05 && Math.abs((st - b.stamina) - .5) < 1e-6, `recarga ${cd} → ${b.moveCooldowns.feint}, stamina ${st} → ${b.stamina}`);
   b.stamina = b.regenBase = .2;b.regenAge = 0;const cd2 = b.moveCooldowns.feint;
   g.step(pressSlot(0), cmd());assert.ok(cd2 - b.moveCooldowns.feint < .02, `sem stamina: recarga ${cd2} → ${b.moveCooldowns.feint}, stamina ${b.stamina}`);
+  assert.equal(b.moveCommandFeedback?.kind, 'denied');assert.equal(b.moveCommandFeedback?.reason, 'stamina');assert.ok(b.moveCommandFeedback?.detail?.required > b.moveCommandFeedback?.detail?.value);
 });
 test('M28.4: sliders mexidos depois do uso não alteram o recuo em andamento; o próximo uso lê o novo', () => {
   const g = arena({equip: ['feint']});const b = g.fighters[0], z0 = b.position.z;

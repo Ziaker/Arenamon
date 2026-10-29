@@ -13,6 +13,11 @@ import {applyStatus, stat, hasFlag, validateStatus} from '../src/sim/status.js';
 import {spawn} from '../src/sim/world.js';
 import {walkSpeed} from '../src/sim/controller.js';
 import {setAttemptSink, describe} from '../src/sim/attempts.js';
+// Contratos transversais da apresentação/feedback fazem parte da suíte oficial
+// de Moves, mesmo quando este arquivo é chamado isoladamente.
+import './move-presentation.test.mjs';
+import './move-command-feedback.test.mjs';
+import './move-phases.test.mjs';
 
 globalThis.__legacyFractionalDamage = true;   // este teste caracteriza a matemática de dano fracionária, anterior à regra de dano inteiro (ver sim/damage-rule.js)
 let n = 0;const ok = l => {n++;console.log('✓', l);};
