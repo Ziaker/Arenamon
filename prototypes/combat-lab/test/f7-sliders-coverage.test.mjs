@@ -37,7 +37,19 @@ test('consumidor real: todo slider é lido fora dos arquivos de definição; ór
   const none = sliders.filter(s => !L.findConsumer(s)).map(s => s.id), labeled = L.ORPHANS_LABELED.map(o => o.id);
   assert.deepEqual(none.filter(id => !labeled.includes(id)), [], 'slider sem consumidor e sem rótulo');
   assert.deepEqual(labeled.filter(id => !none.includes(id)), [], 'órfão rotulado que ganhou consumidor: tire da lista e do rótulo');
-  for (const id of labeled) {const s = byId.get(id);assert.ok(s, `${id} não existe`);assert.ok(s.label.includes(L.ORPHAN_MARK), `${id}: rótulo sem «${L.ORPHAN_MARK}» (${s.label})`);}
+  for (const id of labeled) {
+    const s = byId.get(id);assert.ok(s, `${id} não existe`);assert.ok(s.label.includes(L.ORPHAN_MARK), `${id}: rótulo sem «${L.ORPHAN_MARK}» (${s.label})`);
+    assert.ok(/não aplicado/i.test(s.help ?? ''), `${id}: a dica ainda descreve um efeito que não existe (falta «não aplicado»): ${s.help}`);
+  }
+  // Recíproca: a marca «(sem efeito)» só nos órfãos listados (nenhum slider que funciona com o rótulo de órfão).
+  assert.deepEqual(sliders.filter(s => s.label.includes(L.ORPHAN_MARK) && !labeled.includes(s.id)).map(s => s.id), []);
+  for (const d of L.OWNER_DECISIONS) assert.ok(byId.has(d.id), `decisão pendente de slider inexistente: ${d.id}`);
+});
+
+test(`pendentes de A/B só diminuem (≤ ${L.PENDING_BUDGET}) e os pendentes só com evidência fraca de consumidor também (≤ ${L.WEAK_PENDING_BUDGET})`, () => {
+  assert.ok(L.pendingCount() <= L.PENDING_BUDGET, `pendentes: ${L.pendingCount()}`);
+  const weak = sliders.filter(s => L.classify(s).kind === 'pendente' && L.findConsumer(s)?.weak).map(s => s.id);
+  assert.ok(weak.length <= L.WEAK_PENDING_BUDGET, `consumerWeak: ${weak.join(', ')}`);
 });
 
 test('famílias genéricas e allowlists sem regra morta', () => {
@@ -70,14 +82,18 @@ test('extremo mínimo: Sand Wave com cegueira 0 s acerta sem exceção e sem apl
 const doc = existsSync(L.DOC_PATH) ? readFileSync(L.DOC_PATH, 'utf8') : '', claims = L.claimsFrom(doc);
 test('A/B: todo slider de gameplay (fora visual, órfão e pendente) muda o cenário registrado na matriz entre o mínimo e o máximo', () => {
   assert.ok(doc, 'matriz não gerada: node scripts/gen-matriz-sliders.mjs');
-  const fail = [];
+  const fail = [], control = new Map();
   for (const s of sliders) {
     if (L.classify(s).kind !== 'gameplay') continue;
     const claim = claims.get(s.id) ?? '', m = claim.match(/^muda · (.+)$/);
     if (!m) {fail.push(`${s.id}: matriz diz «${claim}»`);continue;}
     const r = L.verifyScenario(s, m[1]);if (!r.ok) fail.push(`${s.id}: ${r.detail}`);
+    // Controle do passo travado: uma vez por cenário usado, o MESMO valor nos dois lados nunca pode divergir.
+    if (!control.has(m[1])) control.set(m[1], [s.id, L.controlRun(s, m[1])]);
   }
   assert.deepEqual(fail, []);
+  assert.deepEqual([...control].filter(([, [, t]]) => t !== -1).map(([sc, [id, t]]) => `${sc} (${id}) divergiu no passo ${t} com o mesmo valor`), []);
+  assert.ok(control.size >= 20, `só ${control.size} cenários com controle`);
 });
 
 // Regenera com as MESMAS linhas A/B (verificadas acima); só o número da linha do consumidor pode variar.

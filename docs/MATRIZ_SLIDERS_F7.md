@@ -9,10 +9,25 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 ## Resumo
 
 - Sliders: **1632** (Ajustes 1195 · Moves 437).
-- Gameplay com A/B: **467** — muda no cenário: **467**.
-- Visual/depuração (sem A/B da simulação): 805. Pendentes de cenário (listados com motivo): 336. Órfãos rotulados «(sem efeito)»: 24.
+- Gameplay com A/B: **499** — muda no cenário: **499**.
+- Visual/depuração (sem A/B da simulação): 805. Pendentes de cenário (listados com motivo): 304. Órfãos rotulados «(sem efeito)»: 24.
 - Parâmetros jogáveis sem slider: nenhum (fora os 2 limites técnicos abaixo).
 - Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): 354 (orçamento 354, não pode crescer).
+
+- Pendentes de A/B: 304 (orçamento 304, só diminui); pendentes só com evidência fraca de consumidor (consumerWeak): 2 (orçamento 2). Total com evidência fraca (inclui visuais): 23.
+
+## Decisões pendentes do responsável
+
+Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Não foram ligados (mudaria o jogo no padrão) nem apagados (proibido sem pedido). Opções: ligar com padrão neutro, manter como legado ou remover com alias + migração de preset.
+
+- `rules.blockPushback` (Repulsão ao bloquear (defensor) (sem efeito); padrão 0.5 m): empurraria o DEFENSOR para trás ao bloquear um tackle (hoje só existe o recuo do atacante: rules.recoil/recoilFraction); 0,5 m ligado mudaria toda defesa.
+- `rules.slamAngle` (Meteor slam: ângulo do mergulho (sem efeito); padrão 0.785398 °): fixaria o ângulo de mergulho do meteor slam (hoje o mergulho mira o rival em aimSlamDive); ligado trocaria a mira por um ângulo fixo.
+- `map.jumpLandingRecovery` (Atraso de recuperação ao aterrissar (s) (sem efeito); padrão 0.19 s): daria recuperação ao pousar de um pulo normal (hoje 0: physics.js land); 0,19 s ligado travaria o lutador a cada pulo.
+- `map.wallDamageMultiplier` (Multiplicador de dano na borda circular (sem efeito); padrão 1 ×): multiplicaria o dano na borda circular (hoje a borda não causa dano próprio; o wall-splat usa rules.wallSplatDamage = 0); com 1 não mudaria nada até existir dano de borda.
+- `actions.sprint.exhaustedStop` (Stamina zerada encerra o sprint (sem efeito); padrão 1 liga/desliga): permitiria (0) continuar o sprint com stamina zerada; hoje o sprint SEMPRE para na exaustão; com 1 o comportamento é o atual.
+- `extras.ai.revision` (Revisão da IA (0 anterior · 1 revisada · 2 evoluída) (sem efeito); padrão 1 —): voltaria a IA para a revisão 0/1 (hoje tactics.js fixa a revisão 2; revisionOverride só na avaliação pareada); 2 mantém o atual.
+- `map.stageCooldownReduction` (Redução de recarga por estágio (-10%); padrão 0.1 %): aplicaria −recarga por estágio de Recarga (hoje SÓ o HUD de progresso mostra o bônus; a simulação não o aplica): achado F7, consumidor fraco (só exibição).
+- `map.stageSpeedBonus` (Aumento de velocidade por estágio (+5%); padrão 0.05 %): aplicaria +velocidade por estágio de Velocidade (hoje SÓ o HUD de progresso mostra o bônus; a simulação não o aplica): achado F7, consumidor fraco (só exibição).
 
 ## Órfãos (sem consumidor) — rotulados «(sem efeito)» na interface, nunca apagados
 
@@ -43,6 +58,8 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 ## Consumidores lidos por objeto genérico (conferidos)
 
+- `^actions\.cancel\.`: c = A.cancel (A = C.actions) no C → X de ctrl-update.js.
+- `^world\.beam\.`: emissor técnico: ui/moves-panel.js (emitir laser) passa C.world.beam ao spawn; sim/beam.js e sim/world.js leem maxSegments.
 - `^actions\.(dodge|tackle)\.`: p = C.actions[tipo] / actionParams(tipo): controller, motion.js (curva) e entity.js (distância nominal).
 - `^profiles\.\w+\.(hp|attack|speed)$`: createFighter(C.profiles[perfil]) copia o perfil em f.attributes.
 - `^extras\.(aiRed|aiBlue)\.`: P = Brain.personality() = {...NEUTRAL_PERSONALITY, ...C.extras[lado]} (sim/ai.js).
@@ -79,9 +96,9 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 - **tecnico** (8): técnico de precisão/solver ou legado de comparação: sem efeito observável no cenário curto (não é parâmetro de gameplay, §14).
 - **mapa** (20): condição do mapa não ocorre no cenário curto (respawn de objeto, impacto em objeto, montagem em sólido, controle aéreo fino, pick-up repetido).
 - **partida** (2): lido na montagem da partida (app/match-flow.js), fora do Game: sem A/B na simulação pura.
-- **ledge** (25): Ledge Grab só age com borda de plataforma ao alcance; os cenários curtos não penduram o lutador (comportamento coberto pelos testes de ledge).
-- **passiva** (33): gatilho da passiva não ocorreu no duelo de 5 s com a passiva equipada (condição de vida, tempo parado, status ou recarga).
-- **nav** (13): navegação (Yuka) só atua com obstáculo entre os lutadores; o duelo curto não tem rota bloqueada.
+- **ledge** (11): cenários de borda (subir, soltar, pendurar até o máximo, ser atingido, IA pendurada) não mudam: modo/dica/alcance de agarre, tempos de segurar e recarga pedem a borda em outra geometria ou input; coberto pelos testes de ledge.
+- **passiva** (25): gatilho da passiva não ocorreu no duelo de 5 s nem no roteiro de 7 s com a passiva no azul (detecção de ataque, veneno/queimadura, perda de item, queda de atributo ou recarga longa).
+- **nav** (3): cenários de navegação (muro, plataforma, torre, arena completa) não ficam presos nem exigem ataque com desnível: detecção de travamento e limite de altura do ataque pendentes.
 - **iaMoves** (14): decisão de carga/IA com Moves não ocorreu no duelo de 6 s com Reflect/Psyshock/Water Pulse/Swift.
 - **move** (116): os estágios curtos do Move (perto, defesa, longe, contra-ataque, correndo, carga curta, colado, duelo) não acionam esta condição (parede, alvo no ar, cadeia, limite técnico).
 
@@ -111,6 +128,15 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 - `duelResistant`: duelo IA × IA, perfil resistente (3 s).
 - `duelMoves`: duelo IA × IA com Reflect, Psyshock, Water Pulse e Swift equipados (6 s) (6 s).
 - `items`: consumíveis no caminho (cura, stamina, estágios, escudo) e tackle (3 s).
+- `ledgeClimb`: pulo na caixa de 2,6 m, agarre de borda, pendura e sobe (Espaço + frente) (4 s).
+- `ledgeDrop`: agarre de borda e solta segurando para trás; tenta agarrar de novo (4 s).
+- `ledgeHang`: agarre de borda e fica pendurado até o tempo máximo (dreno de stamina) (6 s).
+- `ledgeHurt`: pendurado na borda e atingido pelo tackle do rival (4 s).
+- `ledgeAi`: IA do vermelho pendura na borda e sobe sozinha (aiClimb) (5 s).
+- `navMuro`: navegação: muro entre os lutadores (IA ofensiva persegue) (6 s).
+- `navPlataforma`: navegação: alvo em plataforma de 1,5 m (salto) (6 s).
+- `navTorre`: navegação: alvo inalcançável no alto (não insiste nem ataca o vazio) (5 s).
+- `navCompleto`: navegação: arena completa (muros, corredor, plataformas, zona bloqueada) (8 s).
 - `<move>/perto|defesa|longe|contra-ataque|correndo|carga curta|colado|duelo`: o azul usa o Move contra o vermelho em cada estágio (duelo: IA × IA com o Move equipado, 6 s).
 - `passiva/<id>`: duelo IA × IA de 5 s com a passiva nos dois lados e vida em 40%.
 
@@ -125,20 +151,20 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `actions.dodge.curveStart` | Impulso inicial da curva · C | — | 1 | 6 | 0.05 | 1.6 | src/sim/motion.js:10 | pendente (combate) |
 | `actions.dodge.steerLimit` | Limite de correção de trajetória · C | ° | 0 | 6.28319 | 0.0174533 | 0.523599 | src/sim/controller/ctrl-update.js:292 | muda · duel |
 | `actions.dodge.steerRate` | Velocidade da correção · C | °/s | 0 | 50.2655 | 0.0174533 | 3.14159 | src/sim/controller/ctrl-update.js:293 | muda · duel |
-| `actions.dodge.blend` | Transição de velocidade ao iniciar · C | s | 0 | 1 | 0.01 | 0.06 | src/sim/controller/ctrl-update.js:192 | muda · dodge |
+| `actions.dodge.blend` | Transição de velocidade ao iniciar · C | s | 0 | 1 | 0.01 | 0.06 | src/sim/controller/ctrl-update.js:313 | muda · dodge |
 | `actions.dodge.chainAfter` | Encadear outra ação após · C | s | 0 | 2 | 0.01 | 0.2 | src/sim/animation-combat-windows.js:268 | pendente (combate) |
-| `actions.dodge.recovery` | Recuperação ao terminar · C | s | 0 | 2 | 0.01 | 0 | src/sim/scenarios.js:30 | muda · dodge |
-| `actions.dodge.fromGuard` | Pode sair direto da defesa · C | Sim | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:69 | pendente (combate) |
+| `actions.dodge.recovery` | Recuperação ao terminar · C | s | 0 | 2 | 0.01 | 0 | src/sim/entity.js:47 | muda · dodge |
+| `actions.dodge.fromGuard` | Pode sair direto da defesa · C | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:69 | pendente (combate) |
 | `actions.dodge.distanceReference` | Tempo de referência da distância · C | s | 0 | 3 | 0.01 | 0.4 | src/sim/entity.js:53 | muda · dodge |
 | `actions.dodge.profile` | Curva de movimento · C | seletor | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-update.js:301 | muda · dodge |
-| `actions.dodge.fromRecoil` | Pode sair do recuo · C | Sim | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:79 | pendente (combate) |
-| `actions.dodge.fromGuardStun` | Pode sair do guard stun · C | Sim | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:81 | pendente (combate) |
-| `actions.dodge.vaultHeight` | Altura do salto · C | m | 0 | 10 | 0.05 | 2.2 | src/sim/ai-moves.js:29 | pendente (combate) |
+| `actions.dodge.fromRecoil` | Pode sair do recuo · C | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:79 | pendente (combate) |
+| `actions.dodge.fromGuardStun` | Pode sair do guard stun · C | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:81 | pendente (combate) |
+| `actions.dodge.vaultHeight` | Altura do salto · C | m | 0 | 10 | 0.05 | 2.2 | src/sim/air.js:25 | pendente (combate) |
 | `actions.dodge.vaultReachBonus` | Alcance extra para saltar · C | m | 0 | 6 | 0.05 | 0.7 | src/sim/controller/ctrl-update.js:389 | pendente (combate) |
 | `actions.dodge.vaultForwardMin` | Distância mínima do rival para saltar · C | m | 0 | 4 | 0.05 | 0.1 | src/sim/controller/ctrl-update.js:393 | muda · slam |
 | `actions.dodge.vaultLateralWidth` | Largura do caminho para saltar · C | m | 0 | 6 | 0.05 | 1.15 | src/sim/controller/ctrl-update.js:393 | muda · dodge |
 | `actions.dodge.perfectEvadeStamina` | Stamina da esquiva perfeita · C | — | 0 | 6 | 0.05 | 0.2 | src/sim/combat.js:146 | pendente (combate) |
-| `actions.dodge.counterWindow` | Janela de contra-ataque · C | s | 0 | 4 | 0.01 | 0.55 | src/sim/ai-eval/eval-match.js:324 | pendente (combate) |
+| `actions.dodge.counterWindow` | Janela de contra-ataque · C | s | 0 | 4 | 0.01 | 0.55 | src/sim/combat.js:145 | pendente (combate) |
 | `actions.dodge.prepTime` | Fase de preparação · C | % | 0 | 0.8 | 0.01 | 0.03 | src/sim/motion.js:16 | muda · dodge |
 | `actions.dodge.impulseTime` | Fase de impulso · C | % | 0.02 | 1 | 0.01 | 0.1 | src/sim/motion.js:16 | muda · dodge |
 | `actions.dodge.decelStart` | Início da desaceleração · C | % | 0.1 | 1.9 | 0.01 | 0.6 | src/sim/motion.js:16 | muda · dodge |
@@ -149,27 +175,27 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `actions.dodge.vaultPhysics` | Salto sobre o rival como pulo físico · C | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-update.js:389 | muda · slam |
 | `actions.dodge.vaultUp` | Salto: impulso vertical · C | m/s | 0 | 60 | 0.1 | 9 | src/sim/controller/ctrl-update.js:389 | muda · slam |
 | `actions.dodge.vaultGravity` | Salto: gravidade · C | m/s² | 1 | 300 | 0.5 | 40 | src/sim/air.js:25 | muda · slam |
-| `actions.dodge.vaultHorizontal` | Salto: velocidade horizontal · C | m/s | 0 | 60 | 0.1 | 11 | src/sim/controller/ctrl-update.js:389 | muda · slam |
+| `actions.dodge.vaultHorizontal` | Salto: velocidade horizontal · C | m/s | 0 | 60 | 0.1 | 11 | src/sim/controller/ctrl-update.js:329 | muda · slam |
 
 ## Tackle (X)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `actions.tackle.duration` | Duração · X | s | 0.05 | 8 | 0.01 | 0.65 | src/sim/animation-combat-windows.js:239 | muda · tackle |
-| `actions.tackle.cost` | Custo de stamina · X | — | 0 | 6 | 0.05 | 1 | src/sim/ai-eval/eval-match.js:295 | muda · tackle |
+| `actions.tackle.cost` | Custo de stamina · X | — | 0 | 6 | 0.05 | 1 | src/sim/ai-moves.js:164 | muda · tackle |
 | `actions.tackle.invulnerable` | Invulnerabilidade inicial · X | s | 0 | 2 | 0.01 | 0 | src/sim/animation-combat-windows.js:243 | pendente (combate) |
-| `actions.tackle.distance` | Distância (× duração × velocidade) · X | × | 0 | 12 | 0.05 | 1.55 | src/sim/ai-moves.js:165 | muda · tackle |
+| `actions.tackle.distance` | Distância (× duração × velocidade) · X | × | 0 | 12 | 0.05 | 1.55 | src/sim/controller/ctrl-tackle.js:122 | muda · tackle |
 | `actions.tackle.curveStart` | Impulso inicial da curva · X | — | 1 | 6 | 0.05 | 1.6 | src/sim/motion.js:10 | pendente (combate) |
 | `actions.tackle.steerLimit` | Limite de correção de trajetória · X | ° | 0 | 6.28319 | 0.0174533 | 0.523599 | src/sim/controller/ctrl-update.js:292 | pendente (combate) |
 | `actions.tackle.steerRate` | Velocidade da correção · X | °/s | 0 | 50.2655 | 0.0174533 | 3.14159 | src/sim/controller/ctrl-update.js:293 | pendente (combate) |
-| `actions.tackle.blend` | Transição de velocidade ao iniciar · X | s | 0 | 1 | 0.01 | 0.06 | src/sim/controller/ctrl-update.js:192 | muda · tackle |
+| `actions.tackle.blend` | Transição de velocidade ao iniciar · X | s | 0 | 1 | 0.01 | 0.06 | src/sim/controller/ctrl-update.js:313 | muda · tackle |
 | `actions.tackle.chainAfter` | Encadear outra ação após · X | s | 0 | 2 | 0.01 | 0.2 | src/sim/animation-combat-windows.js:241 | pendente (combate) |
-| `actions.tackle.recovery` | Recuperação ao terminar · X | s | 0 | 2 | 0.01 | 0 | src/sim/scenarios.js:30 | muda · tackle |
-| `actions.tackle.fromGuard` | Pode sair direto da defesa · X | Sim | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:69 | pendente (combate) |
+| `actions.tackle.recovery` | Recuperação ao terminar · X | s | 0 | 2 | 0.01 | 0 | src/sim/entity.js:47 | muda · tackle |
+| `actions.tackle.fromGuard` | Pode sair direto da defesa · X | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-basico.js:69 | pendente (combate) |
 | `actions.tackle.distanceReference` | Tempo de referência da distância · X | s | 0 | 3 | 0.01 | 0.4 | src/sim/entity.js:53 | muda · tackle |
 | `actions.tackle.profile` | Curva de movimento · X | seletor | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-update.js:301 | muda · tackle |
-| `actions.tackle.fromRecoil` | Pode sair do recuo · X | Não | 0 | 1 | 1 | 0 | src/sim/controller/ctrl-basico.js:79 | pendente (combate) |
-| `actions.tackle.fromGuardStun` | Pode sair do guard stun · X | Não | 0 | 1 | 1 | 0 | src/sim/controller/ctrl-basico.js:81 | pendente (combate) |
+| `actions.tackle.fromRecoil` | Pode sair do recuo · X | liga/desliga | 0 | 1 | 1 | 0 | src/sim/controller/ctrl-basico.js:79 | pendente (combate) |
+| `actions.tackle.fromGuardStun` | Pode sair do guard stun · X | liga/desliga | 0 | 1 | 1 | 0 | src/sim/controller/ctrl-basico.js:81 | pendente (combate) |
 | `actions.tackle.counterSpeed` | Multiplicador do X de contra-ataque · X | × | 1 | 4 | 0.01 | 1.18 | src/sim/controller/ctrl-update.js:416 | pendente (combate) |
 | `actions.tackle.prepTime` | Fase de preparação · X | % | 0 | 0.8 | 0.01 | 0.04 | src/sim/motion.js:16 | muda · tackle |
 | `actions.tackle.impulseTime` | Fase de impulso · X | % | 0.02 | 1 | 0.01 | 0.08 | src/sim/motion.js:16 | muda · tackle |
@@ -185,7 +211,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `actions.cancel.dodgeToTackle` | Permitir C → X | Sim | 0 | 1 | 1 | 1 | src/sim/animation-combat-windows.js:276 | muda · slam |
+| `actions.cancel.dodgeToTackle` | Permitir C → X | liga/desliga | 0 | 1 | 1 | 1 | src/sim/animation-combat-windows.js:276 | muda · slam |
 | `actions.cancel.windowStart` | Início da janela | s | 0 | 2 | 0.01 | 0.3 | src/sim/animation-combat-windows.js:277 | muda · dodge |
 | `actions.cancel.windowEnd` | Fim da janela | s | 0 | 8 | 0.01 | 2.35 | src/sim/controller/ctrl-basico.js:53 | pendente (combate) |
 | `actions.cancel.transition` | Transição de velocidade | s | 0 | 1 | 0.01 | 0.06 | src/sim/controller/ctrl-update.js:407 | pendente (combate) |
@@ -245,7 +271,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `rules.feintWindow` | Finta: janela de startup | s | 0 | 1 | 0.01 | 0.33 | src/sim/ai-eval/eval-scenarios.js:115 | muda · feint |
+| `rules.feintWindow` | Finta: janela de startup | s | 0 | 1 | 0.01 | 0.33 | src/sim/controller/ctrl-update.js:141 | muda · feint |
 | `rules.feintMinAngle` | Finta: ângulo mínimo da direção | ° | 0 | 360 | 1 | 60 | src/sim/controller/ctrl-tackle.js:32 | muda · feint |
 | `rules.feintDuration` | Finta: duração (× da esquiva) | % | 0.2 | 3 | 0.01 | 0.8 | src/sim/controller/ctrl-tackle.js:48 | muda · feint |
 | `rules.feintDistance` | Finta: distância (× da esquiva) | × | 0.2 | 4 | 0.01 | 1 | src/sim/controller/ctrl-tackle.js:48 | muda · feint |
@@ -310,7 +336,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `rules.techWindow` | Recovery rápido: janela | s | 0.05 | 3 | 0.01 | 0.35 | src/sim/controller/ctrl-tackle.js:135 | pendente (combate) |
 | `rules.techMinAir` | Recovery rápido: tempo mínimo de voo | s | 0 | 3 | 0.01 | 0 | src/sim/controller/ctrl-tackle.js:135 | muda · flight |
 | `rules.techCost` | Recovery rápido: custo de stamina | — | 0 | 4 | 0.05 | 1 | src/sim/controller/ctrl-update.js:157 | muda · flight |
-| `rules.landingRecovery` | Recuperação após aterrissar | s | 0 | 8 | 0.01 | 0.629 | src/sim/controller/ctrl-update.js:120 | muda · tackle |
+| `rules.landingRecovery` | Recuperação após aterrissar | s | 0 | 8 | 0.01 | 0.629 | src/sim/physics.js:251 | muda · tackle |
 | `rules.wallRestitution` | Rebote na parede: horizontal | × | 0 | 4 | 0.01 | 0.28 | src/sim/map/map-collision.js:30 | muda · wallBounce |
 | `rules.wallBounceVertical` | Rebote na parede: vertical (× velocidade vertical) | × | -1 | 4 | 0.01 | 1 | src/sim/physics.js:25 | muda · wallBounce |
 | `rules.wallBounceUp` | Rebote na parede: impulso vertical | m/s | 0 | 40 | 0.1 | 0 | src/sim/physics.js:25 | muda · wallBounce |
@@ -350,7 +376,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `profiles.balanced.attack` | Ataque base | — | 0 | 400 | 1 | 20 | src/sim/scenarios-map.js:531 | muda · tackle |
+| `profiles.balanced.attack` | Ataque base | — | 0 | 400 | 1 | 20 | src/sim/combat.js:56 | muda · tackle |
 | `profiles.balanced.defense` | Defesa base (sem efeito) | — | 0 | 400 | 1 | 50 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `profiles.balanced.speed` | Velocidade base | — | 0.01 | 60 | 0.01 | 4.19 | src/sim/controller/ctrl-basico.js:21 | muda · tackle |
 | `profiles.balanced.hp` | Vida máxima base | — | 1 | 1600 | 1 | 100 | src/app/tuning-sync.js:35 | muda · tackle |
@@ -359,7 +385,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `profiles.agile.attack` | Ataque base | — | 0 | 400 | 1 | 16 | src/sim/scenarios-map.js:531 | muda · duelAgile |
+| `profiles.agile.attack` | Ataque base | — | 0 | 400 | 1 | 16 | src/sim/combat.js:56 | muda · duelAgile |
 | `profiles.agile.defense` | Defesa base (sem efeito) | — | 0 | 400 | 1 | 35 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `profiles.agile.speed` | Velocidade base | — | 0.01 | 60 | 0.01 | 6 | src/sim/controller/ctrl-basico.js:21 | muda · duelAgile |
 | `profiles.agile.hp` | Vida máxima base | — | 1 | 1600 | 1 | 100 | src/app/tuning-sync.js:35 | muda · duelAgile |
@@ -368,7 +394,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `profiles.resistant.attack` | Ataque base | — | 0 | 400 | 1 | 24 | src/sim/scenarios-map.js:531 | muda · duelResistant |
+| `profiles.resistant.attack` | Ataque base | — | 0 | 400 | 1 | 24 | src/sim/combat.js:56 | muda · duelResistant |
 | `profiles.resistant.defense` | Defesa base (sem efeito) | — | 0 | 400 | 1 | 80 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `profiles.resistant.speed` | Velocidade base | — | 0.01 | 60 | 0.01 | 4.08 | src/sim/controller/ctrl-basico.js:21 | muda · duelResistant |
 | `profiles.resistant.hp` | Vida máxima base | — | 1 | 1600 | 1 | 100 | src/app/tuning-sync.js:35 | muda · duelResistant |
@@ -488,7 +514,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `extras.aiRed.variation` | Variação de ritmo | — | 0 | 2.25 | 0.01 | 0.45 | src/sim/ai.js:91 | muda · duel |
 | `extras.aiRed.hesitation` | Hesitação (por segundo) | — | 0 | 2 | 0.01 | 0.3 | src/sim/ai.js:165 | pendente (ia) |
 | `extras.aiRed.evadeChance` | Preferência por esquivar | — | 0 | 2 | 0.01 | 0.35 | src/sim/ai.js:100 | pendente (ia) |
-| `extras.aiRed.style` | Estilo de luta (IA tática) | Sorteado por partida | 0 | 6 | 1 | 0 | src/sim/ai-eval/eval-matrix.js:44 | muda · duel |
+| `extras.aiRed.style` | Estilo de luta (IA tática) | Sorteado por partida | 0 | 6 | 1 | 0 | src/ui/ai-eval-panel.js:27 | muda · duel |
 | `extras.aiRed.adaptation` | Adaptação ao adversário (IA tática) | — | 0 | 2.75 | 0.01 | 0.55 | src/sim/tactics.js:122 | pendente (ia) |
 
 ## IA: personalidade do azul (IA jogador)
@@ -502,7 +528,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `extras.aiBlue.variation` | Variação de ritmo | — | 0 | 2 | 0.01 | 0.4 | src/sim/ai.js:91 | muda · duel |
 | `extras.aiBlue.hesitation` | Hesitação (por segundo) | — | 0 | 2 | 0.01 | 0.15 | src/sim/ai.js:165 | muda · duel |
 | `extras.aiBlue.evadeChance` | Preferência por esquivar | — | 0 | 2.5 | 0.01 | 0.5 | src/sim/ai.js:100 | pendente (ia) |
-| `extras.aiBlue.style` | Estilo de luta (IA tática) | Sorteado por partida | 0 | 6 | 1 | 0 | src/sim/ai-eval/eval-matrix.js:44 | muda · duel |
+| `extras.aiBlue.style` | Estilo de luta (IA tática) | Sorteado por partida | 0 | 6 | 1 | 0 | src/ui/ai-eval-panel.js:27 | muda · duel |
 | `extras.aiBlue.adaptation` | Adaptação ao adversário (IA tática) | — | 0 | 3.5 | 0.01 | 0.7 | src/sim/tactics.js:122 | pendente (ia) |
 
 ## Arena e simulação
@@ -527,7 +553,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `test.aiRange` | Distância padrão da IA (sem efeito) | — | 0 | 13.2 | 0.05 | 3.3 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `test.contactStep` | Tamanho máximo de subpasso | — | 0.01 | 2 | 0.01 | 0.1 | src/sim/physics.js:437 | muda · duel |
 | `test.epsilon` | Tolerância de contato | — | 0 | 0.000001 | 1e-9 | 1e-8 | src/sim/physics.js:157 | pendente (tecnico) |
-| `test.contactShape` | Pegada do contato lutador × lutador (0 = quadrada · 1 = circular) | Circular (alcance igual em todos os ângulos) | 0 | 1 | 1 | 1 | src/sim/physics.js:494 | pendente (tecnico) |
+| `test.contactShape` | Pegada do contato lutador × lutador (0 = quadrada · 1 = circular) | seletor | 0 | 1 | 1 | 1 | src/sim/physics.js:494 | pendente (tecnico) |
 | `test.forwardTolerance` | Tolerância frontal legada (sem efeito) | ° | 0 | 3.14159 | 0.0174533 | 0.392699 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 
 ## Arena circular
@@ -563,8 +589,8 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `map.platformCount` | Quantidade de plataformas 3D (0 desliga) | — | 0 | 20 | 1 | 5 | src/sim/map/map-spawn.js:190 | muda · duelLong |
-| `map.mountTolerance` | Tolerância de montagem em sólidos (m) | m | 0.05 | 0.5 | 0.01 | 0.25 | src/nav/nav-graph.js:22 | pendente (mapa) |
+| `map.platformCount` | Quantidade de plataformas 3D (0 desliga) | — | 0 | 20 | 1 | 5 | src/sim/map/map-spawn.js:207 | muda · duelLong |
+| `map.mountTolerance` | Tolerância de montagem em sólidos (m) | m | 0.05 | 0.5 | 0.01 | 0.25 | src/sim/collision/queries.js:108 | pendente (mapa) |
 | `map.jumpPassOver` | Salto «passa por cima» da lateral por previsão (0/1) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/map/map-collision.js:20 | pendente (mapa) |
 | `map.launchSolidCollision` | Lançados colidem com a lateral de sólidos (0/1) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/map/map-collision.js:21 | pendente (mapa) |
 | `map.jumpHeight` | Altura do salto normal (m) | m | 0.5 | 10 | 0.1 | 2.4 | src/nav/nav-graph.js:17 | muda · jump |
@@ -607,7 +633,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `map.itemSpawnIntervalMin` | Tempo mín. surgimento de itens (s) | s | 2 | 120 | 1 | 20 | src/sim/map/map-spawn.js:298 | muda · items |
 | `map.itemSpawnIntervalMax` | Tempo máx. surgimento de itens (s) | s | 2 | 120 | 1 | 40 | src/sim/map/map-spawn.js:298 | muda · items |
 | `map.itemMaxRegular` | Limite de consumíveis regulares na arena | — | 0 | 20 | 1 | 4 | src/sim/map/map-step.js:105 | muda · items |
-| `map.itemLifetime` | Duração do consumível na arena (s) | s | 2 | 120 | 1 | 15 | src/sim/map/map-damage.js:78 | muda · duelLong |
+| `map.itemLifetime` | Duração do consumível na arena (s) | s | 2 | 120 | 1 | 15 | src/sim/map/map-spawn.js:290 | muda · duelLong |
 | `map.itemPickupRadius` | Raio de coleta 3D esférico (m) | m | 0.5 | 5 | 0.1 | 1.3 | src/sim/map/map-step.js:133 | muda · items |
 | `map.healHp` | Cura de HP (Pílula de HP) | HP | 5 | 100 | 5 | 20 | src/sim/map/map-consumables.js:27 | pendente (mapa) |
 | `map.healStamina` | Restauração imediata de Stamina (pontos) | pontos | 1 | 10 | 1 | 2 | src/sim/map/map-consumables.js:33 | pendente (mapa) |
@@ -618,12 +644,12 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 |---|---|---|---|---|---|---|---|---|
 | `map.shieldDuration` | Duração do escudo temporário (s) | s | 2 | 120 | 1 | 10 | src/sim/map/map-consumables.js:79 | muda · items |
 | `map.shieldCapacity` | Capacidade do escudo temporário (HP) | HP | 5 | 300 | 5 | 40 | src/sim/map/map-consumables.js:79 | muda · items |
-| `map.shieldMaxCap` | Capacidade máxima acumulada do escudo (HP) | HP | 5 | 300 | 5 | 80 | src/sim/entity.js:25 | muda · items |
+| `map.shieldMaxCap` | Capacidade máxima acumulada do escudo (HP) | HP | 5 | 300 | 5 | 80 | src/sim/map/map-consumables.js:15 | muda · items |
 | `map.stageAttackBonus` | Bônus de ataque por estágio (+10%) | % | 0.01 | 0.5 | 0.01 | 0.1 | src/sim/combat.js:54 | pendente (mapa) |
 | `map.stageDefenseReduction` | Redução de dano por estágio de defesa (-10 pp) | pp | 0.01 | 0.5 | 0.01 | 0.1 | src/sim/combat.js:193 | muda · items |
 | `map.stageStaminaBonus` | Stamina máxima extra por estágio (+1) | — | 0 | 20 | 1 | 1 | src/sim/entity.js:32 | muda · items |
-| `map.stageCooldownReduction` | Redução de recarga por estágio (-10%) | % | 0.01 | 0.5 | 0.01 | 0.1 | src/sim/scenarios-map.js:597 | pendente (mapa) |
-| `map.stageSpeedBonus` | Aumento de velocidade por estágio (+5%) | % | 0.01 | 0.5 | 0.01 | 0.05 | src/sim/scenarios-map.js:616 | pendente (mapa) |
+| `map.stageCooldownReduction` | Redução de recarga por estágio (-10%) | % | 0.01 | 0.5 | 0.01 | 0.1 | src/ui/progress-values.js:12 (consumerWeak) | pendente (mapa) |
+| `map.stageSpeedBonus` | Aumento de velocidade por estágio (+5%) | % | 0.01 | 0.5 | 0.01 | 0.05 | src/ui/progress-values.js:13 (consumerWeak) | pendente (mapa) |
 | `map.stagesMax` | Máximo de estágios por categoria (4) | — | 0 | 20 | 1 | 4 | src/sim/map/map-consumables.js:17 | muda · items |
 
 ## Renderizador e personagens
@@ -631,7 +657,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `extras.visual.bodyWidth` | Largura visual do corpo | — | 0.1 | 10 | 0.05 | 1 | src/view/meteor-fx.js:12 | visual/depuração |
-| `extras.visual.bodyHeight` | Altura visual do corpo | — | 0.1 | 10 | 0.05 | 1.3 | src/nav/nav-graph.js:21 | visual/depuração |
+| `extras.visual.bodyHeight` | Altura visual do corpo | — | 0.1 | 10 | 0.05 | 1.3 | src/sim/aim-marker.js:33 | visual/depuração |
 | `extras.visual.bodyDepth` | Profundidade visual do corpo | — | 0.1 | 10 | 0.05 | 1 | src/view/meteor-fx.js:12 | visual/depuração |
 | `extras.visual.arrowRadius` | Raio da seta frontal | — | 0 | 2 | 0.01 | 0.16 | src/view/view.js:335 | visual/depuração |
 | `extras.visual.arrowLength` | Comprimento da seta frontal | — | 0 | 2.1 | 0.01 | 0.42 | src/view/view.js:335 | visual/depuração |
@@ -648,9 +674,9 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `extras.visual.wallHeight` | Altura das paredes | — | 0 | 2 | 0.01 | 0.35 | src/view/scenery.js:10 | visual/depuração |
 | `extras.visual.wallThickness` | Espessura das paredes | — | 0 | 2 | 0.01 | 0.15 | src/view/scenery.js:10 | visual/depuração |
 | `extras.visual.gridDivisions` | Divisões da grade do piso | — | 2 | 100 | 1 | 32 | src/view/scenery.js:31 | visual/depuração |
-| `extras.visual.lightX` | Luz principal: posição X | — | -30 | 30 | 0.5 | 4 | src/view/view.js:156 | visual/depuração |
-| `extras.visual.lightY` | Luz principal: altura | — | -30 | 30 | 0.5 | 12 | src/view/view.js:156 | visual/depuração |
-| `extras.visual.lightZ` | Luz principal: posição Z | — | -30 | 30 | 0.5 | -8 | src/view/view.js:156 | visual/depuração |
+| `extras.visual.lightX` | Luz principal: posição X | — | -30 | 30 | 0.5 | 4 | src/view/view.js:63 | visual/depuração |
+| `extras.visual.lightY` | Luz principal: altura | — | -30 | 30 | 0.5 | 12 | src/view/view.js:63 | visual/depuração |
+| `extras.visual.lightZ` | Luz principal: posição Z | — | -30 | 30 | 0.5 | -8 | src/view/view.js:63 | visual/depuração |
 
 ## Efeitos e feedback
 
@@ -684,12 +710,12 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.hud.uiScale` | Escala do HUD | — | 0 | 3 | 0.01 | 1 | src/ui/progress-hud.js:56 | visual/depuração |
+| `extras.hud.uiScale` | Escala do HUD | — | 0 | 3 | 0.01 | 1 | src/app/tuning-sync.js:32 | visual/depuração |
 | `extras.hud.debugFontSize` | Fonte de depuração (sem efeito) | — | 0 | 56 | 1 | 12 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `extras.hud.footerFontSize` | Fonte do rodapé (sem efeito) | — | 0 | 56 | 1 | 15 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `extras.hud.fxVisible` | Exibir partículas | liga/desliga | 0 | 1 | 1 | 1 | src/view/view.js:184 | visual/depuração |
 | `extras.hud.hudVisible` | Exibir HUD | liga/desliga | 0 | 1 | 1 | 1 | src/app/tuning-sync.js:39 | visual/depuração |
-| `extras.hud.debugVisible` | Mostrar depuração | liga/desliga | 0 | 1 | 1 | 0 | src/app/wire-controls.js:50 | visual/depuração |
+| `extras.hud.debugVisible` | Mostrar depuração | liga/desliga | 0 | 1 | 1 | 0 | src/app/tuning-sync.js:39 | visual/depuração |
 | `extras.hud.menuOpacity` | Opacidade do menu (sem efeito) | — | 0 | 2 | 0.01 | 0.85 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `extras.hud.fpsSmoothing` | Suavização do FPS | — | 0.01 | 0.5 | 0.01 | 0.05 | src/app/main-loop.js:23 | visual/depuração |
 
@@ -766,7 +792,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `extras.gameModes.enemyMode` | Comportamento do adversário | Tático (estratégico) | 0 | 8 | 1 | 8 | src/app/match-flow.js:182 | pendente (partida) |
-| `extras.gameModes.playerProfile` | Perfil atual do jogador | Equilibrado | 0 | 2 | 1 | 0 | src/app/wire-controls.js:26 | pendente (partida) |
+| `extras.gameModes.playerProfile` | Perfil atual do jogador | Equilibrado | 0 | 2 | 1 | 0 | src/app/tuning-sync.js:41 | pendente (partida) |
 
 ## Teclas: índices configuráveis
 
@@ -830,41 +856,41 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.visual.smear.enableSmear` | Smear de membros no Tackle | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:120 | visual/depuração |
-| `extras.visual.smear.smearDurationFrames` | Persistência da lâmina | quadros ( ms) | 1 | 4 | 1 | 3 | src/view/smear-mesh.js:134 | visual/depuração |
-| `extras.visual.smear.smearMinVelocity` | Velocidade mínima | m/s | 5 | 25 | 0.5 | 12 | src/view/smear-mesh.js:141 | visual/depuração |
-| `extras.visual.smear.smearWidth` | Largura da lâmina | m | 0.05 | 0.4 | 0.01 | 0.24 | src/view/smear-mesh.js:135 | visual/depuração |
-| `extras.visual.smear.smearColorMode` | Cor da lâmina | seletor | 0 | 2 | 1 | 0 | src/view/smear-mesh.js:125 | visual/depuração |
-| `extras.visual.smear.smearOpacity` | Opacidade | % | 0.2 | 1 | 0.05 | 1 | src/view/smear-mesh.js:127 | visual/depuração |
-| `extras.visual.smear.smearPlBoost` | Reforço por Power Level | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:135 | visual/depuração |
-| `extras.visual.smear.smearOnDodge` | Smear também na esquiva (C) | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:133 | visual/depuração |
+| `extras.visual.smear.enableSmear` | Smear de membros no Tackle | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:120 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearDurationFrames` | Persistência da lâmina | quadros ( ms) | 1 | 4 | 1 | 3 | src/view/smear-mesh.js:134 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearMinVelocity` | Velocidade mínima | m/s | 5 | 25 | 0.5 | 12 | src/view/smear-mesh.js:141 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearWidth` | Largura da lâmina | m | 0.05 | 0.4 | 0.01 | 0.24 | src/view/smear-mesh.js:135 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearColorMode` | Cor da lâmina | seletor | 0 | 2 | 1 | 0 | src/view/smear-mesh.js:125 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearOpacity` | Opacidade | % | 0.2 | 1 | 0.05 | 1 | src/view/smear-mesh.js:127 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearPlBoost` | Reforço por Power Level | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:135 (consumerWeak) | visual/depuração |
+| `extras.visual.smear.smearOnDodge` | Smear também na esquiva (C) | liga/desliga | 0 | 1 | 1 | 1 | src/view/smear-mesh.js:133 (consumerWeak) | visual/depuração |
 
 ## Ledge Grab (agarre de borda)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `ledge.mode` | Modo do agarre de borda | seletor | 0 | 2 | 1 | 1 | src/sim/ledge.js:94 | pendente (ledge) |
-| `ledge.objects` | Aceitar caixas e destrutíveis | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ledge.js:25 | pendente (ledge) |
+| `ledge.objects` | Aceitar caixas e destrutíveis | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ledge.js:25 | muda · ledgeClimb |
 | `ledge.hint` | Realçar a borda agarrável | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx.js:252 | pendente (ledge) |
 | `ledge.reach` | Alcance horizontal | m | 0 | 1.5 | 0.01 | 0.35 | src/sim/ledge.js:42 | pendente (ledge) |
-| `ledge.reachUp` | Altura máxima da borda acima dos pés | m | 0.2 | 3 | 0.01 | 1.25 | src/sim/ledge.js:44 | pendente (ledge) |
-| `ledge.minUp` | Altura mínima da borda acima dos pés | m | 0 | 2 | 0.01 | 0.6 | src/sim/ledge.js:44 | pendente (ledge) |
-| `ledge.maxRiseSpeed` | Velocidade máxima de subida para agarrar | m/s | 0 | 8 | 0.1 | 1.5 | src/sim/ledge.js:95 | pendente (ledge) |
+| `ledge.reachUp` | Altura máxima da borda acima dos pés | m | 0.2 | 3 | 0.01 | 1.25 | src/sim/ledge.js:44 | muda · ledgeClimb |
+| `ledge.minUp` | Altura mínima da borda acima dos pés | m | 0 | 2 | 0.01 | 0.6 | src/sim/ledge.js:44 | muda · ledgeClimb |
+| `ledge.maxRiseSpeed` | Velocidade máxima de subida para agarrar | m/s | 0 | 8 | 0.1 | 1.5 | src/sim/ledge.js:95 | muda · ledgeClimb |
 | `ledge.minHangHeight` | Altura mínima da pose pendurada | m | 0 | 1 | 0.01 | 0.2 | src/sim/ledge.js:46 | pendente (ledge) |
-| `ledge.hangDrop` | Pés abaixo da borda (pendurado) | m | 0.3 | 2.5 | 0.01 | 1.15 | src/sim/ledge.js:45 | pendente (ledge) |
-| `ledge.snapTime` | Tempo do encaixe | s | 0 | 0.5 | 0.01 | 0.1 | src/sim/ledge.js:122 | pendente (ledge) |
-| `ledge.grabCost` | Stamina ao agarrar | — | 0 | 3 | 0.05 | 0 | src/sim/ledge.js:101 | pendente (ledge) |
-| `ledge.hangDrain` | Stamina por segundo pendurado | /s | 0 | 3 | 0.05 | 0.3 | src/sim/ledge.js:117 | pendente (ledge) |
+| `ledge.hangDrop` | Pés abaixo da borda (pendurado) | m | 0.3 | 2.5 | 0.01 | 1.15 | src/sim/ledge.js:45 | muda · ledgeClimb |
+| `ledge.snapTime` | Tempo do encaixe | s | 0 | 0.5 | 0.01 | 0.1 | src/sim/ledge.js:122 | muda · ledgeClimb |
+| `ledge.grabCost` | Stamina ao agarrar | — | 0 | 3 | 0.05 | 0 | src/sim/ledge.js:101 | muda · ledgeClimb |
+| `ledge.hangDrain` | Stamina por segundo pendurado | /s | 0 | 3 | 0.05 | 0.3 | src/sim/ledge.js:117 | muda · ledgeClimb |
 | `ledge.maxHang` | Tempo máximo pendurado | s | 0 | 15 | 0.1 | 4 | src/sim/ledge.js:136 | pendente (ledge) |
-| `ledge.minHang` | Espera antes de aceitar comandos | s | 0 | 1 | 0.01 | 0.15 | src/sim/ledge.js:129 | pendente (ledge) |
-| `ledge.climbInput` | Comando para subir | seletor | 0 | 2 | 1 | 0 | src/sim/ledge.js:126 | pendente (ledge) |
+| `ledge.minHang` | Espera antes de aceitar comandos | s | 0 | 1 | 0.01 | 0.15 | src/sim/ledge.js:129 | muda · ledgeClimb |
+| `ledge.climbInput` | Comando para subir | seletor | 0 | 2 | 1 | 0 | src/sim/ledge.js:126 | muda · ledgeClimb |
 | `ledge.climbHold` | Tempo segurando a direção para subir | s | 0 | 1 | 0.01 | 0.12 | src/sim/ledge.js:128 | pendente (ledge) |
-| `ledge.climbTime` | Duração da subida | s | 0.1 | 2 | 0.01 | 0.45 | src/sim/ledge.js:139 | pendente (ledge) |
-| `ledge.climbInset` | Posição final no topo | m | 0.1 | 1.5 | 0.01 | 0.6 | src/sim/ledge.js:50 | pendente (ledge) |
+| `ledge.climbTime` | Duração da subida | s | 0.1 | 2 | 0.01 | 0.45 | src/sim/ledge.js:139 | muda · ledgeClimb |
+| `ledge.climbInset` | Posição final no topo | m | 0.1 | 1.5 | 0.01 | 0.6 | src/sim/ledge.js:50 | muda · ledgeClimb |
 | `ledge.climbInvuln` | Invulnerabilidade na subida | s | 0 | 1 | 0.01 | 0 | src/sim/entity.js:65 | pendente (ledge) |
 | `ledge.dropInput` | Comando para soltar | seletor | 0 | 1 | 1 | 1 | src/sim/ledge.js:126 | pendente (ledge) |
-| `ledge.dropHold` | Tempo segurando para longe para soltar | s | 0 | 1 | 0.01 | 0.2 | src/sim/ledge.js:127 | pendente (ledge) |
-| `ledge.dropPush` | Empurrão ao soltar | m/s | 0 | 6 | 0.1 | 1.2 | src/sim/ledge.js:63 | pendente (ledge) |
+| `ledge.dropHold` | Tempo segurando para longe para soltar | s | 0 | 1 | 0.01 | 0.2 | src/sim/ledge.js:127 | muda · ledgeClimb |
+| `ledge.dropPush` | Empurrão ao soltar | m/s | 0 | 6 | 0.1 | 1.2 | src/sim/ledge.js:63 | muda · ledgeDrop |
 | `ledge.cooldown` | Intervalo até agarrar de novo | s | 0 | 3 | 0.05 | 0.5 | src/sim/ledge.js:62 | pendente (ledge) |
 | `ledge.hurtDrops` | Golpe derruba da borda | liga/desliga | 0 | 1 | 1 | 1 | src/sim/ledge.js:110 | pendente (ledge) |
 | `ledge.aiClimb` | IA sobe depois de | s | 0 | 5 | 0.05 | 0.35 | src/sim/game.js:75 | pendente (ledge) |
@@ -873,26 +899,26 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.visual.squashStretch.enableSquashStretch` | Deformação elástica do Tackle | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:15 | visual/depuração |
-| `extras.visual.squashStretch.squashOnDodge` | Squash & stretch também na esquiva (C) | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:20 | visual/depuração |
-| `extras.visual.squashStretch.dodgeSquashScale` | Intensidade na esquiva | % | 0 | 2 | 0.05 | 0.8 | src/view/squash-stretch.js:20 | visual/depuração |
-| `extras.visual.squashStretch.squashIntensity` | Compressão no arranque | % | 0 | 0.3 | 0.01 | 0.17 | src/view/squash-stretch.js:26 | visual/depuração |
-| `extras.visual.squashStretch.stretchIntensity` | Alongamento no impulso | % | 0 | 0.4 | 0.01 | 0.31 | src/view/squash-stretch.js:27 | visual/depuração |
-| `extras.visual.squashStretch.squashWindow` | Janela de compressão | ms | 0 | 150 | 1 | 60 | src/view/squash-stretch.js:24 | visual/depuração |
-| `extras.visual.squashStretch.settleDuration` | Retorno amortecido | ms | 30 | 200 | 1 | 80 | src/view/squash-stretch.js:37 | visual/depuração |
-| `extras.visual.squashStretch.preserveVolume` | Preservar volume | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:44 | visual/depuração |
-| `extras.visual.squashStretch.plScaling` | Alongamento por Power Level | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:25 | visual/depuração |
+| `extras.visual.squashStretch.enableSquashStretch` | Deformação elástica do Tackle | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:15 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.squashOnDodge` | Squash & stretch também na esquiva (C) | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:20 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.dodgeSquashScale` | Intensidade na esquiva | % | 0 | 2 | 0.05 | 0.8 | src/view/squash-stretch.js:20 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.squashIntensity` | Compressão no arranque | % | 0 | 0.3 | 0.01 | 0.17 | src/view/squash-stretch.js:26 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.stretchIntensity` | Alongamento no impulso | % | 0 | 0.4 | 0.01 | 0.31 | src/view/squash-stretch.js:27 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.squashWindow` | Janela de compressão | ms | 0 | 150 | 1 | 60 | src/view/squash-stretch.js:24 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.settleDuration` | Retorno amortecido | ms | 30 | 200 | 1 | 80 | src/view/squash-stretch.js:37 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.preserveVolume` | Preservar volume | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:44 (consumerWeak) | visual/depuração |
+| `extras.visual.squashStretch.plScaling` | Alongamento por Power Level | liga/desliga | 0 | 1 | 1 | 1 | src/view/squash-stretch.js:25 (consumerWeak) | visual/depuração |
 
 ## Sprint (C mantido)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `actions.sprint.speedMultiplier` | Velocidade do sprint | × | 1 | 6 | 0.01 | 1.8 | src/sim/ai-eval/eval-match.js:273 | muda · sprint |
+| `actions.sprint.speedMultiplier` | Velocidade do sprint | × | 1 | 6 | 0.01 | 1.8 | src/sim/controller/ctrl-update.js:361 | muda · sprint |
 | `actions.sprint.acceleration` | Aceleração do sprint | m/s² | 1 | 400 | 0.5 | 26 | src/sim/controller/ctrl-basico.js:17 | muda · sprint |
 | `actions.sprint.braking` | Frenagem do sprint | m/s² | 1 | 400 | 0.5 | 15 | src/sim/controller/ctrl-basico.js:17 | pendente (combate) |
 | `actions.sprint.turnGrip` | Aderência lateral no sprint | m/s² | 1 | 400 | 0.5 | 28 | src/sim/controller/ctrl-basico.js:17 | pendente (combate) |
 | `actions.sprint.staminaDrain` | Consumo de stamina por segundo | /s | 0 | 6 | 0.01 | 0.55 | src/sim/controller/ctrl-update.js:169 | muda · sprint |
-| `actions.sprint.minStamina` | Stamina mínima para entrar | — | 0 | 6 | 0.05 | 0.2 | src/sim/controller/ctrl-update.js:253 | pendente (combate) |
+| `actions.sprint.minStamina` | Stamina mínima para entrar | — | 0 | 6 | 0.05 | 0.2 | src/sim/controller/ctrl-update.js:249 | pendente (combate) |
 | `actions.sprint.entryFraction` | Entrada a partir de (fração da esquiva) | % | 0.3 | 2 | 0.01 | 0.7 | src/sim/controller/ctrl-update.js:252 | muda · sprint |
 | `actions.sprint.exhaustedStop` | Stamina zerada encerra o sprint (sem efeito) | liga/desliga | 0 | 1 | 1 | 1 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 
@@ -922,10 +948,10 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 |---|---|---|---|---|---|---|---|---|
 | `vfx.solidDust.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.solidDust.variant` | Estilo 3D | seletor | 0 | 7 | 1 | 4 | src/view/solid-fx.js:363 | visual/depuração |
-| `vfx.solidDust.intensity` | Intensidade (força geral) | × | 0.1 | 3 | 0.01 | 0.82 | src/view/solid-fx.js:358 | visual/depuração |
+| `vfx.solidDust.intensity` | Intensidade (força geral) | × | 0.1 | 3 | 0.01 | 0.82 | src/view/solid-fx.js:230 | visual/depuração |
 | `vfx.solidDust.amount` | Quantidade / taxa de emissão | × | 0.1 | 3 | 0.01 | 3 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.solidDust.size` | Tamanho | × | 0.3 | 3 | 0.01 | 0.49 | src/view/solid-fx.js:358 | visual/depuração |
-| `vfx.solidDust.duration` | Duração (× do padrão) | × | 0.3 | 3 | 0.01 | 1 | src/view/solid-fx.js:358 | visual/depuração |
+| `vfx.solidDust.size` | Tamanho | × | 0.3 | 3 | 0.01 | 0.49 | src/view/solid-fx.js:230 | visual/depuração |
+| `vfx.solidDust.duration` | Duração (× do padrão) | × | 0.3 | 3 | 0.01 | 1 | src/view/solid-fx.js:310 | visual/depuração |
 | `vfx.solidDust.velocity` | Velocidade dos objetos (×) | × | 0.2 | 3 | 0.01 | 1.85 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDust.scatter` | Dispersão (×) | × | 0.2 | 3 | 0.01 | 0.77 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDust.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 2.38 | src/view/solid-fx.js:63 | visual/depuração |
@@ -933,8 +959,8 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.solidDust.opacity` | Opacidade | % | 0.1 | 1 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDust.fadeStart` | Começa a sumir em (% da vida) | % | 0 | 0.98 | 0.01 | 0.39 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDust.fadeEnd` | Some por completo em (% da vida) | % | 0.05 | 1 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.solidDust.color` | Cor | cor | 0 | 16777200 | 1 | 16777200 | src/view/solid-fx.js:358 | visual/depuração |
-| `vfx.solidDust.color2` | Cor secundária (energia) | cor | 0 | 16777200 | 1 | 16777200 | src/view/solid-fx.js:358 | visual/depuração |
+| `vfx.solidDust.color` | Cor | cor | 0 | 16777200 | 1 | 16777200 | src/view/solid-fx.js:230 | visual/depuração |
+| `vfx.solidDust.color2` | Cor secundária (energia) | cor | 0 | 16777200 | 1 | 16777200 | src/view/solid-fx.js:230 | visual/depuração |
 
 ## VFX 3D · Vento do dash e da arrancada (3D)
 
@@ -1005,7 +1031,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.solidDodge.duration` | Duração (× do padrão) | × | 0.3 | 3 | 0.01 | 0.59 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDodge.velocity` | Velocidade dos objetos (×) | × | 0.2 | 3 | 0.01 | 1.95 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDodge.scatter` | Dispersão (×) | × | 0.2 | 3 | 0.01 | 0.4 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.solidDodge.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 0.47 | src/view/solid-fx.js:261 | visual/depuração |
+| `vfx.solidDodge.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 0.47 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDodge.turbulence` | Turbulência e rotação (×) | × | 0 | 3 | 0.01 | 1.72 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDodge.opacity` | Opacidade | % | 0.1 | 1 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidDodge.fadeStart` | Começa a sumir em (% da vida) | % | 0 | 0.98 | 0.01 | 0.3 | src/view/solid-fx.js:63 | visual/depuração |
@@ -1024,7 +1050,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.solidLanding.duration` | Duração (× do padrão) | × | 0.3 | 3 | 0.01 | 1.5 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidLanding.velocity` | Velocidade dos objetos (×) | × | 0.2 | 3 | 0.01 | 0.66 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidLanding.scatter` | Dispersão (×) | × | 0.2 | 3 | 0.01 | 0.76 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.solidLanding.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1.12 | src/view/solid-fx.js:205 | visual/depuração |
+| `vfx.solidLanding.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1.12 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidLanding.turbulence` | Turbulência e rotação (×) | × | 0 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidLanding.opacity` | Opacidade | % | 0.1 | 1 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidLanding.fadeStart` | Começa a sumir em (% da vida) | % | 0 | 0.98 | 0.01 | 0.6 | src/view/solid-fx.js:63 | visual/depuração |
@@ -1043,7 +1069,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.solidImpact.duration` | Duração (× do padrão) | × | 0.3 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidImpact.velocity` | Velocidade dos objetos (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidImpact.scatter` | Dispersão (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.solidImpact.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:199 | visual/depuração |
+| `vfx.solidImpact.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidImpact.turbulence` | Turbulência e rotação (×) | × | 0 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidImpact.opacity` | Opacidade | % | 0.1 | 1 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidImpact.fadeStart` | Começa a sumir em (% da vida) | % | 0 | 0.98 | 0.01 | 0.6 | src/view/solid-fx.js:63 | visual/depuração |
@@ -1062,7 +1088,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.solidBlock.duration` | Duração (× do padrão) | × | 0.3 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidBlock.velocity` | Velocidade dos objetos (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidBlock.scatter` | Dispersão (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.solidBlock.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:200 | visual/depuração |
+| `vfx.solidBlock.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidBlock.turbulence` | Turbulência e rotação (×) | × | 0 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidBlock.opacity` | Opacidade | % | 0.1 | 1 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidBlock.fadeStart` | Começa a sumir em (% da vida) | % | 0 | 0.98 | 0.01 | 0.6 | src/view/solid-fx.js:63 | visual/depuração |
@@ -1081,7 +1107,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.solidClash.duration` | Duração (× do padrão) | × | 0.3 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidClash.velocity` | Velocidade dos objetos (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidClash.scatter` | Dispersão (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.solidClash.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:202 | visual/depuração |
+| `vfx.solidClash.lift` | Altura (×) | × | 0.2 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidClash.turbulence` | Turbulência e rotação (×) | × | 0 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidClash.opacity` | Opacidade | % | 0.1 | 1 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.solidClash.fadeStart` | Começa a sumir em (% da vida) | % | 0 | 0.98 | 0.01 | 0.6 | src/view/solid-fx.js:63 | visual/depuração |
@@ -1171,7 +1197,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.sprint.variant` | Variante | seletor | 0 | 2 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
 | `vfx.sprint.density` | Densidade | × | 0.1 | 4 | 0.01 | 1 | src/view/vfx.js:339 | visual/depuração |
 | `vfx.sprint.length` | Comprimento | m | 0.1 | 4 | 0.01 | 1.1 | src/view/solid-fx.js:146 | visual/depuração |
-| `vfx.sprint.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 9 | src/view/solid-fx.js:246 | visual/depuração |
+| `vfx.sprint.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 9 | src/view/solid-fx.js:243 | visual/depuração |
 | `vfx.sprint.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.5 | src/view/vfx.js:450 | visual/depuração |
 | `vfx.sprint.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.sprint.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.55 | src/view/solid-fx.js:63 | visual/depuração |
@@ -1216,15 +1242,15 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 |---|---|---|---|---|---|---|---|---|
 | `vfx.ground.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.ground.variant` | Variante | seletor | 0 | 3 | 1 | 3 | src/view/vfx.js:341 | visual/depuração |
-| `vfx.ground.radius` | Raio | m | 0.2 | 4 | 0.01 | 2.9 | src/view/vfx.js:371 | visual/depuração |
+| `vfx.ground.radius` | Raio | m | 0.2 | 4 | 0.01 | 2.9 | src/view/vfx.js:306 | visual/depuração |
 | `vfx.ground.density` | Densidade | × | 0.1 | 4 | 0.01 | 1.52 | src/view/vfx.js:339 | visual/depuração |
-| `vfx.ground.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.82 | src/view/vfx.js:371 | visual/depuração |
-| `vfx.ground.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1.57 | src/view/vfx.js:371 | visual/depuração |
-| `vfx.ground.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 3.5 | src/view/vfx.js:408 | visual/depuração |
-| `vfx.ground.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.85 | src/view/vfx.js:371 | visual/depuração |
+| `vfx.ground.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.82 | src/view/solid-fx.js:63 | visual/depuração |
+| `vfx.ground.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 1.57 | src/view/solid-fx.js:63 | visual/depuração |
+| `vfx.ground.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 3.5 | src/view/solid-fx.js:243 | visual/depuração |
+| `vfx.ground.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.85 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.ground.particleSize` | Tamanho das partículas | m | 0.02 | 1 | 0.01 | 0.22 | src/view/vfx.js:552 | visual/depuração |
 | `vfx.ground.elevation` | Elevação | × | 0 | 3 | 0.01 | 0.5 | src/view/vfx.js:552 | visual/depuração |
-| `vfx.ground.color` | Cor | cor | 0 | 16777200 | 1 | 15134200 | src/view/vfx.js:371 | visual/depuração |
+| `vfx.ground.color` | Cor | cor | 0 | 16777200 | 1 | 15134200 | src/view/solid-fx.js:166 | visual/depuração |
 | `vfx.ground.minImpact` | Impacto mínimo para disparar | m/s | 0 | 15 | 0.1 | 2 | src/view/quarks/bridge.js:79 | visual/depuração |
 | `vfx.ground.mixA` | Combinado (D): poeira (A) | × | 0 | 2 | 0.01 | 1 | src/view/vfx.js:563 | visual/depuração |
 | `vfx.ground.mixB` | Combinado (D): anel (B) | × | 0 | 2 | 0.01 | 0.8 | src/view/vfx.js:563 | visual/depuração |
@@ -1289,10 +1315,10 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.clash.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.clash.variant` | Variante | seletor | 0 | 2 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
 | `vfx.clash.scale` | Escala | × | 0.2 | 3 | 0.01 | 1.2 | src/view/solid-fx.js:293 | visual/depuração |
-| `vfx.clash.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.6 | src/view/view.js:191 | visual/depuração |
+| `vfx.clash.duration` | Duração | s | 0.05 | 2 | 0.01 | 0.6 | src/view/solid-fx.js:63 | visual/depuração |
 | `vfx.clash.intensity` | Intensidade | × | 0.1 | 3 | 0.01 | 2.52 | src/view/solid-fx.js:63 | visual/depuração |
-| `vfx.clash.count` | Quantidade de partículas | — | 1 | 80 | 1 | 30 | src/view/view.js:186 | visual/depuração |
-| `vfx.clash.color` | Cor | cor | 0 | 16777200 | 1 | 16770400 | src/view/view.js:189 | visual/depuração |
+| `vfx.clash.count` | Quantidade de partículas | — | 1 | 80 | 1 | 30 | src/view/solid-fx.js:67 | visual/depuração |
+| `vfx.clash.color` | Cor | cor | 0 | 16777200 | 1 | 16770400 | src/view/solid-fx.js:166 | visual/depuração |
 | `vfx.clash.color2` | Cor secundária | cor | 0 | 16777200 | 1 | 16743000 | src/view/solid-fx.js:230 | visual/depuração |
 | `vfx.clash.radius` | Raio | m | 0.2 | 4 | 0.01 | 1.6 | src/view/vfx.js:306 | visual/depuração |
 | `vfx.clash.speed` | Velocidade de expansão | m/s | 0.5 | 25 | 0.1 | 7 | src/view/solid-fx.js:243 | visual/depuração |
@@ -1304,7 +1330,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 |---|---|---|---|---|---|---|---|---|
 | `vfx.exhaust.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/solid-fx.js:124 | visual/depuração |
 | `vfx.exhaust.variant` | Variante | seletor | 0 | 2 | 1 | 0 | src/view/solid-fx.js:11 | visual/depuração |
-| `vfx.exhaust.target` | Mostrar em | seletor | 0 | 2 | 1 | 0 | src/view/vfx/runtime.js:131 | visual/depuração |
+| `vfx.exhaust.target` | Mostrar em | seletor | 0 | 2 | 1 | 0 | src/view/vfx.js:266 | visual/depuração |
 | `vfx.exhaust.count` | Quantidade de partículas | — | 1 | 80 | 1 | 5 | src/view/solid-fx.js:67 | visual/depuração |
 | `vfx.exhaust.fallSpeed` | Velocidade de queda | m/s | 0.1 | 6 | 0.01 | 1.1 | src/view/vfx.js:600 | visual/depuração |
 | `vfx.exhaust.spread` | Dispersão / abertura | m | 0 | 2 | 0.01 | 0.55 | src/view/vfx.js:450 | visual/depuração |
@@ -1343,12 +1369,12 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.rock.trail` | Rastro de partículas | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-update.js:88 | visual/depuração |
 | `vfx.rock.trailDensity` | Densidade do rastro (sem efeito) | — | 1 | 30 | 1 | 8 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
 | `vfx.rock.shatter` | Estilhaçar no impacto | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-update.js:198 | visual/depuração |
-| `vfx.rock.shatterCount` | Fragmentos de estilhaço | — | 4 | 32 | 1 | 14 | src/view/vfx.js:625 | visual/depuração |
+| `vfx.rock.shatterCount` | Fragmentos de estilhaço | — | 4 | 32 | 1 | 14 | src/view/world-view/wv-particles.js:48 | visual/depuração |
 | `vfx.rock.shatterSpeed` | Velocidade dos estilhaços | × | 0.2 | 3 | 0.05 | 1 | src/view/world-view/wv-particles.js:50 | visual/depuração |
 | `vfx.rock.shatterLife` | Duração dos estilhaços | × | 0.3 | 3 | 0.05 | 1 | src/view/world-view/wv-particles.js:50 | visual/depuração |
 | `vfx.rock.shatterSize` | Tamanho dos estilhaços | × | 0.4 | 3 | 0.05 | 1 | src/view/world-view/wv-particles.js:50 | visual/depuração |
 | `vfx.rock.glow` | Brilho | × | 0.2 | 4 | 0.01 | 1.2 | src/view/solid-fx.js:447 | visual/depuração |
-| `vfx.rock.cracksEmissive` | Brilho das veias de energia | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-entities.js:77 | visual/depuração |
+| `vfx.rock.cracksEmissive` | Brilho das veias de energia | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-entities.js:77 (consumerWeak) | visual/depuração |
 
 ## VFX · Barreira de energia (Reflect)
 
@@ -1359,20 +1385,20 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.barrier.opacity` | Opacidade | % | 0 | 1 | 0.01 | 0.65 | src/view/world-view/wv-entities.js:163 | visual/depuração |
 | `vfx.barrier.pulseFreq` | Frequência de pulsação | Hz | 0.5 | 8 | 0.1 | 2.2 | src/view/world-view/wv-update.js:150 | visual/depuração |
 | `vfx.barrier.ripples` | Ondas de impacto na barreira (sem efeito) | liga/desliga | 0 | 1 | 1 | 1 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
-| `vfx.barrier.shatterFragments` | Fragmentos ao quebrar | — | 6 | 48 | 2 | 20 | src/view/vfx.js:653 | visual/depuração |
+| `vfx.barrier.shatterFragments` | Fragmentos ao quebrar | — | 6 | 48 | 2 | 20 | src/view/world-view/wv-particles.js:86 | visual/depuração |
 | `vfx.barrier.shatterSpeed` | Velocidade dos estilhaços | × | 0.2 | 3 | 0.05 | 1 | src/view/world-view/wv-particles.js:87 | visual/depuração |
 | `vfx.barrier.shatterLife` | Duração dos estilhaços | × | 0.3 | 3 | 0.05 | 1 | src/view/world-view/wv-particles.js:87 | visual/depuração |
 | `vfx.barrier.shatterSize` | Tamanho dos estilhaços | × | 0.4 | 3 | 0.05 | 1 | src/view/world-view/wv-particles.js:87 | visual/depuração |
-| `vfx.barrier.edgeGlow` | Brilho nas bordas | × | 0.2 | 3 | 0.1 | 1.4 | src/view/vfx.js:654 | visual/depuração |
+| `vfx.barrier.edgeGlow` | Brilho nas bordas | × | 0.2 | 3 | 0.1 | 1.4 | src/view/world-view/wv-entities.js:164 | visual/depuração |
 
 ## VFX · Elementais (Água, Fogo, Vento)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `vfx.elemental.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/quarks/elemental-game.js:37 | visual/depuração |
-| `vfx.elemental.waterVariant` | Água · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/sim/moves/water-pulse/water-pulse.vfx.js:31 | visual/depuração |
-| `vfx.elemental.fireVariant` | Fogo · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:20 | visual/depuração |
-| `vfx.elemental.airVariant` | Vento · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:20 | visual/depuração |
+| `vfx.elemental.waterVariant` | Água · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/sim/moves/water-pulse/water-pulse.vfx.js:31 (consumerWeak) | visual/depuração |
+| `vfx.elemental.fireVariant` | Fogo · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:20 (consumerWeak) | visual/depuração |
+| `vfx.elemental.airVariant` | Vento · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:20 (consumerWeak) | visual/depuração |
 | `vfx.elemental.seedShotEffect` | Efeito de disparo do Seed Bomb | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:84 | visual/depuração |
 | `vfx.elemental.shotFollowTime` | Tempo de seguimento do efeito de disparo | — | 0 | 2 | 0.01 | 0.3 | src/view/world-view/wv-update.js:317 | visual/depuração |
 
@@ -1504,13 +1530,13 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `vfx.laser.muzzleSize` | Tamanho do muzzle | m | 0.01 | 0.8 | 0.005 | 0.28 | src/view/vfx/beam-renderer.js:230 | visual/depuração |
 | `vfx.laser.contactSize` | Tamanho do flare de contato | m | 0.01 | 0.8 | 0.005 | 0.35 | src/view/vfx/beam-renderer.js:338 | visual/depuração |
 | `vfx.laser.sparksPerSecond` | Centelhas no impacto (/s) | /s | 0 | 100 | 5 | 20 | src/view/vfx/beam-renderer.js:344 | visual/depuração |
-| `vfx.laser.dynamicLight` | Luz dinâmica do laser (sem efeito) | Ligado | 0 | 1 | 1 | 1 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
-| `vfx.laser.reflectionActive` | Nó de reflexão visível | Ligado | 0 | 1 | 1 | 1 | src/view/vfx/beam-renderer.js:331 | visual/depuração |
-| `vfx.laser.neutralizeActive` | Desbotamento de neutralização | Ligado | 0 | 1 | 1 | 1 | src/view/vfx/beam-renderer.js:290 | visual/depuração |
+| `vfx.laser.dynamicLight` | Luz dinâmica do laser (sem efeito) | liga/desliga | 0 | 1 | 1 | 1 | **SEM CONSUMIDOR** | sem efeito (órfão rotulado) |
+| `vfx.laser.reflectionActive` | Nó de reflexão visível | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx/beam-renderer.js:331 | visual/depuração |
+| `vfx.laser.neutralizeActive` | Desbotamento de neutralização | liga/desliga | 0 | 1 | 1 | 1 | src/view/vfx/beam-renderer.js:290 | visual/depuração |
 | `vfx.laser.quality` | Qualidade dos efeitos 3D | seletor | 0 | 2 | 1 | 1 | src/view/vfx/beam-renderer.js:148 | visual/depuração |
-| `vfx.laser.noFlash` | Sem flashes (acessibilidade) | Desligado | 0 | 1 | 1 | 0 | src/view/vfx.js:715 | visual/depuração |
-| `vfx.laser.reduceMotion` | Reduzir movimento (acessibilidade) | Desligado | 0 | 1 | 1 | 0 | src/view/vfx.js:174 | visual/depuração |
-| `vfx.laser.highContrast` | Alto contraste (acessibilidade) | Desligado | 0 | 1 | 1 | 0 | src/view/vfx.js:175 | visual/depuração |
+| `vfx.laser.noFlash` | Sem flashes (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:715 | visual/depuração |
+| `vfx.laser.reduceMotion` | Reduzir movimento (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:174 | visual/depuração |
+| `vfx.laser.highContrast` | Alto contraste (acessibilidade) | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:175 | visual/depuração |
 
 ## Sombras
 
@@ -1567,8 +1593,8 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `display.animation.fade` | Transição suave entre estados | s | 0.02 | 0.6 | 0.01 | 0.19 | src/app/workspace-boot.js:45 | visual/depuração |
-| `display.animation.actionFade` | Transição de entrada em X, C e reações | s | 0.02 | 0.3 | 0.01 | 0.09 | src/app/characters-sync.js:26 | visual/depuração |
-| `display.animation.locomotionHold` | Estabilidade da locomoção (histerese) | s | 0 | 0.4 | 0.01 | 0.08 | src/app/characters-sync.js:26 | visual/depuração |
+| `display.animation.actionFade` | Transição de entrada em X, C e reações | s | 0.02 | 0.3 | 0.01 | 0.09 | src/app/workspace-boot.js:45 | visual/depuração |
+| `display.animation.locomotionHold` | Estabilidade da locomoção (histerese) | s | 0 | 0.4 | 0.01 | 0.08 | src/app/workspace-boot.js:45 | visual/depuração |
 | `display.animation.speed` | Velocidade geral das animações | × | 0.25 | 3 | 0.05 | 1.75 | src/app/wire-characters.js:13 | visual/depuração |
 
 ## Diagnóstico de comandos
@@ -1595,7 +1621,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `display.windows.perfect` | Janela da defesa perfeita | liga/desliga | 0 | 1 | 1 | 1 | src/ui/diagnostics-panel.js:64 | visual/depuração |
 | `display.windows.perfectCooldown` | Recarga da defesa perfeita | liga/desliga | 0 | 1 | 1 | 1 | src/ui/diagnostics-panel.js:65 | visual/depuração |
 | `display.windows.counter` | Janela de contra-ataque | liga/desliga | 0 | 1 | 1 | 1 | src/ui/diagnostics-panel.js:66 | visual/depuração |
-| `display.windows.buffer` | Buffer de entrada | liga/desliga | 0 | 1 | 1 | 1 | src/ui/diagnostics-panel.js:12 | visual/depuração |
+| `display.windows.buffer` | Buffer de entrada | liga/desliga | 0 | 1 | 1 | 1 | src/ui/diagnostics-panel.js:67 | visual/depuração |
 | `display.windows.hitstop` | Hitstop | liga/desliga | 0 | 1 | 1 | 0 | src/ui/diagnostics-panel.js:81 | visual/depuração |
 | `display.windows.statuses` | Buffs e debuffs | liga/desliga | 0 | 1 | 1 | 1 | src/ui/diagnostics-panel.js:79 | visual/depuração |
 | `display.windows.cooldowns` | Recargas dos movimentos | liga/desliga | 0 | 1 | 1 | 1 | src/ui/diagnostics-panel.js:80 | visual/depuração |
@@ -1610,7 +1636,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.poison-touch.dps` | Dano por segundo do veneno | — | 0 | 20 | 0.05 | 2 | src/sim/scenarios-passives.js:94 | pendente (passiva) |
+| `passivas.poison-touch.dps` | Dano por segundo do veneno | — | 0 | 20 | 0.05 | 2 | src/sim/passive-engine.js:88 | pendente (passiva) |
 | `passivas.poison-touch.duration` | Duração do efeito (s) | — | 0 | 24 | 0.05 | 3 | src/sim/passive-engine.js:88 | pendente (passiva) |
 | `passivas.poison-touch.cooldown` | Recarga (s) | — | 0 | 96 | 0.05 | 12 | src/sim/passive-engine.js:85 | pendente (passiva) |
 
@@ -1619,8 +1645,8 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `passivas.anticipation.speedPct` | Bônus de velocidade (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:245 | pendente (passiva) |
-| `passivas.anticipation.duration` | Duração do efeito (s) | — | 0 | 20 | 0.05 | 2 | src/sim/passive-engine.js:93 | pendente (passiva) |
-| `passivas.anticipation.cooldown` | Recarga (s) | — | 0 | 96 | 0.05 | 12 | src/sim/scenarios-passives.js:217 | pendente (passiva) |
+| `passivas.anticipation.duration` | Duração do efeito (s) | — | 0 | 20 | 0.05 | 2 | src/sim/passive-engine.js:88 | pendente (passiva) |
+| `passivas.anticipation.cooldown` | Recarga (s) | — | 0 | 96 | 0.05 | 12 | src/sim/passive-engine.js:85 | pendente (passiva) |
 | `passivas.anticipation.detectDistance` | Distância de detecção (m) | — | 0 | 28 | 0.05 | 3.5 | src/sim/passive-engine.js:202 | pendente (passiva) |
 
 ## Passivas · Forewarn (drowzee)
@@ -1630,40 +1656,40 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | `passivas.forewarn.windowBonus` | Bônus da janela perfeita (s) | — | 0 | 1 | 0.001 | 0.06 | src/sim/passive-engine.js:268 | pendente (passiva) |
 | `passivas.forewarn.maxDuration` | Duração máxima do efeito (s) | — | 0 | 32 | 0.05 | 4 | src/sim/passive-engine.js:94 | pendente (passiva) |
 | `passivas.forewarn.cooldown` | Recarga (s) | — | 0 | 96 | 0.05 | 12 | src/sim/passive-engine.js:85 | pendente (passiva) |
-| `passivas.forewarn.detectDistance` | Distância de detecção (m) | — | 0 | 28 | 0.05 | 3.5 | src/sim/passive-engine.js:206 | pendente (passiva) |
+| `passivas.forewarn.detectDistance` | Distância de detecção (m) | — | 0 | 28 | 0.05 | 3.5 | src/sim/passive-engine.js:202 | pendente (passiva) |
 
 ## Passivas · Inner Focus (drowzee)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.inner-focus.stunPct` | Redução de hit stun (%) | — | 0 | 4 | 0.01 | 0.2 | src/sim/passive-engine.js:266 | pendente (passiva) |
+| `passivas.inner-focus.stunPct` | Redução de hit stun (%) | — | 0 | 4 | 0.01 | 0.2 | src/sim/passive-engine.js:266 | muda · passiva/inner-focus/roteiro |
 
 ## Passivas · Effect Spore (mush)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.effect-spore.slowPct` | Redução de velocidade do alvo (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:247 | pendente (passiva) |
-| `passivas.effect-spore.duration` | Duração do efeito (s) | — | 0 | 24 | 0.05 | 3 | src/sim/passive-engine.js:95 | pendente (passiva) |
+| `passivas.effect-spore.slowPct` | Redução de velocidade do alvo (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:247 | muda · passiva/effect-spore/roteiro |
+| `passivas.effect-spore.duration` | Duração do efeito (s) | — | 0 | 24 | 0.05 | 3 | src/sim/passive-engine.js:88 | muda · passiva/effect-spore/roteiro |
 | `passivas.effect-spore.cooldown` | Recarga (s) | — | 0 | 96 | 0.05 | 12 | src/sim/passive-engine.js:85 | pendente (passiva) |
 
 ## Passivas · Vital Spirit (vigoroth)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.vital-spirit.thresholdPct` | Limiar de stamina (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/passive-engine.js:256 | pendente (passiva) |
-| `passivas.vital-spirit.regenPct` | Bônus de regeneração (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/passive-engine.js:256 | pendente (passiva) |
+| `passivas.vital-spirit.thresholdPct` | Limiar de stamina (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/passive-engine.js:256 | muda · passiva/vital-spirit/roteiro |
+| `passivas.vital-spirit.regenPct` | Bônus de regeneração (%) | — | 0 | 4 | 0.01 | 0.3 | src/sim/passive-engine.js:256 | muda · passiva/vital-spirit |
 
 ## Passivas · Guts (vigoroth)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.guts.attackPct` | Bônus de ataque (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:253 | pendente (passiva) |
+| `passivas.guts.attackPct` | Bônus de ataque (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:249 | pendente (passiva) |
 
 ## Passivas · Speed Boost
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.speed-boost.speedPct` | Bônus de velocidade (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:252 | muda · passiva/speed-boost |
+| `passivas.speed-boost.speedPct` | Bônus de velocidade (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:245 | muda · passiva/speed-boost |
 
 ## Passivas · Technician
 
@@ -1675,14 +1701,14 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.rough-skin.reflectDamage` | Dano de retorno (HP) | — | 0 | 24 | 0.05 | 3 | src/sim/passive-engine.js:97 | pendente (passiva) |
+| `passivas.rough-skin.reflectDamage` | Dano de retorno (HP) | — | 0 | 24 | 0.05 | 3 | src/sim/passive-engine.js:97 | muda · passiva/rough-skin/roteiro |
 | `passivas.rough-skin.cooldown` | Recarga (s) | — | 0 | 80 | 0.05 | 10 | src/sim/passive-engine.js:85 | pendente (passiva) |
 
 ## Passivas · Regenerator
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.regenerator.heal` | Cura (HP) | — | 0 | 40 | 0.05 | 5 | src/sim/passive-engine.js:110 | muda · passiva/regenerator |
+| `passivas.regenerator.heal` | Cura (HP) | — | 0 | 40 | 0.05 | 5 | src/sim/passive-engine.js:107 | muda · passiva/regenerator |
 | `passivas.regenerator.quietTime` | Tempo sem dano para curar (s) | — | 0 | 40 | 0.05 | 5 | src/sim/passive-engine.js:199 | pendente (passiva) |
 | `passivas.regenerator.cooldown` | Recarga (s) | — | 0 | 120 | 0.05 | 15 | src/sim/passive-engine.js:85 | muda · passiva/regenerator |
 
@@ -1690,8 +1716,8 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.unburden.speedPct` | Bônus de velocidade (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:246 | pendente (passiva) |
-| `passivas.unburden.duration` | Duração do efeito (s) | — | 0 | 32 | 0.05 | 4 | src/sim/passive-engine.js:112 | pendente (passiva) |
+| `passivas.unburden.speedPct` | Bônus de velocidade (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:245 | pendente (passiva) |
+| `passivas.unburden.duration` | Duração do efeito (s) | — | 0 | 32 | 0.05 | 4 | src/sim/passive-engine.js:88 | pendente (passiva) |
 | `passivas.unburden.cooldown` | Recarga (s) | — | 0 | 112 | 0.05 | 14 | src/sim/passive-engine.js:85 | pendente (passiva) |
 
 ## Passivas · Stamina
@@ -1699,14 +1725,14 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `passivas.stamina.defensePct` | Bônus de defesa (%) | — | 0 | 4 | 0.01 | 0.1 | src/sim/passive-engine.js:250 | pendente (passiva) |
-| `passivas.stamina.duration` | Duração do efeito (s) | — | 0 | 32 | 0.05 | 4 | src/sim/passive-engine.js:113 | pendente (passiva) |
+| `passivas.stamina.duration` | Duração do efeito (s) | — | 0 | 32 | 0.05 | 4 | src/sim/passive-engine.js:88 | muda · passiva/stamina/roteiro |
 | `passivas.stamina.cooldown` | Recarga (s) | — | 0 | 80 | 0.05 | 10 | src/sim/passive-engine.js:85 | pendente (passiva) |
 
 ## Passivas · Suction Cups
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `passivas.suction-cups.knockbackPct` | Redução de empurrão horizontal (%) | — | 0 | 4 | 0.01 | 0.2 | src/sim/passive-engine.js:264 | pendente (passiva) |
+| `passivas.suction-cups.knockbackPct` | Redução de empurrão horizontal (%) | — | 0 | 4 | 0.01 | 0.2 | src/sim/passive-engine.js:264 | muda · passiva/suction-cups/roteiro |
 
 ## Passivas · Magic Guard
 
@@ -1719,7 +1745,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
 | `passivas.defiant.attackPct` | Bônus de ataque (%) | — | 0 | 4 | 0.01 | 0.15 | src/sim/passive-engine.js:249 | pendente (passiva) |
-| `passivas.defiant.duration` | Duração do efeito (s) | — | 0 | 32 | 0.05 | 4 | src/sim/passive-engine.js:114 | pendente (passiva) |
+| `passivas.defiant.duration` | Duração do efeito (s) | — | 0 | 32 | 0.05 | 4 | src/sim/passive-engine.js:88 | pendente (passiva) |
 | `passivas.defiant.cooldown` | Recarga (s) | — | 0 | 96 | 0.05 | 12 | src/sim/passive-engine.js:85 | pendente (passiva) |
 
 ## Passivas · gerais (detecção)
@@ -1738,20 +1764,20 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.nav.enableNav` | Navegação Yuka (0 = atual · 1 = rota planejada) | liga/desliga | 0 | 1 | 1 | 1 | src/nav/nav-assist.js:18 | pendente (nav) |
-| `extras.nav.spacing` | Grade de navegação: espaçamento dos nós (m) | m | 0.75 | 4 | 0.25 | 1.5 | src/nav/nav-graph.js:19 | pendente (nav) |
-| `extras.nav.replan` | Replanejamento: intervalo (s) | s | 0.1 | 3 | 0.05 | 0.4 | src/nav/nav-planner.js:10 | pendente (nav) |
-| `extras.nav.jumpReach` | Salto de rota: alcance horizontal (m) | m | 0.05 | 6 | 0.05 | 2.4 | src/nav/nav-graph.js:24 | pendente (nav) |
-| `extras.nav.jumpMargin` | Salto de rota: folga sob a altura do salto (m) | m | 0.05 | 6 | 0.05 | 0.1 | src/nav/nav-graph.js:23 | pendente (nav) |
-| `extras.nav.launch` | Salto de rota: distância para decolar (m) | m | 0.05 | 6 | 0.05 | 1.5 | src/nav/nav-planner.js:10 | pendente (nav) |
-| `extras.nav.arrival` | Chegada a um ponto da rota (m) | m | 0.05 | 6 | 0.05 | 0.55 | src/nav/nav-planner.js:10 | pendente (nav) |
+| `extras.nav.enableNav` | Navegação Yuka (0 = atual · 1 = rota planejada) | liga/desliga | 0 | 1 | 1 | 1 | src/nav/nav-assist.js:18 | muda · navMuro |
+| `extras.nav.spacing` | Grade de navegação: espaçamento dos nós (m) | m | 0.75 | 4 | 0.25 | 1.5 | src/nav/nav-graph.js:19 | muda · navMuro |
+| `extras.nav.replan` | Replanejamento: intervalo (s) | s | 0.1 | 3 | 0.05 | 0.4 | src/nav/nav-planner.js:10 | muda · navMuro |
+| `extras.nav.jumpReach` | Salto de rota: alcance horizontal (m) | m | 0.05 | 6 | 0.05 | 2.4 | src/nav/nav-graph.js:24 | muda · navPlataforma |
+| `extras.nav.jumpMargin` | Salto de rota: folga sob a altura do salto (m) | m | 0.05 | 6 | 0.05 | 0.1 | src/nav/nav-graph.js:23 | muda · navPlataforma |
+| `extras.nav.launch` | Salto de rota: distância para decolar (m) | m | 0.05 | 6 | 0.05 | 1.5 | src/nav/nav-planner.js:10 | muda · navPlataforma |
+| `extras.nav.arrival` | Chegada a um ponto da rota (m) | m | 0.05 | 6 | 0.05 | 0.55 | src/nav/nav-planner.js:10 | muda · navMuro |
 | `extras.nav.stuckTime` | Detecção de travamento: janela (s) | s | 0.1 | 3 | 0.05 | 0.8 | src/nav/nav-planner.js:10 | pendente (nav) |
 | `extras.nav.stuckDistance` | Detecção de travamento: deslocamento mínimo (m) | m | 0.05 | 6 | 0.05 | 0.12 | src/nav/nav-planner.js:10 | pendente (nav) |
 | `extras.nav.attackMaxHeightDiff` | Alvo inalcançável: diferença de altura (m) | m | 0.05 | 6 | 0.05 | 0.8 | src/nav/nav-planner.js:10 | pendente (nav) |
-| `extras.nav.suppressBlockedAttacks` | Não atacar alvo inalcançável | liga/desliga | 0 | 1 | 1 | 1 | src/nav/nav-assist.js:33 | pendente (nav) |
+| `extras.nav.suppressBlockedAttacks` | Não atacar alvo inalcançável | liga/desliga | 0 | 1 | 1 | 1 | src/nav/nav-assist.js:33 | muda · navPlataforma |
 | `extras.nav.showDebug` | Mostrar rotas e nós de navegação | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:412 | visual/depuração |
-| `extras.nav.jumpPenalty` | Custo do salto na rota (× · alto = prefere contornar pelo chão) | × | 1 | 20 | 0.5 | 6 | src/nav/nav-graph.js:26 | pendente (nav) |
-| `extras.nav.dropPenalty` | Custo da queda na rota (× · alto = evita descer de plataforma) | × | 1 | 20 | 0.5 | 6 | src/nav/nav-graph.js:27 | pendente (nav) |
+| `extras.nav.jumpPenalty` | Custo do salto na rota (× · alto = prefere contornar pelo chão) | × | 1 | 20 | 0.5 | 6 | src/nav/nav-graph.js:26 | muda · navPlataforma |
+| `extras.nav.dropPenalty` | Custo da queda na rota (× · alto = evita descer de plataforma) | × | 1 | 20 | 0.5 | 6 | src/nav/nav-graph.js:27 | muda · navPlataforma |
 
 ## VFX · Pós-processamento (experimental)
 
@@ -1759,7 +1785,7 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 |---|---|---|---|---|---|---|---|---|
 | `vfx.post.enabled` | Ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/view.js:503 | visual/depuração |
 | `vfx.post.bloomOn` | Bloom ligado | liga/desliga | 0 | 1 | 1 | 1 | src/view/post/post-params.js:23 | visual/depuração |
-| `vfx.post.bloomMode` | Modo do bloom (limiar × seleção) | Por limiar de brilho | 0 | 1 | 1 | 0 | src/view/post/post-pipeline.js:25 | visual/depuração |
+| `vfx.post.bloomMode` | Modo do bloom (limiar × seleção) | seletor | 0 | 1 | 1 | 0 | src/view/post/post-pipeline.js:25 | visual/depuração |
 | `vfx.post.bloomIntensity` | Bloom: intensidade | × | 0 | 4 | 0.05 | 0.9 | src/view/post/post-params.js:21 | visual/depuração |
 | `vfx.post.bloomThreshold` | Bloom: limiar de brilho | — | 0 | 1.5 | 0.01 | 0.8 | src/view/post/post-pipeline.js:77 | visual/depuração |
 | `vfx.post.bloomSmoothing` | Bloom: suavização do limiar | — | 0 | 1.5 | 0.01 | 0.25 | src/view/post/post-pipeline.js:77 | visual/depuração |
@@ -1890,10 +1916,10 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `world.beam.length` | Alcance do feixe | m | 4 | 80 | 1 | 24 | src/sim/scenarios-moves.js:113 | visual/depuração |
-| `world.beam.maxSegments` | Segmentos máximos | — | 1 | 32 | 1 | 8 | src/sim/scenarios-moves.js:113 | visual/depuração |
-| `world.beam.interval` | Intervalo entre danos | s | 0.05 | 2 | 0.05 | 0.25 | src/sim/scenarios-moves.js:113 | visual/depuração |
-| `world.beam.damage` | Dano por acerto | — | 0 | 40 | 0.5 | 2 | src/sim/scenarios-moves.js:113 | visual/depuração |
+| `world.beam.length` | Alcance do feixe | m | 4 | 80 | 1 | 24 | src/ui/moves-panel.js:177 | visual/depuração |
+| `world.beam.maxSegments` | Segmentos máximos | — | 1 | 32 | 1 | 8 | src/sim/beam.js:36 | visual/depuração |
+| `world.beam.interval` | Intervalo entre danos | s | 0.05 | 2 | 0.05 | 0.25 | src/ui/moves-panel.js:177 | visual/depuração |
+| `world.beam.damage` | Dano por acerto | — | 0 | 40 | 0.5 | 2 | src/ui/moves-panel.js:177 | visual/depuração |
 
 ## Moves · Air Slash
 

@@ -236,7 +236,9 @@ export function tuningManifest(base = defaults()) {
       const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = {...widenCombatRange(path, am ? am.range : range(key, v, path))};
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
       const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : PATH_NAMES[path] || NAMES[key] || key;
-      manifest.push({section, path, key, label, help: am ? am.help : help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
+      // F7: slider sem leitura no jogo (rótulo «(sem efeito)»): a dica avisa antes de descrever o efeito antigo.
+      const why = am ? am.help : help(path, label), note = label.includes('(sem efeito)') ? 'Não aplicado: nenhum código do jogo lê este valor hoje (mantido para presets e JSON antigos). Descrição original: ' : '';
+      manifest.push({section, path, key, label, help: note + (why || ''), initial: pathGet(base, path), official: officialValue(path), ...r});
     }
   }
   return manifest;

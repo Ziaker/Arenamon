@@ -19,6 +19,8 @@ import {migrateLegacyPreset, presetValues} from '../src/sim/presets.js';
 import {flatten} from '../src/ui/actions-meta.js';
 import {vec} from '../src/sim/math.js';
 import {launch} from '../src/sim/combat.js';
+import {setupNavScenario} from '../src/nav/nav-scenarios.js';
+import {PASSIVES} from '../src/sim/passives.js';
 
 registerStandardMoves();
 export const LAB = fileURLToPath(new URL('..', import.meta.url)).replace(/\\/g, '/').replace(/\/$/, '');
@@ -36,22 +38,27 @@ export async function tuningModule() {
 }
 
 /** Unidade lida do PRÓPRIO formato do slider (o texto que o painel mostra), sem os números. */
-export function unitOf(fmt, value, kind) {
+export function unitOf(fmt, value, kind, range = null) {
   if (kind === 'toggle') return 'liga/desliga';
   if (kind === 'select') return 'seletor';
   if (kind === 'color') return 'cor';
+  // 0/1 de passo 1 cujo formato só tem texto: Sim/Não ou Ligado/Desligado = interruptor; outros dois rótulos = seletor de duas opções.
+  if (range && range.min === 0 && range.max === 1 && range.step === 1) {
+    const a = String(fmt(0)), b = String(fmt(1));
+    if (!/\d/.test(a + b)) return /^(sim|não|nao|ligado|desligado)$/i.test(a.trim()) && /^(sim|não|nao|ligado|desligado)$/i.test(b.trim()) ? 'liga/desliga' : 'seletor';
+  }
   const t = String(fmt(value)).replace(/[-+−]?\d+(?:[.,]\d+)?(?:e[-+]?\d+)?/gi, '').replace(/\s+/g, ' ').trim();
   return t || '—';
 }
 const MOVE_UNIT_TEXT = {num: 'número', int: 'inteiro', sec: 's', pct: '%', m: 'm', ms: 'm/s', ms2: 'm/s²', deg: '°', x: '×', yesno: 'liga/desliga'};
 
 /** Grupos compartilhados da aba Moves (sem ficha no registro): o arquivo do motor que os lê. */
-const SHARED_GROUP_CONSUMER = Object.freeze({charge: 'src/sim/charge.js', ai: 'src/sim/ai-moves.js', beam: 'src/sim/scenarios-moves.js'});
+const SHARED_GROUP_CONSUMER = Object.freeze({charge: 'src/sim/charge.js', ai: 'src/sim/ai-moves.js'});
 /** Todos os sliders: [{id, source:'ajustes'|'move', section, path, key, group, label, unit, min, max, step, value, fmt}]. */
 export async function allSliders() {
   const {tuningManifest} = await tuningModule();
   const out = [];
-  for (const m of tuningManifest()) out.push({id: m.path, source: 'ajustes', section: m.section, path: m.path, key: m.key, group: m.path.split('.').slice(0, -1).join('.'), label: m.label, unit: unitOf(m.fmt, m.initial, m.kind), min: m.min, max: m.max, step: m.step, value: m.initial, fmt: m.fmt, kind: m.kind ?? 'range', help: m.help});
+  for (const m of tuningManifest()) out.push({id: m.path, source: 'ajustes', section: m.section, path: m.path, key: m.key, group: m.path.split('.').slice(0, -1).join('.'), label: m.label, unit: unitOf(m.fmt, m.initial, m.kind, m), min: m.min, max: m.max, step: m.step, value: m.initial, fmt: m.fmt, kind: m.kind ?? 'range', help: m.help});
   // Aba Moves e Editor de Moves: MOVES_PARAMS (ui/moves-panel.js) = carga/IA/laser compartilhados + todas as fichas do registro, já com a faixa efetiva.
   // O padrão é o de defaults() (fábrica + calibração do usuário em sim/calibration-base.js), o mesmo que «restaurar» aplica.
   const base = defaults(), rowsOf = new Map(moveParamGroups().map(g => [g.group, new Map(g.rows.map(r => [r.key, r]))]));
@@ -108,7 +115,7 @@ export async function roundTripProblems(sliders) {
 // ---------- consumidor real (busca estática) ----------
 /** Arquivos que DEFINEM sliders, padrões, presets ou auditorias (não contam como consumidor): config, registro e fichas, metadados e painéis que só
  * montam controles, o Editor de Moves (interface de edição) e as auditorias estáticas. HUD, entrada, view e aplicação (tuning-sync) CONTAM. */
-export const DEFINITION_FILE = /(^src\/sim\/config\.js$|^src\/sim\/moves\/params-registry\.js$|\.params\.js$|\.generated\.js$|^src\/editor\/|^src\/physics-poc\/|^src\/sim\/(presets|calibration-base|telemetry|combat-windows-report|move-contracts)\.js$|^src\/sim\/moves\/(move-mechanics-audit|pilot-coverage)\.js$|^src\/ui\/(tuning|tuning-meta|tuning-io|overhaul-meta|actions-meta|organize|official|quick-panel|presets-panel|moves-panel|moves-vfx-panel|elemental-move-controls|elemental-visual-model|move-spec-model|move-spec-panel|visual-panel|actions-drawer|workspace-panel|project-files)\.js$)/;
+export const DEFINITION_FILE = /(^src\/sim\/config\.js$|^src\/sim\/moves\/params-registry\.js$|\.params\.js$|\.generated\.js$|^src\/editor\/|^src\/physics-poc\/|^src\/sim\/scenarios[\w-]*\.js$|^src\/sim\/ai-eval\/|^src\/sim\/(presets|calibration-base|telemetry|combat-windows-report|move-contracts)\.js$|^src\/sim\/moves\/(move-mechanics-audit|pilot-coverage)\.js$|^src\/ui\/(tuning|tuning-meta|tuning-io|overhaul-meta|actions-meta|organize|official|quick-panel|presets-panel|moves-panel|moves-vfx-panel|elemental-move-controls|elemental-visual-model|move-spec-model|move-spec-panel|visual-panel|actions-drawer|workspace-panel|project-files)\.js$)/;
 const SCAN_DIRS = ['src'];
 let sourceCache = null;
 export function sources() {
@@ -145,8 +152,8 @@ function binders(s) {
   const full = new RegExp('\\b' + parentParts.map(esc).join(`(\\?\\.|\\.|\\[['"\`])`) + (parentParts.length === 1 ? `\\b(\\?\\.|\\.|\\[)` : `\\b`));
   const lit = t => new RegExp(`['"\`]${esc(t)}['"\`]`), rootPath = new RegExp(`\\b${esc(root)}(\\?\\.|\\.|\\[)`);
   const out = [l => full.test(l)];
-  if (parentParts.length > 1) {const re = lit(last);out.push((l, f) => re.test(l) && f.lines.some(x => rootPath.test(x)));}
-  if (s.moveGroup) {const mv = EDITABLE_MOVES.find(m => m.group === s.moveGroup), ids = [s.moveGroup, mv?.id].filter(Boolean).map(lit);out.push(l => ids.some(re => re.test(l)));}
+  if (parentParts.length > 1) {const re = lit(last);const b = (l, f) => re.test(l) && f.lines.some(x => rootPath.test(x));b.loose = true;out.push(b);}
+  if (s.moveGroup) {const mv = EDITABLE_MOVES.find(m => m.group === s.moveGroup), ids = [s.moveGroup, mv?.id].filter(Boolean).map(lit), b = l => ids.some(re => re.test(l));b.loose = true;out.push(b);}
   if (root === 'profiles') out.push(l => /\bprofiles?\b(\?\.|\.|\[)|\bprofile\b/.test(l));
   return out;
 }
@@ -160,6 +167,8 @@ function ambiguous(key) {
  * Cada uma: quais sliders (match), em que arquivos (files), o que o arquivo precisa conter para o objeto ser daquela família (obj) e a leitura da chave
  * (read). Conferidas à mão; o teste reconfere que cada slider da família tem a leitura. */
 export const MANUAL_CONSUMERS = Object.freeze([
+  {match: /^actions\.cancel\./, files: /^src\/sim\/controller\//, obj: /=\s*A\.cancel\b|C\.actions\.cancel/, read: k => new RegExp(`\\bc\\.${k}\\b|cancel\\??\\.${k}\\b`), why: 'c = A.cancel (A = C.actions) no C → X de ctrl-update.js'},
+  {match: /^world\.beam\./, files: /^src\/(ui\/moves-panel|sim\/(beam|world))\.js$/, extraFiles: ['src/ui/moves-panel.js'], obj: /C\.world\.beam/, read: k => new RegExp(`C\\.world\\.beam\\.${k}\\b`), why: 'emissor técnico: ui/moves-panel.js (emitir laser) passa C.world.beam ao spawn; sim/beam.js e sim/world.js leem maxSegments'},
   {match: /^actions\.(dodge|tackle)\./, files: /^src\/sim\//, obj: /C\.actions\[|actionParams\(|C\.actions\.(dodge|tackle)|\bp\.profile\b/, read: k => new RegExp(`\\bp\\.${k}\\b`), why: 'p = C.actions[tipo] / actionParams(tipo): controller, motion.js (curva) e entity.js (distância nominal)'},
   {match: /^profiles\.\w+\.(hp|attack|speed)$/, files: /^src\/sim\//, obj: /attributes/, read: k => new RegExp(`attributes\\??\\.${k}\\b`), why: 'createFighter(C.profiles[perfil]) copia o perfil em f.attributes'},
   {match: /^extras\.(aiRed|aiBlue)\./, files: /^src\/sim\//, obj: /personality\(\)|\bP\b/, read: k => new RegExp(`\\bP\\??\\.${k}\\b`), why: 'P = Brain.personality() = {...NEUTRAL_PERSONALITY, ...C.extras[lado]} (sim/ai.js)'},
@@ -200,6 +209,8 @@ export const ORPHANS_LABELED = Object.freeze([
   {id: 'vfx.laser.dynamicLight', why: 'BeamRenderer recebe C.vfx.laser (visual-panel setConfig) mas não lê dynamicLight'},
 ]);
 export const ORPHAN_MARK = '(sem efeito)';
+/** Lê um arquivo fora do conjunto escaneado (família que precisa de um painel que também define controles). */
+const loadSource = rel => {const text = readFileSync(`${LAB}/${rel}`, 'utf8'), lines = text.split('\n');return {file: rel, text, lines, comment: lines.map(() => false)};};
 const ALIAS_CACHE = new Map(), CONSUMER_CACHE = new Map();
 /** Consumidor real (memorizado por id): {file, line, how} ou null. */
 export function findConsumer(s) {if (!CONSUMER_CACHE.has(s.id)) CONSUMER_CACHE.set(s.id, findConsumerRaw(s));return CONSUMER_CACHE.get(s.id);}
@@ -217,27 +228,40 @@ function findConsumerRaw(s) {
   const order = s.declaredConsumer ? [...files.filter(f => f.file === s.declaredConsumer), ...files.filter(f => f.file !== s.declaredConsumer)] : files;
   let loose = null;
   // Apelidos do grupo no arquivo (const R = C.rules; T = C.test; {a, b} = C.map): a leitura `R.chave` / a desestruturação valem.
-  const parent = s.path.split('.').slice(0, -1), parentRe = `(C\\??\\.)?${parent.map(esc).join('\\??\\.')}`;
-  const aliasDecl = new RegExp(`\\b([A-Za-z_$][\\w$]*)\\s*=\\s*${parentRe}\\s*(?=[;,)\\n]|\\?\\?|\\|\\||$)`), destr = new RegExp(`\\{[^}]*\\b${esc(s.key)}\\b[^}]*\\}\\s*=\\s*${parentRe}\\b`);
+  // Também apelido de um PREFIXO do pai (X = C.extras → X.combat.chave; A = C.actions → A.cancel.chave).
+  const parent = s.path.split('.').slice(0, -1), pathRe = parts => `(C\\??\\.)?${parts.map(esc).join('\\??\\.')}`, parentRe = pathRe(parent);
+  const destr = new RegExp(`\\{[^}]*\\b${esc(s.key)}\\b[^}]*\\}\\s*=\\s*${parentRe}\\b`);
   const viaAlias = f => {
-    const ck = f.file + '|' + parentRe;let names = ALIAS_CACHE.get(ck);
-    if (!names) {names = new Set();const g = new RegExp(aliasDecl.source, 'g');for (const l of f.lines) {const m = l.match(g);if (m) for (const x of m) names.add(x.match(aliasDecl)[1]);}ALIAS_CACHE.set(ck, names);}
-    if (!names.size && !f.lines.some(l => destr.test(l))) return 0;
-    for (let i = 0; i < f.lines.length; i++) {const l = f.lines[i];if (destr.test(l) || [...names].some(n => new RegExp(`\\b${esc(n)}\\??\\.${esc(s.key)}\\b`).test(l))) return i + 1;}
+    // aliasOf[n] = nomes que valem C.<parent[0..n)>: declarados direto (X = C.extras) ou por apelido de um prefixo menor (S = A.sprint, A = C.actions).
+    const ck = f.file + '|' + parent.join('.');let aliasOf = ALIAS_CACHE.get(ck);
+    if (!aliasOf) {
+      aliasOf = [];
+      const declOf = src => {const decl = new RegExp(`\\b([A-Za-z_$][\\w$]*)\\s*=\\s*${src}\\s*(?=[;,)\\n]|\\?\\?|\\|\\||$)`), g = new RegExp(decl.source, 'g'), out = new Set();for (const l of f.lines) {const m = l.match(g);if (m) for (const x of m) out.add(x.match(decl)[1]);}return out;};
+      for (let n = 1; n <= parent.length; n++) {
+        const names = declOf(pathRe(parent.slice(0, n)));
+        for (let m = 1; m < n; m++) for (const a of aliasOf[m]) for (const x of declOf(`\\b${esc(a)}\\??\\.${parent.slice(m, n).map(esc).join('\\??\\.')}`)) names.add(x);
+        aliasOf[n] = names;
+      }
+      ALIAS_CACHE.set(ck, aliasOf);
+    }
+    const reads = [];
+    for (let n = parent.length; n >= 1; n--) for (const a of aliasOf[n]) reads.push(new RegExp(`\\b${esc(a)}\\??\\.${[...parent.slice(n), s.key].map(esc).join('\\??\\.')}\\b`));
+    for (let i = 0; i < f.lines.length; i++) {const l = f.lines[i];if (f.comment?.[i]) continue;if (destr.test(l) || reads.some(re => re.test(l))) return i + 1;}
     return 0;
   };
   for (const f of order) {
     const line = firstRead(f.lines, s.key, l => bind.some(b => b(l, f)), f);if (!line) continue;
     if (f.file === s.declaredConsumer) return {file: f.file, line, how: 'consumidor declarado na ficha'};
-    if (bind.some(b => b(f.lines[line - 1], f)) && !/^\s*['"`]?[\w.]+['"`]?\s*:/.test(f.lines[line - 1])) return {file: f.file, line, how: 'chave + grupo na mesma linha'};
+    if (bind.some(b => !b.loose && b(f.lines[line - 1], f)) && !/^\s*['"`]?[\w.]+['"`]?\s*:/.test(f.lines[line - 1])) return {file: f.file, line, how: 'chave + grupo na mesma linha'};
     const al = viaAlias(f);if (al) return {file: f.file, line: al, how: 'apelido do grupo'};
-    if (!amb && cites(f)) return {file: f.file, line, how: 'chave + grupo no arquivo'};
-    if (!loose && !amb && !f.file.startsWith('src/ui/')) loose = {file: f.file, line, how: 'chave única'};
+    // Evidência FRACA (só co-ocorrência no arquivo): guardada; vale apenas se nenhuma evidência forte aparecer abaixo, e sai marcada `weak`.
+    if (!loose && !amb && cites(f)) loose = {file: f.file, line, how: 'chave + grupo no arquivo', weak: true};
+    else if (!loose && !amb && !f.file.startsWith('src/ui/')) loose = {file: f.file, line, how: 'chave única', weak: true};
   }
   // Família lida por objeto genérico (MANUAL_CONSUMERS).
   for (const fam of MANUAL_CONSUMERS.filter(x => x.match.test(s.id))) {
     const re = fam.read(s.key);
-    for (const f of files) {if (!fam.files.test(f.file) || !f.lines.some(l => fam.obj.test(l))) continue;const i = f.lines.findIndex(l => !/^\s*(\/\/|\*)/.test(l) && re.test(l));if (i >= 0) return {file: f.file, line: i + 1, how: 'objeto genérico da família (conferido)'};}
+    for (const f of [...files, ...(fam.extraFiles ?? []).map(loadSource)]) {if (!fam.files.test(f.file) || !f.lines.some(l => fam.obj.test(l))) continue;const i = f.lines.findIndex(l => !/^\s*(\/\/|\*)/.test(l) && re.test(l));if (i >= 0) return {file: f.file, line: i + 1, how: 'objeto genérico da família (conferido)'};}
   }
   if (s.moveGroup) {
     // Ficha de dados do Move (.move.json): a chave citada em durationKeys/atKey(s)/startKey/endKey/distanceKey/invulnerableKeys é lida pelo motor (moves.js effectiveMove, ctrl-moves).
@@ -252,7 +276,7 @@ function findConsumerRaw(s) {
     const re = new RegExp(`(\\bparams\\)?\\??\\.${esc(s.key)}\\b|\\bP\\??\\.${esc(s.key)}\\b|C\\.world\\[[^\\]]+\\]\\??\\.${esc(s.key)}\\b)`);
     for (const f of [...files.filter(f => f.file === s.declaredConsumer), ...files]) {const i = f.lines.findIndex(l => !/^\s*(\/\/|\*)/.test(l) && re.test(l));if (i >= 0) return {file: f.file, line: i + 1, how: 'snapshot genérico de params do Move'};}
   }
-  return amb ? null : loose;
+  return loose;
 }
 
 // ---------- parâmetros jogáveis sem slider (ocultos) ----------
@@ -296,6 +320,31 @@ const bothAi = () => {C.extras.toggles.enablePlayerAI = 1;C.extras.toggles.enabl
 /** Duelo como o da avaliação de IA (sim/ai-eval/eval-match.js): as duas mentes no modo tático; o azul pela playerBrain, o vermelho pela brain interna do Game. */
 const duelSetup = (profile = 'balanced') => g => {g.profile = g.enemyProfile = profile;g.mode = 'tactical';g.brain.seed = 7;g.playerBrain.seed = 7 + 7919;g.brain.reset();g.playerBrain.reset();g.reset();};
 const aiCmds = (t, g) => [g.playerBrain.command(g.fighters[0], g.fighters[1], 'tactical', C.test.step), undefined];
+/** Borda (Ledge Grab): caixa sólida de 2,6 m na origem; o lutador que pula (azul, ou vermelho em `ai`) corre em +x, pula a ~0,6 m da parede e agarra.
+ * O estado do roteiro fica no próprio Game (g.f7), nunca em variável compartilhada entre A e B. */
+const ledgeSetup = g => {
+  g.reset({positions: [vec(-3.8, 0), vec(12, 12)]});clearMap(g);g.mapState.regularSpawnTimer = 1e9;
+  g.mapState.obstacles = [{id: 'cx', pos: {x: 0, y: 0, z: 0}, shape: 'box', hx: 1.5, hz: 1.5, height: 2.6, angle: 0}];
+  for (const f of g.fighters) {f.groundY = 0;f.facing = Math.PI / 2;}
+  g.f7 = {jumped: -1, grabbed: -1};
+};
+const ledgeCmds = mode => (t, g) => {
+  const who = mode === 'ai' ? 1 : 0, f = g.fighters[who], st = g.f7;
+  if (st.jumped < 0 && !f.flight && !f.ledge && -2.0 - f.position.x < .6) st.jumped = t;
+  if (f.ledge && st.grabbed < 0) st.grabbed = t;
+  const since = st.grabbed < 0 ? -1 : t - st.grabbed;
+  let c = cmd({move: vec(1, 0), jump: st.jumped === t, jumpHeld: st.jumped >= 0 && t < st.jumped + 40 && st.grabbed < 0});
+  if (since >= 0) {
+    if (mode === 'climb' && since > 60) c = cmd({move: vec(1, 0), jump: since === 61, jumpHeld: since > 60 && since < 140});
+    else if (mode === 'drop' && since > 60) c = cmd({move: since < 120 ? vec(-1, 0) : vec(1, 0), guard: since > 60 && since < 120, jump: since === 160, jumpHeld: since > 160 && since < 200});
+    else if (mode === 'hang' || mode === 'hurt' || mode === 'ai') c = cmd();
+  }
+  const other = mode === 'hurt' && since > 30 ? cmd({move: vec(1, 0), tackle: since === 31, target: 0}) : cmd();
+  return who ? [cmd(), c] : [c, other];
+};
+/** Navegação (Yuka): cenários determinísticos de sim/nav/nav-scenarios.js com a navegação ligada; o vermelho (IA ofensiva) persegue o azul parado. */
+const navConfig = () => {C.extras.nav.enableNav = 1;C.extras.toggles.enableEnemyAI = 1;};
+const navSetup = id => g => {setupNavScenario(g, id, {mode: 'offensive'});};
 export const SCENARIOS = Object.freeze({
   tackle: {label: 'tackle acertando um alvo parado (e um segundo tackle)', seconds: 2.2, setup: place([0, -1.1], [0, 1.1]), cmds: t => [cmd({move: t < 30 ? vec(0, 1) : vec(), tackle: t === 4 || t === 150, target: 1}), cmd()]},
   guard: {label: 'tackle contra defesa (parcial e perfeita)', seconds: 2.4, setup: place([0, -1.1], [0, 1.1]), cmds: t => [cmd({move: (t >= 30 && t < 60) || (t >= 130 && t < 150) ? vec(0, 1) : vec(), tackle: t === 40 || t === 140, target: 1}), cmd({guard: t < 128 || t >= 136, guardPressed: t === 0 || t === 136, target: 0})]},
@@ -318,9 +367,26 @@ export const SCENARIOS = Object.freeze({
   items: {label: 'consumíveis no caminho (cura, stamina, estágios, escudo) e tackle', seconds: 3, setup: g => {place([-6, 0], [5, 0])(g);const f = g.fighters[0];f.stamina = 1;
     g.mapState.items = ['heal_hp', 'heal_stamina', 'buff_attack', 'buff_defense', 'buff_stamina_max', 'buff_cooldown', 'buff_speed', 'buff_attack', 'buff_attack', 'buff_attack', 'buff_attack', 'heal_hp'].map((type, i) => ({id: 900 + i, type, pos: {x: -5 + i * .7, y: 0, z: 0}, life: 30, isDrop: false, vy: 0}));},
     cmds: t => [cmd({move: t < 200 ? vec(1, 0) : vec(), tackle: t === 205, target: 1}), cmd({tackle: t === 260, target: 0})]},
+  ledgeClimb: {label: 'pulo na caixa de 2,6 m, agarre de borda, pendura e sobe (Espaço + frente)', seconds: 4, setup: ledgeSetup, cmds: ledgeCmds('climb')},
+  ledgeDrop: {label: 'agarre de borda e solta segurando para trás; tenta agarrar de novo', seconds: 4, setup: ledgeSetup, cmds: ledgeCmds('drop')},
+  ledgeHang: {label: 'agarre de borda e fica pendurado até o tempo máximo (dreno de stamina)', seconds: 6, setup: ledgeSetup, cmds: ledgeCmds('hang')},
+  ledgeHurt: {label: 'pendurado na borda e atingido pelo tackle do rival', seconds: 4, setup: g => {ledgeSetup(g);g.fighters[1].position = vec(-5.5, 0);g.fighters[1].facing = Math.PI / 2;}, cmds: ledgeCmds('hurt')},
+  ledgeAi: {label: 'IA do vermelho pendura na borda e sobe sozinha (aiClimb)', seconds: 5, config: () => {C.extras.toggles.enableEnemyAI = 1;}, setup: g => {ledgeSetup(g);const [b, r] = g.fighters;b.position = vec(-3.8, 0);r.position = vec(12, 12);}, cmds: ledgeCmds('ai')},
+  navMuro: {label: 'navegação: muro entre os lutadores (IA ofensiva persegue)', seconds: 6, config: navConfig, setup: navSetup('muro'), cmds: () => [cmd(), undefined]},
+  navPlataforma: {label: 'navegação: alvo em plataforma de 1,5 m (salto)', seconds: 6, config: navConfig, setup: navSetup('plataforma'), cmds: () => [cmd(), undefined]},
+  navTorre: {label: 'navegação: alvo inalcançável no alto (não insiste nem ataca o vazio)', seconds: 5, config: navConfig, setup: navSetup('torre'), cmds: () => [cmd(), undefined]},
+  navCompleto: {label: 'navegação: arena completa (muros, corredor, plataformas, zona bloqueada)', seconds: 8, config: navConfig, setup: navSetup('completo'), cmds: () => [cmd(), undefined]},
 });
+/** Roteiro da passiva: o azul a equipa com 30% de vida e pouca stamina; o vermelho dá tackles periódicos; o azul ora defende, ora contra-ataca,
+ * ora fica parado (passivas de tempo parado), ora corre. Cobre gatilhos de dano recebido, vida baixa, defesa, golpe dado e repouso. */
+/** Espécie exigida pela passiva (R4: passivas exclusivas só equipam com a identidade da espécie). */
+const speciesOf = id => PASSIVES.find(p => p.id === id)?.species ?? null;
+const passiveScript = id => ({label: `roteiro com a passiva ${id} no azul (vida 30%, tackles do rival, defesa, contra-ataque, repouso)`, seconds: 7,
+  setup: g => {place([0, -1.1], [0, 1.1])(g);g.passiveIdentity = [speciesOf(id), null];g.setPassiveLoadout(0, [id]);g.reset({positions: [vec(0, -1.1), vec(0, 1.1)]});clearMap(g);face(g);const b = g.fighters[0];b.hp = Math.round(b.attributes.hp * .6);b.stamina = 1.2;},
+  cmds: t => {const ph = t % 240;return [cmd({target: 1, guard: ph >= 60 && ph < 100, guardPressed: ph === 60, tackle: ph === 130 || ph === 132, move: ph >= 125 && ph < 150 ? vec(0, 1) : ph >= 200 ? vec(1, 0) : vec(), dodgeHeld: ph >= 200, dodge: ph === 200}),
+    cmd({target: 0, tackle: ph === 10 || ph === 165, move: ph < 25 || (ph >= 160 && ph < 175) ? vec(0, -1) : ph >= 150 && ph < 175 ? vec(0, 1) : vec()})];}});
 /** Duelo com a passiva equipada nos dois lados (passivas.<id>.*). */
-const passiveDuel = id => ({label: `duelo IA × IA com a passiva ${id} nos dois lados (5 s)`, seconds: 5, config: bothAi, setup: g => {duelSetup()(g);g.setPassiveLoadout(0, [id]);g.setPassiveLoadout(1, [id]);g.reset();g.fighters[0].hp = g.fighters[1].hp = Math.round(g.fighters[0].attributes.hp * .4);}, cmds: aiCmds});
+const passiveDuel = id => ({label: `duelo IA × IA com a passiva ${id} nos dois lados (5 s)`, seconds: 5, config: bothAi, setup: g => {duelSetup()(g);g.passiveIdentity = [speciesOf(id), speciesOf(id)];g.setPassiveLoadout(0, [id]);g.setPassiveLoadout(1, [id]);g.reset();}, cmds: aiCmds});
 /** Interruptor que libera o slider (sem ele ligado o valor não age): ligado no A e no B. */
 export const ENABLERS = Object.freeze([
   [/^extras\.hitbox\.(?!enableShapes)/, [['extras.hitbox.enableShapes', 1]]],
@@ -347,8 +413,10 @@ export const SCENARIO_RULES = Object.freeze([
   [/^locomotion\./, ['sprint', 'duel']],
   [/^map\.(jump|footstool)/, ['jump']],
   [/^map\.(heal|shield|stage|item)/, ['items', 'duelLong']],
+  [/^ledge\./, ['ledgeClimb', 'ledgeDrop', 'ledgeHang', 'ledgeHurt', 'ledgeAi']],
   [/^map\.|^ledge\./, ['duelLong']],
   [/^world\.(charge|ai)\./, ['duelMoves']],
+  [/^extras\.nav\./, ['navMuro', 'navPlataforma', 'navTorre', 'navCompleto']],
   [/^extras\.(ai|aiRed|aiBlue|nav)\./, ['duel', 'duelLong']],
   [/^test\./, ['tackle', 'duel']],
   [/^extras\.toggles\./, ['tackle', 'guard', 'clash', 'dodge', 'sprint', 'charge', 'wall', 'wallBounce', 'slam', 'flight', 'feint', 'jump', 'duel']],
@@ -439,23 +507,22 @@ export const SENSITIVITY_PENDING = Object.freeze({
   partida: {why: 'lido na montagem da partida (app/match-flow.js), fora do Game: sem A/B na simulação pura', ids: [
     'extras.gameModes.enemyMode', 'extras.gameModes.playerProfile',
   ]},
-  ledge: {why: 'Ledge Grab só age com borda de plataforma ao alcance; os cenários curtos não penduram o lutador (comportamento coberto pelos testes de ledge)', ids: [
-    'ledge.mode', 'ledge.objects', 'ledge.hint', 'ledge.reach', 'ledge.reachUp', 'ledge.minUp', 'ledge.maxRiseSpeed', 'ledge.minHangHeight', 'ledge.hangDrop', 'ledge.snapTime',
-    'ledge.grabCost', 'ledge.hangDrain', 'ledge.maxHang', 'ledge.minHang', 'ledge.climbInput', 'ledge.climbHold', 'ledge.climbTime', 'ledge.climbInset', 'ledge.climbInvuln',
-    'ledge.dropInput', 'ledge.dropHold', 'ledge.dropPush', 'ledge.cooldown', 'ledge.hurtDrops', 'ledge.aiClimb',
+  ledge: {why: 'cenários de borda (subir, soltar, pendurar até o máximo, ser atingido, IA pendurada) não mudam: modo/dica/alcance de agarre, tempos de segurar e recarga pedem a borda em outra geometria ou input; coberto pelos testes de ledge', ids: [
+    'ledge.mode', 'ledge.hint', 'ledge.reach', 'ledge.minHangHeight',
+    'ledge.maxHang', 'ledge.climbHold', 'ledge.climbInvuln',
+    'ledge.dropInput', 'ledge.cooldown', 'ledge.hurtDrops', 'ledge.aiClimb',
   ]},
-  passiva: {why: 'gatilho da passiva não ocorreu no duelo de 5 s com a passiva equipada (condição de vida, tempo parado, status ou recarga)', ids: [
+  passiva: {why: 'gatilho da passiva não ocorreu no duelo de 5 s nem no roteiro de 7 s com a passiva no azul (detecção de ataque, veneno/queimadura, perda de item, queda de atributo ou recarga longa)', ids: [
     'passivas.poison-touch.dps', 'passivas.poison-touch.duration', 'passivas.poison-touch.cooldown', 'passivas.anticipation.speedPct', 'passivas.anticipation.duration',
     'passivas.anticipation.cooldown', 'passivas.anticipation.detectDistance', 'passivas.forewarn.windowBonus', 'passivas.forewarn.maxDuration', 'passivas.forewarn.cooldown',
-    'passivas.forewarn.detectDistance', 'passivas.inner-focus.stunPct', 'passivas.effect-spore.slowPct', 'passivas.effect-spore.duration', 'passivas.effect-spore.cooldown',
-    'passivas.vital-spirit.thresholdPct', 'passivas.vital-spirit.regenPct', 'passivas.guts.attackPct', 'passivas.rough-skin.reflectDamage', 'passivas.rough-skin.cooldown',
+    'passivas.forewarn.detectDistance', 'passivas.effect-spore.cooldown',
+    'passivas.guts.attackPct', 'passivas.rough-skin.cooldown',
     'passivas.regenerator.quietTime', 'passivas.unburden.speedPct', 'passivas.unburden.duration', 'passivas.unburden.cooldown', 'passivas.stamina.defensePct',
-    'passivas.stamina.duration', 'passivas.stamina.cooldown', 'passivas.suction-cups.knockbackPct', 'passivas.magic-guard.dotReductionPct', 'passivas.defiant.attackPct',
+    'passivas.stamina.cooldown', 'passivas.magic-guard.dotReductionPct', 'passivas.defiant.attackPct',
     'passivas.defiant.duration', 'passivas.defiant.cooldown', 'passivas.globals.detectDistance',
   ]},
-  nav: {why: 'navegação (Yuka) só atua com obstáculo entre os lutadores; o duelo curto não tem rota bloqueada', ids: [
-    'extras.nav.enableNav', 'extras.nav.spacing', 'extras.nav.replan', 'extras.nav.jumpReach', 'extras.nav.jumpMargin', 'extras.nav.launch', 'extras.nav.arrival',
-    'extras.nav.stuckTime', 'extras.nav.stuckDistance', 'extras.nav.attackMaxHeightDiff', 'extras.nav.suppressBlockedAttacks', 'extras.nav.jumpPenalty', 'extras.nav.dropPenalty',
+  nav: {why: 'cenários de navegação (muro, plataforma, torre, arena completa) não ficam presos nem exigem ataque com desnível: detecção de travamento e limite de altura do ataque pendentes', ids: [
+    'extras.nav.stuckTime', 'extras.nav.stuckDistance', 'extras.nav.attackMaxHeightDiff',
   ]},
   iaMoves: {why: 'decisão de carga/IA com Moves não ocorreu no duelo de 6 s com Reflect/Psyshock/Water Pulse/Swift', ids: [
     'world.charge.turnSlow', 'world.charge.dodgeCancelAfter', 'world.charge.interruptCooldownFactor', 'world.charge.bufferWindow', 'world.charge.boostStaminaPerSecond',
@@ -493,7 +560,7 @@ export function scenarioList(s) {
   const mv = s.moveGroup && EDITABLE_MOVES.find(m => m.group === s.moveGroup);
   if (mv) return [...moveScenarios(s.moveGroup), [`${mv.id}/duelo`, {label: `duelo IA × IA com ${mv.id} equipado (6 s)`, seconds: 6, config: bothAi, setup: g => {duelSetup()(g);g.setLoadout(0, [mv.id]);g.setLoadout(1, [mv.id]);}, cmds: aiCmds}]];
   const pas = s.path.match(/^passivas\.([\w-]+)\./);
-  if (pas && pas[1] !== 'globals') return [[`passiva/${pas[1]}`, passiveDuel(pas[1])]];
+  if (pas && pas[1] !== 'globals') return [[`passiva/${pas[1]}`, passiveDuel(pas[1])], [`passiva/${pas[1]}/roteiro`, passiveScript(pas[1])]];
   if (pas) return [['passiva/anticipation', passiveDuel('anticipation')], ['passiva/forewarn', passiveDuel('forewarn')]];
   return scenariosFor(s).map(id => [id, SCENARIOS[id]]);
 }
@@ -517,6 +584,21 @@ export const TECHNICAL_NO_SLIDER = Object.freeze({
 });
 /** Sliders numéricos cujo formato não mostra unidade (fração/multiplicador mostrado como número puro). Orçamento: não pode crescer. */
 export const UNIT_MISSING_BUDGET = 354;
+/** Orçamentos que só podem DIMINUIR: sliders de gameplay sem A/B observável e, entre eles, os que só têm evidência fraca de consumidor. */
+export const PENDING_BUDGET = 304;
+export const WEAK_PENDING_BUDGET = 2;
+export const pendingCount = () => Object.values(SENSITIVITY_PENDING).reduce((n, g) => n + g.ids.length, 0);
+/** Órfãos com significado de jogo: a decisão (ligar com padrão neutro, manter como legado, remover com alias + migração de preset) é do responsável. */
+export const OWNER_DECISIONS = Object.freeze([
+  {id: 'rules.blockPushback', wired: 'empurraria o DEFENSOR para trás ao bloquear um tackle (hoje só existe o recuo do atacante: rules.recoil/recoilFraction); 0,5 m ligado mudaria toda defesa'},
+  {id: 'rules.slamAngle', wired: 'fixaria o ângulo de mergulho do meteor slam (hoje o mergulho mira o rival em aimSlamDive); ligado trocaria a mira por um ângulo fixo'},
+  {id: 'map.jumpLandingRecovery', wired: 'daria recuperação ao pousar de um pulo normal (hoje 0: physics.js land); 0,19 s ligado travaria o lutador a cada pulo'},
+  {id: 'map.wallDamageMultiplier', wired: 'multiplicaria o dano na borda circular (hoje a borda não causa dano próprio; o wall-splat usa rules.wallSplatDamage = 0); com 1 não mudaria nada até existir dano de borda'},
+  {id: 'actions.sprint.exhaustedStop', wired: 'permitiria (0) continuar o sprint com stamina zerada; hoje o sprint SEMPRE para na exaustão; com 1 o comportamento é o atual'},
+  {id: 'extras.ai.revision', wired: 'voltaria a IA para a revisão 0/1 (hoje tactics.js fixa a revisão 2; revisionOverride só na avaliação pareada); 2 mantém o atual'},
+  {id: 'map.stageCooldownReduction', wired: 'aplicaria −recarga por estágio de Recarga (hoje SÓ o HUD de progresso mostra o bônus; a simulação não o aplica): achado F7, consumidor fraco (só exibição)'},
+  {id: 'map.stageSpeedBonus', wired: 'aplicaria +velocidade por estágio de Velocidade (hoje SÓ o HUD de progresso mostra o bônus; a simulação não o aplica): achado F7, consumidor fraco (só exibição)'},
+]);
 export const missingUnit = s => s.unit === '—' && !['toggle', 'select', 'color'].includes(s.kind);
 /** {kind: 'orfao'|'visual'|'pendente'|'gameplay', why} de um slider. */
 export function classify(s) {
@@ -540,7 +622,7 @@ const cell = v => String(v ?? '').replace(/\|/g, '\\|').replace(/\n/g, ' ');
 export const normalizeMatrix = text => text.replace(/\r\n/g, '\n').replace(/(\.(?:js|mjs|json)):\d+/g, '$1');
 /** Monta a matriz. `abFor(s)` devolve o texto da coluna A/B dos sliders de gameplay ('muda · <cenário>' ou 'FALHA: …'). */
 export async function buildMatrix(abFor) {
-  const sliders = await allSliders(), counts = {total: sliders.length, ajustes: 0, move: 0, gameplay: 0, muda: 0, falha: 0, visual: 0, pendente: 0, orfao: 0};
+  const sliders = await allSliders(), counts = {total: sliders.length, ajustes: 0, move: 0, gameplay: 0, muda: 0, falha: 0, visual: 0, pendente: 0, orfao: 0, weakPending: 0, weak: 0};
   const sections = new Map();
   for (const s of sliders) {
     counts[s.source === 'move' ? 'move' : 'ajustes']++;
@@ -548,7 +630,8 @@ export async function buildMatrix(abFor) {
     let ab;
     if (c.kind === 'gameplay') {counts.gameplay++;ab = abFor(s);if (ab.startsWith('muda')) counts.muda++;else counts.falha++;}
     else {counts[c.kind]++;ab = c.kind === 'orfao' ? 'sem efeito (órfão rotulado)' : c.kind === 'visual' ? 'visual/depuração' : `pendente (${c.key})`;}
-    const line = `| \`${s.id}\` | ${cell(s.label)} | ${cell(s.unit)} | ${num(s.min)} | ${num(s.max)} | ${num(s.step)} | ${num(s.value)} | ${con ? `${con.file}:${con.line}` : '**SEM CONSUMIDOR**'} | ${ab} |`;
+    const line = `| \`${s.id}\` | ${cell(s.label)} | ${cell(s.unit)} | ${num(s.min)} | ${num(s.max)} | ${num(s.step)} | ${num(s.value)} | ${con ? `${con.file}:${con.line}${con.weak ? ' (consumerWeak)' : ''}` : '**SEM CONSUMIDOR**'} | ${ab} |`;
+    if (con?.weak) {counts.weak++;if (c.kind === 'pendente') counts.weakPending++;}
     if (!sections.has(s.section)) sections.set(s.section, []);
     sections.get(s.section).push(line);
   }
@@ -563,7 +646,11 @@ export async function buildMatrix(abFor) {
     `- Gameplay com A/B: **${counts.gameplay}** — muda no cenário: **${counts.muda}**${counts.falha ? ` · **FALHA: ${counts.falha}**` : ''}.`,
     `- Visual/depuração (sem A/B da simulação): ${counts.visual}. Pendentes de cenário (listados com motivo): ${counts.pendente}. Órfãos rotulados «(sem efeito)»: ${counts.orfao}.`,
     `- Parâmetros jogáveis sem slider: ${hidden.length ? hidden.map(h => '`' + h + '`').join(', ') : 'nenhum'} (fora os ${Object.keys(TECHNICAL_NO_SLIDER).length} limites técnicos abaixo).`,
-    `- Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): ${units} (orçamento ${UNIT_MISSING_BUDGET}, não pode crescer).`, '',
+    `- Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): ${units} (orçamento ${UNIT_MISSING_BUDGET}, não pode crescer).`,,
+    `- Pendentes de A/B: ${counts.pendente} (orçamento ${PENDING_BUDGET}, só diminui); pendentes só com evidência fraca de consumidor (consumerWeak): ${counts.weakPending} (orçamento ${WEAK_PENDING_BUDGET}). Total com evidência fraca (inclui visuais): ${counts.weak}.`, '',
+    '## Decisões pendentes do responsável', '',
+    'Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Não foram ligados (mudaria o jogo no padrão) nem apagados (proibido sem pedido). Opções: ligar com padrão neutro, manter como legado ou remover com alias + migração de preset.', '',
+    ...OWNER_DECISIONS.map(d => {const s = sliders.find(x => x.id === d.id);return `- \`${d.id}\` (${s ? cell(s.label) : '?'}; padrão ${s ? num(s.value) : '?'} ${s ? cell(s.unit) : ''}): ${d.wired}.`;}), '',
     '## Órfãos (sem consumidor) — rotulados «(sem efeito)» na interface, nunca apagados', '',
     ...ORPHANS_LABELED.map(o => `- \`${o.id}\`: ${o.why}.`), '',
     '## Consumidores lidos por objeto genérico (conferidos)', '',
