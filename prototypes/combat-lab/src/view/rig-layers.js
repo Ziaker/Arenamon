@@ -16,6 +16,15 @@ export function sideOf(/** @type {string} */ name) {
   if (/(^|[._\-])r$|^r[._\-]|[._\-]r[._\-]/.test(n)) return 'r';
   return null;
 }
+/** Papel do osso no braço: 'up' (braço), 'low' (antebraço), 'hand' (mão/punho) ou null (dedos, ombro, clavícula e torções ficam de fora). */
+export function armPartOf(/** @type {string} */ name) {
+  const n = norm(name).replace(/[^a-z0-9]/g, '');
+  if (/finger|thumb|index|middle|ring|pinky|shoulder|clavicle|twist|roll|leg|foot|toe|helper|ik|pole/.test(n)) return null;
+  if (/hand|wrist/.test(n)) return 'hand';
+  if (/forearm|lowerarm|armlower/.test(n)) return 'low';
+  if (/upperarm|armupper/.test(n) || /^(left|right)?arm$/.test(n)) return 'up';
+  return null;
+}
 /** Papel do osso na perna: 'up' (coxa), 'low' (canela), 'foot' (pé/tornozelo) ou null (inclui dedos). */
 export function legPartOf(/** @type {string} */ name) {
   const n = norm(name).replace(/[^a-z0-9]/g, '');
@@ -31,7 +40,10 @@ export function legPartOf(/** @type {string} */ name) {
  * @returns {{legs: {l: any, r: any}, chest: string|null, neck: string|null, head: string|null, issues: string[]}}
  */
 export function detectRig(names) {
-  const issues = [], out = {legs: {l: {up: null, low: null, foot: null}, r: {up: null, low: null, foot: null}}, chest: null, neck: null, head: null, issues};
+  const issues = [], out = {legs: {l: {up: null, low: null, foot: null}, r: {up: null, low: null, foot: null}}, arms: {l: {up: null, low: null, hand: null}, r: {up: null, low: null, hand: null}}, chest: null, neck: null, head: null, issues};
+  /** @type {Record<string, Set<string>>} */ const armCand = {};
+  for (const name of names) {const side = sideOf(name), part = armPartOf(name);if (side && part) (armCand[side + part] ??= new Set()).add(name);}
+  for (const side of /** @type {const} */ (['l', 'r'])) for (const part of /** @type {const} */ (['up', 'low', 'hand'])) {const set = armCand[side + part];if (set?.size === 1) out.arms[side][part] = [...set][0];}
   /** @type {Record<string, Set<string>>} */ const cand = {};
   for (const name of names) {
     const side = sideOf(name), part = legPartOf(name);
@@ -90,6 +102,10 @@ export class RigLayers {
     this.head = bones.get(det.head ?? '') ?? null;this.neck = bones.get(det.neck ?? '') ?? null;this.chest = bones.get(det.chest ?? '') ?? null;
     this.footOk = !!(this.legs.l || this.legs.r);
     this.trackOk = !!this.head;
+    // Membro de mira: o braço direito (cadeia braço → antebraço → mão); sem ela, o perfil «mira» cai para a cabeça.
+    const A = det.arms.r, au = bones.get(A.up ?? ''), al = bones.get(A.low ?? ''), ah = bones.get(A.hand ?? '');
+    this.arm = au && al && ah && al.parent === au && this.isDescendant(ah, al) ? {up: au, low: al, hand: ah} : null;
+    if (!this.arm) this.issues.push('mira: braço direito (braço → antebraço → mão) ausente ou fora de ordem; o perfil «mira» usa só a cabeça');
     this.v = [new T.Vector3(), new T.Vector3(), new T.Vector3(), new T.Vector3(), new T.Vector3(), new T.Vector3()];
     this.q = [new T.Quaternion(), new T.Quaternion(), new T.Quaternion()];
     /** Ossos que esta camada alterou no quadro anterior: {base (antes), out (depois)}. O mixer só reescreve um osso quando o valor animado MUDA, então sem desfazer a camada se acumularia em pose parada/estática. */
@@ -102,6 +118,7 @@ export class RigLayers {
     const bits = [];
     bits.push(`Pés: ${this.legs.l ? 'esquerdo ok' : 'esquerdo desligado'} · ${this.legs.r ? 'direito ok' : 'direito desligado'}`);
     bits.push(`Olhar: ${this.head ? 'cabeça ok' : 'sem cabeça'}${this.chest ? ' · tronco ok' : ' · sem tronco'}`);
+    bits.push(`Mira: ${this.arm ? 'braço direito ok' : 'sem membro de mira'}`);
     return bits.join(' — ') + (this.issues.length ? ` (${this.issues.join('; ')})` : '');
   }
   /** Sanidade dos eixos: a cabeça precisa estar ACIMA do quadril e os pés ABAIXO dele (rig de pé). */
@@ -143,7 +160,7 @@ export class RigLayers {
   /**
    * Aplica as camadas. Chamar depois de a pose base e a posição visual do personagem estarem calculadas.
    * @param {any} f lutador da simulação (leitura) @param {number} dt
-   * @param {{foot: boolean, track: boolean, G: any, ground: (x:number,z:number,y:number)=>number, fighters: any[], facing: number, scaleY: number, bodyHeight: number, restMinY: number}} o
+   * @param {{foot: boolean, track: boolean, G: any, ground: (x:number,z:number,y:number)=>number, fighters: any[], facing: number, scaleY: number, bodyHeight: number, restMinY: number, mode?: 'head'|'headTorso'|'aim'|'off', occluded?: (a: any, b: any) => boolean}} o
    */
   apply(f, dt, o) {
     this.undo();   // sempre primeiro: mesmo desligada, a camada precisa devolver o que alterou
@@ -248,7 +265,9 @@ export class RigLayers {
   applyTrack(/** @type {any} */ f, /** @type {number} */ dt, /** @type {any} */ o) {
     const G = o.G, [P, H] = this.v, d = Math.PI / 180;
     const blocked = !!f.ledge || !!f.flight || TRACK_BLOCKED.has(f.state ?? '') || f.hp <= 0 || !!f.wallSplat;
-    const has = o.track && !blocked && this.lockedPoint(f, o.fighters, o.bodyHeight, P);
+    const mode = o.mode ?? 'headTorso';
+    let has = o.track && mode !== 'off' && !blocked && this.lockedPoint(f, o.fighters, o.bodyHeight, P);
+    if (has && o.occluded && this.head) {this.head.getWorldPosition(H);if (o.occluded(H, P)) has = false;}   // alvo atrás de um sólido: solta (a camada nunca «olha através» do cenário)
     this.tw += ((has ? 1 : 0) - this.tw) * smoothAlpha(dt, has ? G.trackSmooth : G.trackRelease);
     if (!has && this.tw < .004) {this.tw = 0;this.ty = 0;this.tp = 0;return;}
     if (!this.head) return;
@@ -264,7 +283,8 @@ export class RigLayers {
       else {const a = smoothAlpha(dt, G.trackSmooth);this.ty += (wantYaw - this.ty) * a;this.tp += (wantPitch - this.tp) * a;}
       yawErr = this.ty;pitchErr = this.tp;
     }
-    const sp = splitTracking({yawErr, pitchErr, headYaw: G.trackHeadYaw, headPitch: G.trackHeadPitch, torsoPct: G.trackTorso / 100});
+    const torsoPct = mode === 'headTorso' ? G.trackTorso / 100 : 0;
+    const sp = splitTracking({yawErr, pitchErr, headYaw: G.trackHeadYaw, headPitch: G.trackHeadPitch, torsoPct});
     const T = this.T, k = this.tw, up = new T.Vector3(0, 1, 0);
     if (this.chest && Math.abs(sp.torsoYaw) > 1e-4) this.rotateWorld(this.chest, new T.Quaternion().setFromAxisAngle(up, sp.torsoYaw * k));
     if (Math.abs(sp.headYaw) > 1e-4) this.rotateWorld(this.head, new T.Quaternion().setFromAxisAngle(up, sp.headYaw * k));
@@ -272,6 +292,17 @@ export class RigLayers {
       const fwd = new T.Vector3(Math.sin(o.facing + yawErr), 0, Math.cos(o.facing + yawErr)), axis = fwd.clone().cross(up).normalize();
       this.rotateWorld(this.head, new T.Quaternion().setFromAxisAngle(axis, sp.headPitch * k));
     }
+    if (mode === 'aim' && this.arm && has) this.aimLimb(P, k, G.trackAimLimit * d);
+  }
+  /** Membro de mira: gira o braço no máximo `limit` rad a partir da direção que a animação deu (nunca além), na proporção do peso da camada. */
+  aimLimb(/** @type {any} */ P, /** @type {number} */ k, /** @type {number} */ limit) {
+    const T = this.T, {up, hand} = this.arm, S = new T.Vector3(), Hd = new T.Vector3();
+    up.getWorldPosition(S);hand.getWorldPosition(Hd);
+    const cur = Hd.clone().sub(S).normalize(), want = P.clone().sub(S).normalize();
+    if (!Number.isFinite(cur.x) || !Number.isFinite(want.x)) return;
+    const angle = cur.angleTo(want);if (angle < 1e-4) return;
+    const q = new T.Quaternion().setFromUnitVectors(cur, want), part = new T.Quaternion().slerp(q, Math.min(1, limit / angle) * k);
+    this.rotateWorld(up, part);
   }
 }
 const STUN = new Set(['hitstun', 'stagger', 'pushed', 'guardStun', 'defeated', 'airborne', 'landing', 'recover', 'ledgeHang', 'ledgeClimb', 'wallSplat']);

@@ -75,9 +75,9 @@ test('Swift: o cue de VFX cai no tick do spawn medido no motor (±1) e traz as c
 test('animação: o clipe do slot e o relógio normalizado pela duração da ação (não é tick)', () => {
   arena();
   const tl = buildMoveTimeline('swift'), anim = tl.cues.find(c => c.domain === 'animation');
-  assert.equal(anim.clip, 'move_1');assert.equal(anim.clock, 'animation');assert.equal(anim.tick, 0);
+  assert.equal(anim.clip, 'move_swift');assert.equal(anim.clock, 'animation');assert.equal(anim.tick, 0);
   assert.match(anim.label, /não é tick|normalizad/);
-  assert.equal(buildMoveTimeline('swift', {slot: 2}).cues.find(c => c.domain === 'animation').clip, 'move_3');
+  assert.equal(buildMoveTimeline('swift', {slot: 2}).cues.find(c => c.domain === 'animation').clip, 'move_swift');
 });
 test('clipFrameAtTick converte tick em quadro do clipe (proporcional à duração da ação, limitado ao clipe)', () => {
   assert.equal(clipFrameAtTick(60, 120, 31), 15);

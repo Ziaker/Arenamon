@@ -55,6 +55,7 @@ function range(key, value, path) {
     if (key === 'footSmooth') return {min: .02, max: .2, step: .01, fmt: n => n.toFixed(2) + ' s'};
     if (key === 'footPlantSpeed') return {min: 0, max: 1.5, step: .05, fmt: n => n.toFixed(2) + ' m/s'};
     if (key === 'footSlope' || key === 'trackTorso') return {min: 0, max: key === 'trackTorso' ? 70 : 100, step: 1, fmt: n => n + '%'};
+    if (key === 'trackAimLimit') return {min: 0, max: 90, step: 1, fmt: n => n + '°'};
     if (key === 'trackHeadYaw') return {min: 0, max: 65, step: 1, fmt: n => n + '°'};
     if (key === 'trackHeadPitch') return {min: 0, max: 35, step: 1, fmt: n => n + '°'};
     if (key === 'trackSmooth') return {min: .03, max: .3, step: .01, fmt: n => n.toFixed(2) + ' s'};

@@ -39,7 +39,7 @@ export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false,
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];
 /** As janelas de combate da animação valem agora? Pelo interruptor antigo (todas) ou, em phaseMode 1 («Animação aprovada»), só nas fases autorizadas (game feel 6). Padrão (phaseMode 0): idêntico ao de antes. */
-export const windowsOn = (/** @type {'phaseActive'|'phaseInvuln'} */ field) => !!C.extras?.toggles?.enableAnimationCombatWindows || (C.extras?.gameFeel?.phaseMode === 1 && !!C.extras.gameFeel[field]);
+export const windowsOn = (/** @type {'active'|'invuln'} */ phase, /** @type {any} */ action) => !!C.extras?.toggles?.enableAnimationCombatWindows || !!action?.combatWindows?.phaseContract?.applied?.[phase];   // o contrato resolvido viaja com a ação e com o save: mudar o modo depois não reinterpreta um replay
 /** Duração de uma ação: esquiva e tackle têm durações independentes; recuo usa as regras gerais. */
 export const actionDuration = kind => kind === 'recoil' ? C.rules.recoil : C.actions[kind].duration;
 /** Tempos de qualquer ação em curso (X, C, recuo ou movimento especial): duração, encadeamento, invulnerabilidade, recuperação. */
@@ -57,7 +57,7 @@ export const nominalDistance = (f, kind = 'dodge') => {const p = C.actions[kind]
 export const invulnerableWindow = action => {
   if (action?.invulnerableFor !== undefined) return action.invulnerableFor;
   if (action?.kind === 'move') return moveSpec(action).invulnerable;
-  if (windowsOn('phaseInvuln') && action?.combatWindows?.invulnerabilityWindows?.length) {
+  if (windowsOn('invuln', action) && action?.combatWindows?.invulnerabilityWindows?.length) {
     const stepSec = C.test?.step || (1 / 120);
     return action.combatWindows.invulnerabilityWindows[0][1] * stepSec;
   }
@@ -68,7 +68,7 @@ export function isInvulnerable(f) {
   if (!C.extras?.toggles?.enableInvulnerability || !f?.action) return false;
   if (f.action.invulnerableFor === 0) return false;
   const kind = f.action.kind;
-  if (windowsOn('phaseInvuln') && f.action.combatWindows?.invulnerabilityWindows?.length) {
+  if (windowsOn('invuln', f.action) && f.action.combatWindows?.invulnerabilityWindows?.length) {
     if (f.action.invulnerableFor !== undefined) {
       return f.action.elapsed < f.action.invulnerableFor - 1e-8;
     }
@@ -99,7 +99,7 @@ export function riposteIntercept(defender, attackerId, normal, base = {}) {
 }
 export function isOffensive(f) {
   if (!f?.action || f.action.kind !== 'tackle') return false;
-  if (!windowsOn('phaseActive') || !f.action.combatWindows?.activeWindows?.length) {
+  if (!windowsOn('active', f.action) || !f.action.combatWindows?.activeWindows?.length) {
     return true;
   }
   const stepSec = C.test?.step || (1 / 120);

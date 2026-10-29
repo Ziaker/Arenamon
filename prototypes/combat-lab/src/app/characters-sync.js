@@ -19,7 +19,9 @@ export function syncCharacterCombatWindows() {
   for (const id of [0, 1]) {
     const ch = ui.characters[id], raw = ch ? ch.getAllCombatWindows() : null;
     // Game feel 6: 0 = Definição (como sempre) · 1 = Animação aprovada (fases autorizadas e contrato válido) · 2 = Comparar (só a tabela; o combate não muda).
-    const view = raw ? resolveAllPhases(raw, C, G, {forceAll: G.phaseMode === 2}) : null;
+    // O contrato usa os campos de fase editados no editor de animações (% do clipe) sobre os marcadores do GLB; a autorização é por personagem e ação.
+    const edited = ch ? ch.getAllCombatWindows({withProfile: true}) : null;
+    const view = edited ? resolveAllPhases(edited, C, G, {forceAll: G.phaseMode === 2, off: ch.phaseOff, getMove: Moves.getMove}) : null;
     phaseReports[id] = view?.reports ?? null;
     game.setCombatWindows(id, raw && G.phaseMode === 1 ? view.windows : raw);
   }

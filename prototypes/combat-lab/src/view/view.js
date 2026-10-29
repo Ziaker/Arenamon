@@ -8,6 +8,7 @@ import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {hitShapeOf} from '../sim/combat.js';
 import {getGroundHeight} from '../sim/physics.js';
+import {blockingSolids, segmentClear} from '../sim/collision/queries.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
@@ -319,6 +320,8 @@ export class View {
       const attacker = fighters[event.attacker], target = fighters[event.target];if (!attacker || !target) continue;
       if (event.normal && (event.result !== 'clash' || event.attacker === 0)) this.normals.push({x: (attacker.position.x + target.position.x) / 2, z: (attacker.position.z + target.position.z) / 2, n: event.normal, result: event.result, age: 0, launch: event.launch});
     }
+    let solidsCache = null;   // oclusão do olhar: o segmento cabeça → alvo não pode atravessar sólidos (calculado só se algum personagem pedir)
+    const occluded = (a, b) => {if (!world) return false;solidsCache ??= blockingSolids(world);return !segmentClear({x: a.x, z: a.z}, {x: b.x, z: b.z}, solidsCache);};
     for (const f of fighters) {
       if (!this.meshes[f.id]) {
         const body = new T.Mesh(new T.BoxGeometry(1, 1, 1), new T.MeshStandardMaterial({color: f.id ? rgb('enemy') : rgb('player')}));this.meshes[f.id] = body;this.scene.add(body);
@@ -351,7 +354,7 @@ export class View {
       // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
       const animDt = (paused && !isKoSeq) ? (character?.preview ? realDt : 0) : ((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale);
       if (character) character.extraYaw = this.whiffFx?.yawOf(f.id) ?? 0;   // giro visual de desequilíbrio após golpe no vazio
-      t0 = now();character?.update(f, animDt, alt, fresh, {tick, source: sources[f.id], fighters, ground: (x, z, y) => getGroundHeight({x, z}, world, y)});tm.anim += now() - t0;
+      t0 = now();character?.update(f, animDt, alt, fresh, {tick, source: sources[f.id], fighters, occluded, ground: (x, z, y) => getGroundHeight({x, z}, world, y)});tm.anim += now() - t0;
       // Ausência física (Bullet Punch): nada do lutador é desenhado enquanto ele "não existe"; as speedlines ficam por conta do AimMarkers.
       // Quick Attack: o corpo também some durante a ida e a volta (só a aparência; a simulação não muda), com linhas de velocidade no lugar.
       const qaP = f.action?.qa, vanished = (f.absent || (qaP && (qaP.phase === 'approach' || qaP.phase === 'return'))) && f.action?.params?.fxHideBody !== 0;

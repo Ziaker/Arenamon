@@ -5,6 +5,7 @@
 // autorizada rejeita todas (nunca aplicação parcial) e o combate usa os tempos da definição. phaseMode = 2 («Comparar») só calcula a tabela.
 // Funções puras: o mesmo personagem + ação + perfil resolvem o mesmo contrato na pré-visualização e no combate.
 import {effectiveArenaWindows} from './animation-combat-windows.js';
+import {effectiveMovePhases} from './move-phases.js';
 
 /** Fases controláveis: chave de autorização no ajuste, rótulo e campo do contrato de janelas. */
 export const PHASE_FIELDS = Object.freeze([
@@ -83,17 +84,40 @@ export function resolvePhaseContract({actionId, contract, definition, auth, step
   return {...out, applied, cancelAfterSeconds: windows.phaseContract.cancelAfterSeconds, windows};
 }
 
+/** Definição «nominal» de um Move em passos, no mesmo formato de effectiveArenaWindows (para comparar com o clipe `move_<id>`). */
+export function moveDefinition(def, group, stepSeconds) {
+  const ph = effectiveMovePhases(def, group), st = (/** @type {number} */ s) => Math.round(s / stepSeconds), dur = st(ph.duration);
+  return {actionId: `move_${def.id}`, stepSeconds, durationSteps: dur,
+    activeWindows: ph.active.map((/** @type {number[]} */ w) => [st(w[0]), Math.max(st(w[0]) + 1, st(w[1]))]),
+    invulnerabilityWindows: ph.invulnerable.map((/** @type {number[]} */ w) => [st(w[0]), Math.max(st(w[0]) + 1, st(w[1]))]),
+    cancelWindow: ph.cancel ? [st(ph.cancel[0]), dur] : null, chainAfterStep: ph.cancel ? st(ph.cancel[0]) : null};
+}
+
 /**
- * Resolve o contrato de todas as ações com janelas de um personagem (tackle e esquiva).
+ * Resolve o contrato de todas as ações com janelas de um personagem (tackle, esquiva e Moves com clipe próprio).
+ * `o.off[açãoKey][fase] = true` desautoriza só aquela fase, naquele personagem e naquela ação («Restaurar»).
  * @param {Record<string, any>|null} raw janelas lidas dos clipes (Character.getAllCombatWindows) @param {any} C configuração viva @param {{phaseMode: number, phaseActive: number, phaseCancel: number, phaseInvuln: number}} G
- * @param {{forceAll?: boolean}} [o] forceAll: autoriza todas as fases só para a tabela de comparação
+ * @param {{forceAll?: boolean, off?: Record<string, any>, getMove?: (id: string) => any}} [o] forceAll: autoriza todas as fases só para a tabela de comparação · off: fases restauradas por ação · getMove: busca da definição do Move
  */
 export function resolveAllPhases(raw, C, G, o = {}) {
-  const auth = o.forceAll ? {active: true, cancel: true, invuln: true} : {active: !!G.phaseActive, cancel: !!G.phaseCancel, invuln: !!G.phaseInvuln};
-  const stepSeconds = C.test?.step ?? 1 / 120, windows = {}, reports = {};
+  const stepSeconds = C.test?.step ?? 1 / 120, windows = {}, reports = {}, off = o.off ?? {};
+  const authFor = (/** @type {string} */ key) => o.forceAll ? {active: true, cancel: true, invuln: true} : {active: !!G.phaseActive && !off[key]?.active, cancel: !!G.phaseCancel && !off[key]?.cancel, invuln: !!G.phaseInvuln && !off[key]?.invuln};
+  const one = (/** @type {string} */ key, /** @type {any} */ contract, /** @type {any} */ definition) => {
+    const res = resolvePhaseContract({actionId: key, contract, definition, auth: authFor(key), stepSeconds});
+    const w = res.windows ?? (contract ? {...contract, activeWindows: [], invulnerabilityWindows: [], cancelWindows: [], phaseContract: {version: 1, actionId: key, applied: {active: false, cancel: false, invuln: false}, cancelAfterSeconds: null, stepSeconds, rejected: res.errors.length > 0}} : null);
+    return [res, w];
+  };
   for (const [id, defId] of /** @type {const} */ ([['tackle', 'tackle'], ['dodge', 'dodge_forward']])) {
-    const definition = effectiveArenaWindows(defId, C), res = resolvePhaseContract({actionId: id, contract: raw?.[id] ?? null, definition, auth, stepSeconds});
-    reports[id] = res;windows[id] = res.windows ?? (raw?.[id] ? {...raw[id], activeWindows: [], invulnerabilityWindows: [], cancelWindows: [], phaseContract: {version: 1, actionId: id, applied: {active: false, cancel: false, invuln: false}, cancelAfterSeconds: null, stepSeconds, rejected: res.errors.length > 0}} : null);
+    const [res, w] = one(id, raw?.[id] ?? null, effectiveArenaWindows(defId, C));
+    reports[id] = res;windows[id] = w;
+  }
+  if (raw?.moves) {
+    reports.moves = {};windows.moves = {};
+    for (const [mid, contract] of Object.entries(raw.moves)) {
+      const def = o.getMove?.(mid);if (!def || !contract) continue;
+      const [res, w] = one(`move_${mid}`, contract, moveDefinition(def, def.group ? C.world?.[def.group] ?? null : null, stepSeconds));
+      reports.moves[mid] = res;if (w) windows.moves[mid] = w;
+    }
   }
   return {windows, reports};
 }

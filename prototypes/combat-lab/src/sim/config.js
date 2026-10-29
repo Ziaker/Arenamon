@@ -82,7 +82,7 @@ function buildDefaults() {
       whiffOn: 1, whiffTrail: 1, whiffDust: 1, whiffOvershoot: 4, whiffMinDistance: .25,
       ledgeOffsetY: 0, ledgeOffsetZ: 0, ledgeSizeComp: 1,
       footOn: 0, footMaxCorrection: .12, footPelvisMax: .06, footSmooth: .08, footPlantSpeed: .6, footSlope: 60,
-      trackOn: 0, trackHeadYaw: 45, trackHeadPitch: 20, trackTorso: 35, trackSmooth: .12, trackRelease: .12,
+      trackOn: 0, trackHeadYaw: 45, trackHeadPitch: 20, trackTorso: 35, trackSmooth: .12, trackRelease: .12, trackAimLimit: 50,
       phaseMode: 0, phaseActive: 0, phaseCancel: 0, phaseInvuln: 0,
     },
     // Navegação experimental (Fase 3, Yuka): 0 = navegação atual (padrão, nada muda); 1 = a IA consulta um grafo de superfícies

@@ -5,6 +5,7 @@ import {escape} from './tuning.js';
 import {validateModel, validateAnimations} from '../view/validate.js';
 import {installNewPanel} from './characters-new.js';
 import {C} from '../sim/config.js';
+import {listMoves} from '../sim/moves.js';
 import {phaseReports, PHASE_FIELDS} from '../sim/phase-contract.js';
 
 
@@ -59,21 +60,32 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
   }
   /** Game feel 6: modo das fases da animação, autorização por fase, tabela antes/depois e restauração fase a fase. */
   function phaseHtml(id) {
-    const G = C.extras.gameFeel, rep = phaseReports[id], fmt = w => w ? `${w[0]}–${w[1]} (${(w[0] * (rep?.tackle?.stepSeconds ?? 1 / 120)).toFixed(3)}–${(w[1] * (rep?.tackle?.stepSeconds ?? 1 / 120)).toFixed(3)} s)` : '—';
-    const rows = ['tackle', 'dodge'].flatMap(a => (rep?.[a]?.rows ?? []).map(r => `<tr><td>${a === 'tackle' ? 'Tackle X' : 'Esquiva C'}</td><td>${r.phase}</td><td>${fmt(r.definition)}</td><td>${fmt(r.animation)}</td><td>${escape(r.status)}</td><td>${r.authorized && G.phaseMode === 1 ? `<button type="button" data-restore="${r.key}" title="Volta esta fase para a definição do Move (desautoriza a animação nela)">Restaurar</button>` : ''}</td></tr>`)).join('');
-    const errs = ['tackle', 'dodge'].flatMap(a => rep?.[a]?.errors ?? []).map(e => `<div class="warn">⚠ ${escape(e)}</div>`).join('');
+    const ch = ui.characters[id], G = C.extras.gameFeel, rep = phaseReports[id], st = rep?.tackle?.stepSeconds ?? 1 / 120;
+    const fmt = w => w ? `${w[0]}–${w[1]} (${(w[0] * st).toFixed(3)}–${(w[1] * st).toFixed(3)} s)` : '—';
+    const groups = [['tackle', 'Tackle X', rep?.tackle], ['dodge', 'Esquiva C', rep?.dodge], ...Object.entries(rep?.moves ?? {}).map(([m, r]) => ['move_' + m, 'Move ' + m, r])];
+    const rows = groups.flatMap(([key, label, r]) => (r?.rows ?? []).map(row => {
+      const auth = PHASE_FIELDS.find(p => p.key === row.key).auth, off = !!ch?.phaseOff?.[key]?.[row.key], live = G.phaseMode === 1 && G[auth];
+      const btn = !live ? '' : off ? `<button type="button" data-reauth="${key}|${row.key}" title="Autoriza de novo a fase vinda da animação, só neste personagem e nesta ação">Reautorizar</button>` : `<button type="button" data-restore="${key}|${row.key}" title="Volta esta fase para a definição do Move, só neste personagem e nesta ação (os outros não mudam)">Restaurar</button>`;
+      return `<tr><td>${label}</td><td>${row.phase}</td><td>${fmt(row.definition)}</td><td>${fmt(row.animation)}</td><td>${escape(row.status)}${off ? ' · restaurado à definição aqui' : ''}</td><td>${btn}</td></tr>`;
+    })).join('');
+    const errs = groups.flatMap(([, , r]) => r?.errors ?? []).map(e => `<div class="warn">⚠ ${escape(e)}</div>`).join('');
+    const moves = listMoves().filter(m => !m.charge).map(m => `<label class="field">${escape(m.name ?? m.id)} <select data-track-profile="${m.id}">${[['', 'Padrão do Move'], ['head', 'Só cabeça'], ['headTorso', 'Cabeça e tronco'], ['aim', 'Cabeça + membro de mira'], ['off', 'Desligado']].map(([v, t]) => `<option value="${v}" ${(ch?.trackProfile?.[m.id] ?? '') === v ? 'selected' : ''}>${t}</option>`).join('')}</select></label>`).join('');
     return `<h4>Fases da animação nos tempos do combate</h4>
       <label class="field">Fonte dos tempos <select data-phase-mode>${['Definição do Move (padrão)', 'Animação aprovada', 'Comparar (não aplica)'].map((t, i) => `<option value="${i}" ${G.phaseMode === i ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
-      ${PHASE_FIELDS.map(p => `<label class="check"><input type="checkbox" data-phase-auth="${p.auth}" ${G[p.auth] ? 'checked' : ''}> Autorizar: ${p.label.toLowerCase()} vinda da animação</label>`).join('')}
-      <table class="mini"><tr><th>Ação</th><th>Fase</th><th>Definição (passos)</th><th>Animação (passos)</th><th>Estado</th><th></th></tr>${rows || '<tr><td colspan="6">Sem clipe de tackle/esquiva com marcadores neste personagem.</td></tr>'}</table>${errs}
-      <p class="hint">Os tempos da definição continuam valendo se o contrato for inválido (nunca aplica parte dele). A tabela mostra cada limite em passos e segundos; o contrato resolvido fica salvo no replay.</p>`;
+      ${PHASE_FIELDS.map(p => `<label class="check"><input type="checkbox" data-phase-auth="${p.auth}" ${G[p.auth] ? 'checked' : ''}> Autorizar: ${p.label.toLowerCase()} vinda da animação (todos os personagens)</label>`).join('')}
+      <table class="mini"><tr><th>Ação</th><th>Fase</th><th>Definição (passos)</th><th>Animação (passos)</th><th>Estado</th><th></th></tr>${rows || '<tr><td colspan="6">Sem clipe de tackle/esquiva/Move com marcadores neste personagem.</td></tr>'}</table>${errs}
+      <p class="hint">As fases vêm dos marcadores do clipe e dos campos «Ativo/Cancelamento/Invencível» do editor de animações (aba Combate). Se o contrato for inválido, vale a definição inteira (nunca aplica parte). O contrato resolvido viaja com a partida salva e com o replay.</p>
+      <details><summary>Olhar para o alvo travado: perfil por Move</summary><div class="row">${moves}</div><p class="hint">«Cabeça + membro de mira» gira o braço direito até o alcance de Ajustes › Visual › Game feel 5–9. Só vale para Moves com alvo travado pela simulação.</p></details>`;
   }
   function bindPhases(body, id) {
+    const ch = ui.characters[id];
     const redraw = () => {const box = body.querySelector('[data-phases]');if (box) {box.innerHTML = phaseHtml(id);bindPhases(body, id);}};
-    const apply = () => {onCharactersChanged();redraw();};
+    const apply = () => {ch?.save();onCharactersChanged();redraw();};
     const sel = body.querySelector('[data-phase-mode]');if (sel) sel.onchange = () => {C.extras.gameFeel.phaseMode = Number(sel.value);apply();};
     for (const b of body.querySelectorAll('[data-phase-auth]')) b.onchange = () => {C.extras.gameFeel[b.dataset.phaseAuth] = b.checked ? 1 : 0;apply();};
-    for (const b of body.querySelectorAll('[data-restore]')) b.onclick = () => {const p = PHASE_FIELDS.find(x => x.key === b.dataset.restore);if (p) C.extras.gameFeel[p.auth] = 0;apply();};
+    for (const b of body.querySelectorAll('[data-restore]')) b.onclick = () => {const [k, ph] = b.dataset.restore.split('|');((ch.phaseOff[k] ??= {})[ph]) = true;apply();};
+    for (const b of body.querySelectorAll('[data-reauth]')) b.onclick = () => {const [k, ph] = b.dataset.reauth.split('|');if (ch.phaseOff[k]) {delete ch.phaseOff[k][ph];if (!Object.keys(ch.phaseOff[k]).length) delete ch.phaseOff[k];}apply();};
+    for (const s of body.querySelectorAll('[data-track-profile]')) s.onchange = () => {if (s.value) ch.trackProfile[s.dataset.trackProfile] = s.value;else delete ch.trackProfile[s.dataset.trackProfile];ch.save();};
   }
   function heightBox(id, ch) {
     const body = document.createElement('div');

@@ -122,10 +122,49 @@ try {
   R.track = await scene(() => {const rl = window.__lab.ui.characters[0].rigLayers;const f = window.__lab.game.fighters[0], b = window.__lab.game.fighters[1], T = window.__lab.view.constructor;return {dbg: {wall: !!f.wallSplat, foe: {hp: b.hp, absent: b.absent, id: b.id, pos: b.position}, me: f.position, fac: f.visualFacing, ex: window.__lab.ui.characters[0].extraYaw}, tw: rl?.tw, yaw: rl?.ty, pitch: rl?.tp, phase: window.__lab.game.phase, state: f.state, hp: f.hp, flight: !!f.flight, ledge: !!f.ledge, action: f.action?.kind, lock: f.action?.lock, track: !!window.__lab.C.extras.gameFeel.trackOn, ok: rl?.trackOk, issues: rl?.issues};});
   await side();
   await shot('olhar-wookada');
+  // perfis de olhar por Move: «só cabeça» × «cabeça + membro de mira» (a mão do braço direito se afasta da pose base só no segundo)
+  const hand = async mode => scene(m => {const L = window.__lab, c = L.ui.characters[0], f = L.game.fighters[0];c.trackProfile.swift = m;
+    for (let i = 0; i < 3; i++) c.update(f, 0, f.groundY ?? 0, [], {tick: 9000, fighters: L.game.fighters});   // dt = 0: o mesmo instante da animação, só muda o perfil
+    const h = c.rigLayers?.arm?.hand;if (!h) return null;c.root.updateMatrixWorld(true);const p = h.getWorldPosition(h.position.clone()), r = c.root.position;return [p.x - r.x, p.y - r.y, p.z - r.z];}, mode);
+  const handHead = await hand('head'), handAim = await hand('aim'), handOff = null;
+  await scene(() => {window.__lab.ui.characters[0].trackProfile.swift = 'off';});await page.waitForTimeout(900);   // «desligado»: o olhar solta em tempo real
+  R.aim = {head: handHead, aim: handAim, off: handOff, hd: handHead && handOff ? Math.hypot(...handHead.map((v, i) => v - handOff[i])) : null, moved: handHead && handAim ? Math.hypot(...handHead.map((v, i) => v - handAim[i])) : null, twOff: await scene(() => window.__lab.ui.characters[0].rigLayers.tw)};
   await scene(() => clearInterval(window.__hold));
+  // ===== 6 · FASES DA ANIMAÇÃO (ponta a ponta no jogo real: edição na timeline → contrato → hit do combate) =====
+  const firstHit = () => scene(async () => {
+    const L = window.__lab;
+    if (L.game.phase !== 'playing') {L.startMatch();L.syncCharacterCombatWindows();window.__run(1);}   // a partida pode ter acabado (o golpe da cena do olhar derrubou o rival)
+    const g = L.game, a = g.fighters[0], b = g.fighters[1];
+    g.mapState.platforms = [];g.mapState.obstacles = [];a.ledge = null;a.flight = null;a.action = null;a.groundY = 0;a.position = {x: -3, z: 0};a.facing = Math.PI / 2;a.visualFacing = Math.PI / 2;a.stamina = 99;a.velocity = {x: 0, z: 0};a.state = 'neutral';a.stun = 0;a.knockRecovery = 0;a.actionRecovery = 0;a.moveRecovery = 0;a.exhaustRecovery = 0;a.landingRecovery = 0;a.hitstun = 0;a.stagger = 0;a.counterStagger = 0;a.recoveryFrom = null;a.charge = null;a.aim = null;a.guard = false;a.exhausted = false;a.moveCooldowns = {};
+    b.position = {x: -1.2, z: 0};b.groundY = 0;b.hp = 100;b.flight = null;b.action = null;b.state = 'neutral';b.stun = 0;b.knockRecovery = 0;b.velocity = {x: 0, z: 0};
+    window.__run(2);window.__run(1, {tackle: true});
+    const info = {started: a.action?.kind, applied: a.action?.combatWindows?.phaseContract?.applied ?? null, windows: a.action?.combatWindows?.activeWindows ?? null, hitAt: null};
+    for (let i = 0; i < 400 && a.action; i++) {window.__run(1);if (a.action?.hits?.size && info.hitAt === null) info.hitAt = +a.action.elapsed.toFixed(3);}
+    if (info.hitAt === null && b.hp < 100) info.hitAt = 'depois';
+    return info;
+  });
+  await scene(() => {const G = window.__lab.C.extras.gameFeel;Object.assign(G, {phaseMode: 0, phaseActive: 0, phaseCancel: 0, phaseInvuln: 0});window.__lab.syncCharacterCombatWindows();});
+  R.phaseBase = await firstHit();
+  await scene(() => {
+    const L = window.__lab, G = L.C.extras.gameFeel, ch = L.ui.characters[0];
+    ch.animProfile.entries.tackle = {...(ch.animProfile.entries.tackle ?? {}), activeStart: 55, activeEnd: 90};   // editado como no editor de animações (% do clipe)
+    Object.assign(G, {phaseMode: 1, phaseActive: 1});L.syncCharacterCombatWindows();
+  });
+  R.phaseApproved = await firstHit();
+  R.phaseReport = await scene(() => {const G = window.__lab.C.extras.gameFeel;G.phaseMode = 0;window.__lab.syncCharacterCombatWindows();return {modeBack: G.phaseMode};});
+  R.phaseBack = await firstHit();
+  await scene(() => {const ch = window.__lab.ui.characters[0];delete ch.animProfile.entries.tackle;window.__lab.syncCharacterCombatWindows();});
+
   console.log(JSON.stringify(R, null, 1));
   writeFileSync(out + 'resultado.json', JSON.stringify(R, null, 2));
   assert.deepEqual(errors, [], 'sem erros de página');
+  assert.ok(R.phaseApproved.applied?.active, 'contrato aplicado no jogo real: ' + JSON.stringify(R.phaseApproved));
+  assert.ok(typeof R.phaseBase.hitAt === 'number' && R.phaseApproved.hitAt !== null, 'houve acerto nos dois modos: ' + JSON.stringify([R.phaseBase, R.phaseApproved]));
+  const tAct = 0.55 * R.phaseApproved.windows?.[0]?.[0] / 55 * 0 + R.phaseApproved.windows[0][0] * 0.008333333333333333;
+  assert.ok(R.phaseApproved.hitAt === 'depois' || R.phaseApproved.hitAt >= tAct - 0.02, `com a fase aprovada o acerto não vem antes da janela ativa (${tAct.toFixed(3)} s): ${R.phaseApproved.hitAt}`);
+  assert.ok(R.phaseBack.applied == null || !R.phaseBack.applied.active, 'voltando ao modo Definição o contrato some: ' + JSON.stringify(R.phaseBack));
+  assert.ok(R.aim.moved == null || R.aim.moved > 0.02, 'o membro de mira move a mão (ou o rig não tem braço): ' + JSON.stringify(R.aim));
+  assert.ok(R.aim.twOff < .08, 'perfil «desligado» solta o olhar: ' + R.aim.twOff);
   assert.ok(R.track.tw > .5, 'olhar ativo no Wookada: ' + JSON.stringify(R.track));
   assert.ok(Math.abs(R.track.yaw) <= Math.PI, 'yaw finito');
   assert.deepEqual(errors, [], 'sem erros de página');

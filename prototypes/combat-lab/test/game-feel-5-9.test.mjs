@@ -3,12 +3,17 @@
 import {strict as assert} from 'node:assert';
 import {C, resetConfig} from '../src/sim/config.js';
 import {isWhiff} from '../src/view/whiff-fx.js';
-import {detectRig, splitTracking, footWeight, smoothAlpha, sideOf, legPartOf} from '../src/view/rig-layers.js';
-import {validateWindows, resolvePhaseContract, resolveAllPhases} from '../src/sim/phase-contract.js';
+import {detectRig, splitTracking, footWeight, smoothAlpha, sideOf, legPartOf, armPartOf} from '../src/view/rig-layers.js';
+import {validateWindows, resolvePhaseContract, resolveAllPhases, moveDefinition} from '../src/sim/phase-contract.js';
 import {windowsOn, isOffensive, isInvulnerable, createFighter} from '../src/sim/entity.js';
+import {Game} from '../src/sim/game.js';
+import {getMove, moveSpec} from '../src/sim/moves.js';
+import {applyMovePhase} from '../src/sim/move-phase.js';
 import {createAnimationCombatWindows, fromGlbEvents, effectiveArenaWindows} from '../src/sim/animation-combat-windows.js';
-import {STATE_ACTIONS, ACTION_IDS} from '../src/view/characters.js';
+import {STATE_ACTIONS, ACTION_IDS, Character, moveDefaultTracking} from '../src/view/characters.js';
 import {vec} from '../src/sim/math.js';
+import {registerStandardMoves} from '../src/sim/moves/standard.js';
+registerStandardMoves();
 
 let passed = 0;
 const test = (name, fn) => {resetConfig();try {fn();console.log('✓ ' + name);passed++;} catch (e) {console.error('✗ ' + name);console.error(e);process.exit(1);} finally {resetConfig();}};
@@ -119,22 +124,81 @@ test('fases: a tabela mostra definição e animação em passos e segundos', () 
   const act = r.rows.find(x => x.key === 'active');
   assert.deepEqual(act.animation, [10, 38]);assert.equal(act.animationSeconds[0], +(10 * C.test.step).toFixed(4));assert.equal(act.status, 'aplicado');
 });
-test('fases: modo Definição (padrão) não liga as janelas; modo Animação liga só as fases autorizadas', () => {
-  assert.equal(windowsOn('phaseActive'), false);assert.equal(windowsOn('phaseInvuln'), false);
+test('fases: o contrato resolvido viaja com a ação — o modo global não reinterpreta replay', () => {
+  const act = (applied) => ({kind: 'tackle', elapsed: 0, combatWindows: {activeWindows: [[10, 38]], invulnerabilityWindows: [[0, 12]], phaseContract: applied ? {applied} : undefined}});
+  assert.equal(windowsOn('active', act(null)), false, 'sem contrato aplicado: definição');
+  assert.equal(windowsOn('active', act({active: true})), true);
+  assert.equal(windowsOn('invuln', act({active: true})), false, 'só a fase autorizada vale');
+  C.extras.gameFeel.phaseMode = 0;
+  assert.equal(windowsOn('active', act({active: true})), true, 'mudar o modo depois de salvar não muda uma ação já resolvida');
   C.extras.gameFeel.phaseMode = 1;
-  assert.equal(windowsOn('phaseActive'), false, 'sem autorização continua igual');
-  C.extras.gameFeel.phaseActive = 1;
-  assert.equal(windowsOn('phaseActive'), true);assert.equal(windowsOn('phaseInvuln'), false);
-  C.extras.gameFeel.phaseMode = 2;
-  assert.equal(windowsOn('phaseActive'), false, 'Comparar nunca aplica');
+  assert.equal(windowsOn('active', act(null)), false, 'modo aprovado sem contrato aplicado continua na definição');
 });
-test('fases: no combate, a janela ativa aprovada decide quando o tackle é ofensivo; fora do modo, não', () => {
-  const f = createFighter(0, C.profiles.balanced, vec(0, 0));f.action = {kind: 'tackle', elapsed: 0, combatWindows: {activeWindows: [[10, 38]], invulnerabilityWindows: []}, hits: new Set()};
-  assert.equal(isOffensive(f), true, 'definição: sempre ofensivo');
-  C.extras.gameFeel.phaseMode = 1;C.extras.gameFeel.phaseActive = 1;
+test('fases: no combate, a janela ativa aprovada decide quando o tackle é ofensivo; sem contrato, não', () => {
+  const f = createFighter(0, C.profiles.balanced, vec(0, 0));
+  f.action = {kind: 'tackle', elapsed: 0, combatWindows: {activeWindows: [[10, 38]], invulnerabilityWindows: [], phaseContract: {applied: {active: true}}}, hits: new Set()};
   assert.equal(isOffensive(f), false, 'startup: ainda não ofensivo');
   f.action.elapsed = 20 * C.test.step;assert.equal(isOffensive(f), true);
   f.action.elapsed = 40 * C.test.step;assert.equal(isOffensive(f), false, 'recuperação');
+  delete f.action.combatWindows.phaseContract;f.action.elapsed = 0;
+  assert.equal(isOffensive(f), true, 'sem contrato aplicado: sempre ofensivo como antes');
+});
+test('fases: save/load preserva o contrato resolvido e o resultado não depende do modo global', () => {
+  const g = new Game({seed: 3});g.reset();
+  g.setCombatWindows(0, {tackle: {...contract(), activeWindows: [[10, 38]], phaseContract: {version: 1, applied: {active: true, cancel: false, invuln: false}, cancelAfterSeconds: null, stepSeconds: C.test.step}}, dodge: null});
+  const snap = g.save();C.extras.gameFeel.phaseMode = 2;
+  const h = new Game({seed: 3});h.reset();h.load(snap);
+  assert.deepEqual(h.fighters[0].combatWindows.tackle.phaseContract.applied, {active: true, cancel: false, invuln: false});
+  h.fighters[0].action = {kind: 'tackle', elapsed: 0, combatWindows: h.fighters[0].combatWindows.tackle, hits: new Set()};
+  assert.equal(isOffensive(h.fighters[0]), false, 'startup respeitado após o load, com o modo global em Comparar');
+});
+test('fases: restaurar vale só para o personagem e a ação (off por ação)', () => {
+  const raw = {tackle: contract(), dodge: null};
+  const G = {phaseMode: 1, phaseActive: 1, phaseCancel: 1, phaseInvuln: 1};
+  const both = resolveAllPhases(raw, C, G, {off: {}});
+  assert.deepEqual(both.reports.tackle.applied, {active: true, cancel: true, invuln: true});
+  const one = resolveAllPhases(raw, C, G, {off: {tackle: {active: true}}});
+  assert.deepEqual(one.reports.tackle.applied, {active: false, cancel: true, invuln: true}, 'só a fase restaurada volta à definição');
+  assert.equal(one.reports.tackle.rows.find(r => r.key === 'active').authorized, false);
+  const other = resolveAllPhases(raw, C, G, {off: {dodge: {active: true}}});
+  assert.equal(other.reports.tackle.applied.active, true, 'a restauração de outra ação não afeta esta');
+});
+test('fases: Moves — definição nominal em passos e contrato por clipe move_<id>', () => {
+  const def = getMove('swift'), md = moveDefinition(def, def.group ? C.world[def.group] : null, C.test.step);
+  assert.ok(md.durationSteps > 0 && Array.isArray(md.invulnerabilityWindows));
+  const c = createAnimationCombatWindows({characterId: 'x', actionId: 'move_swift', clipName: 'c', clipDurationSeconds: 1, actionDurationSeconds: def.duration, cancelWindows: [[Math.round(md.durationSteps * .5), md.durationSteps]]});
+  const res = resolveAllPhases({tackle: null, dodge: null, moves: {swift: c}}, C, {phaseMode: 1, phaseActive: 0, phaseCancel: 1, phaseInvuln: 0}, {getMove});
+  assert.equal(res.reports.moves.swift.applied.cancel, true);
+  assert.ok(res.windows.moves.swift.phaseContract.cancelAfterSeconds > 0);
+});
+test('fases: Move captura os tempos aprovados no início do uso e moveSpec os usa; sem contrato nada muda', () => {
+  const def = getMove('swift'), f = createFighter(0, C.profiles.balanced, vec(0, 0)), base = moveSpec({def, move: 'swift'});
+  const act = {kind: 'move', move: 'swift', def, elapsed: 0};
+  assert.equal(applyMovePhase(f, act, def, null), false);assert.deepEqual(moveSpec(act), base);
+  f.combatWindows = {moves: {swift: {activeWindows: [], invulnerabilityWindows: [[0, 24]], phaseContract: {applied: {active: false, cancel: true, invuln: true}, cancelAfterSeconds: .1, stepSeconds: C.test.step}}}};
+  assert.equal(applyMovePhase(f, act, def, null), true);
+  const sp = moveSpec(act);assert.equal(sp.chainAfter, .1);assert.equal(sp.invulnerableFrom, 0);assert.ok(Math.abs(sp.invulnerable - 24 * C.test.step) < 1e-9);
+  assert.equal(sp.duration, base.duration, 'a duração do Move não muda');
+});
+test('perfil da timeline: Ativo/Cancelamento/Invencível sobrepõem os marcadores do GLB no contrato', () => {
+  const ch = Object.create(Character.prototype);
+  ch.variants = {tackle: [0]};ch.variantsOf = id => ch.variants[id] ?? [];ch.clips = [{name: 'c', duration: 1}];ch.source = {eventsByClip: [[{type: 'hitbox_on', time: .1, id: 'a'}, {type: 'hitbox_off', time: .2, id: 'b'}]], name: 'x'};
+  ch.speeds = {};ch.playback = {};ch.animProfile = {entries: {tackle: {activeStart: 25, activeEnd: 60, cancelStart: 50, invulnStart: 0, invulnEnd: 20}}};ch.animationProfile = null;
+  const raw = ch.getCombatWindows('tackle'), edited = ch.getCombatWindows('tackle', {withProfile: true}), n = raw.actionDurationSteps;
+  assert.deepEqual(edited.activeWindows, [[Math.round(.25 * n), Math.round(.6 * n)]]);
+  assert.deepEqual(edited.cancelWindows, [[Math.round(.5 * n), n]]);
+  assert.deepEqual(edited.invulnerabilityWindows, [[0, Math.round(.2 * n)]]);
+  assert.notDeepEqual(raw.activeWindows, edited.activeWindows, 'sem o perfil (modo Definição/legado) a janela do GLB segue igual');
+  ch.animProfile = {entries: {tackle: {activeStart: 60, activeEnd: 30}}};
+  const bad = resolvePhaseContract({actionId: 'tackle', contract: ch.getCombatWindows('tackle', {withProfile: true}), definition: effectiveArenaWindows('tackle', C), auth: AUTH, stepSeconds: C.test.step});
+  assert.equal(bad.windows, null);assert.ok(bad.errors.some(e => /não vem depois/.test(e)), 'perfil fora de ordem é recusado com motivo');
+});
+test('olhar: perfil por Move e braço de mira detectado', () => {
+  assert.equal(moveDefaultTracking('nao-existe'), 'headTorso');
+  assert.equal(armPartOf('mixamorig:RightArm'), 'up');assert.equal(armPartOf('mixamorig:RightForeArm'), 'low');assert.equal(armPartOf('mixamorig:RightHand'), 'hand');assert.equal(armPartOf('mixamorig:RightHandIndex1'), null);
+  const d = detectRig(['mixamorig:RightArm', 'mixamorig:RightForeArm', 'mixamorig:RightHand', 'mixamorig:Head']);
+  assert.deepEqual(d.arms.r, {up: 'mixamorig:RightArm', low: 'mixamorig:RightForeArm', hand: 'mixamorig:RightHand'});
+  assert.equal(detectRig(['upper_arm.R', 'forearm.R', 'hand.R']).arms.r.hand, 'hand.R');
 });
 test('fases: resolveAllPhases devolve contrato recusado vazio (nunca parcial) e metadados para o replay', () => {
   const raw = {tackle: contract({invulnerabilityWindows: [[0, 9999]]}), dodge: null};

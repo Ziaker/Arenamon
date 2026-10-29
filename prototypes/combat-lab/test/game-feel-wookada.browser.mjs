@@ -38,6 +38,17 @@ try {
     if (i === 5) await page.screenshot({path: out + 'wookada-meio.png'});
   }
   await page.screenshot({path: out + 'wookada-fim.png'});
+  // Desempenho (brief, p. 8): dois personagens animados com TODAS as camadas ligadas × desligadas, mesmo cenário, quadros de tela medidos por rAF.
+  const frames = on => page.evaluate(async on => {
+    const G = window.__lab.C.extras.gameFeel;Object.assign(G, {whiffOn: on, footOn: on, trackOn: on});
+    await new Promise(r => setTimeout(r, 400));
+    const t = [];let last = performance.now();
+    await new Promise(res => {let n = 0;const loop = () => {const now = performance.now();t.push(now - last);last = now;if (++n < 240) requestAnimationFrame(loop);else res();};requestAnimationFrame(loop);});
+    t.sort((a, b) => a - b);const avg = t.reduce((s, v) => s + v, 0) / t.length;
+    return {avg: +avg.toFixed(2), p95: +t[Math.floor(t.length * .95)].toFixed(2), max: +t.at(-1).toFixed(2), anim: +(window.__lab.view.timings?.anim ?? 0).toFixed(3)};
+  }, on);
+  const perfOff = await frames(0), perfOn = await frames(1);
+  console.log(JSON.stringify({perfOff, perfOn}));
   const diag = await page.evaluate(() => ({a: window.__lab.ui.characters[0]?.rigDiagnostic?.(), b: window.__lab.ui.characters[1]?.rigDiagnostic?.()}));
   const last = samples.at(-1), ticks = samples.at(-1).tick - samples[0].tick;
   const maxFw = Math.max(...samples.map(s => s.fw ?? 0)), maxTw = Math.max(...samples.map(s => s.tw ?? 0)), maxPelvis = Math.max(...samples.map(s => Math.abs(s.pelvis ?? 0)));
@@ -46,6 +57,7 @@ try {
   assert.equal(Math.max(...samples.map(s => s.bad)), 0, 'nenhum osso com NaN');
   assert.ok(maxFw > .5, 'o apoio dos pés ficou ativo no Wookada: ' + maxFw);
   assert.ok(maxPelvis <= .06 + 1e-6, 'pelve dentro do limite: ' + maxPelvis);
+  assert.ok(perfOn.avg < perfOff.avg + 4 && perfOn.p95 < perfOff.p95 + 8, 'as camadas não custam mais que o orçamento de quadro: ' + JSON.stringify({perfOff, perfOn}));
   assert.deepEqual(errors, [], 'sem erros de página');
   console.log('game-feel-wookada browser: ok');
 } finally {

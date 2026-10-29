@@ -27,7 +27,7 @@ import {sniffFormat} from './validate.js';
 import {RigLayers} from './rig-layers.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
-import {getMove} from '../sim/moves.js';
+import {getMove, listMoves} from '../sim/moves.js';
 import {firstAvailablePresentationAction} from '../sim/move-presentation.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
@@ -109,6 +109,9 @@ const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left',
 const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['wallSplat', 'airborne_up', 'pushed_side', 'stagger_crush', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
 
+/** Perfil de olhar padrão de um Move: a definição pode declarar `tracking` ('head' | 'headTorso' | 'aim' | 'off'); sem ela, cabeça e tronco. */
+export const moveDefaultTracking = id => getMove(id)?.tracking ?? 'headTorso';
+
 /** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
 async function readGltf(file) {
   const data = await file.arrayBuffer(), fmt = sniffFormat(data);
@@ -162,6 +165,8 @@ export class Character {
     this.animationProfile = animationProfile(source);this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;this.lockRootMotion = true;this.lockToGround = true;
     // Game feel 7–9: ajuste visual da pose na borda (m) e interruptores por personagem do apoio dos pés e do olhar (valem junto com o interruptor geral em C.extras.gameFeel).
     this.ledgeOffset = {y: 0, z: 0};this.footEnabled = true;this.trackEnabled = true;this.extraYaw = 0;
+    /** Game feel 6: fases desautorizadas SÓ neste personagem e nesta ação ({tackle: {active: true}, move_swift: {cancel: true}}). Game feel 9: perfil de olhar por Move ('head' | 'headTorso' | 'aim' | 'off'). */
+    this.phaseOff = {};this.trackProfile = {};
     // Tamanho visual por personagem: não muda colisor, sombra nem física (a altura global continua sendo o alvo do fit).
     // O Wookada nasce 2× em altura e largura; o painel permite ajustar de 0,5× a 3×.
     this.heightScale = defaultSizeScale(source);this.widthScale = defaultSizeScale(source);
@@ -347,7 +352,7 @@ export class Character {
     }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
       clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround,
-      ledgeOffset: {...this.ledgeOffset}, footEnabled: this.footEnabled, trackEnabled: this.trackEnabled, sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
+      ledgeOffset: {...this.ledgeOffset}, footEnabled: this.footEnabled, trackEnabled: this.trackEnabled, phaseOff: JSON.parse(JSON.stringify(this.phaseOff)), trackProfile: {...this.trackProfile}, sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
       animProfile: JSON.parse(JSON.stringify(this.animProfile)),
       animationProfileVersion: this.animationProfile?.version ?? null};
   }
@@ -380,6 +385,8 @@ export class Character {
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
     if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
     if (data.ledgeOffset && typeof data.ledgeOffset === 'object') for (const ax of ['y', 'z']) {const v = Number(data.ledgeOffset[ax]);if (Number.isFinite(v)) this.ledgeOffset[ax] = Math.min(.5, Math.max(-.5, v));}
+    if (data.phaseOff && typeof data.phaseOff === 'object') this.phaseOff = JSON.parse(JSON.stringify(data.phaseOff));
+    if (data.trackProfile && typeof data.trackProfile === 'object') for (const [k, v] of Object.entries(data.trackProfile)) if (['head', 'headTorso', 'aim', 'off'].includes(v)) this.trackProfile[k] = v;
     if (typeof data.footEnabled === 'boolean') this.footEnabled = data.footEnabled;if (typeof data.trackEnabled === 'boolean') this.trackEnabled = data.trackEnabled;
     if (data.sizeScale && typeof data.sizeScale === 'object') {
       const height = Number(data.sizeScale.height), width = Number(data.sizeScale.width);
@@ -625,28 +632,49 @@ export class Character {
     if (a && (a.kind === 'tackle' || a.kind === 'dodge')) this.lastActionSeen = {kind: a.kind, elapsed: a.elapsed};
   }
   /** Extrai e valida o contrato AnimationCombatWindows para a ação a partir dos eventos do clipe. */
-  getCombatWindows(actionId) {
+  getCombatWindows(actionId, {withProfile = false, actionSeconds = null} = {}) {
     const variants = this.variantsOf(actionId);
     if (!variants?.length) return null;
     const clipIdx = variants[0];
     const clip = this.clips[clipIdx];
     const rawEvents = this.source?.eventsByClip?.[clipIdx] || [];
     const clipDuration = extractClipDuration(clip);
-    const actionDur = actionDuration(actionId === 'tackle' ? 'tackle' : 'dodge');
-    return fromGlbEvents(rawEvents, {
+    const actionDur = actionSeconds ?? actionDuration(actionId === 'tackle' ? 'tackle' : 'dodge');
+    const c = fromGlbEvents(rawEvents, {
       clipDurationSeconds: clipDuration,
       actionDurationSeconds: actionDur,
       actionId,
       clipName: clip?.name,
       characterId: this.source?.name || 'character'
     });
+    return withProfile ? this.overlayProfileWindows(c, actionId, clip?.name) : c;
+  }
+  /**
+   * Game feel 6: os campos de fase do editor de animações (Ativo início/fim, Cancelamento, Invencível início/fim — % do clipe, que é esticado sobre a
+   * duração da ação) sobrepõem os marcadores do GLB no contrato. Valores fora de ordem NÃO são corrigidos aqui: o validador do contrato os recusa.
+   */
+  overlayProfileWindows(c, actionId, clipName) {
+    const pv = id => this.profileValue(actionId, id, clipName), steps = pct => Math.round(pct / 100 * c.actionDurationSteps);
+    const aS = pv('activeStart'), aE = pv('activeEnd'), cS = pv('cancelStart'), iS = pv('invulnStart'), iE = pv('invulnEnd');
+    if (aS == null && aE == null && cS == null && iS == null && iE == null) return c;
+    const out = {...c, source: {...c.source, origin: 'glb_events+perfil'}};
+    if (aS != null || aE != null) out.activeWindows = [[aS != null ? steps(aS) : c.activeWindows[0]?.[0] ?? 0, aE != null ? steps(aE) : c.activeWindows[0]?.[1] ?? c.actionDurationSteps]];
+    if (iS != null || iE != null) out.invulnerabilityWindows = [[iS != null ? steps(iS) : c.invulnerabilityWindows[0]?.[0] ?? 0, iE != null ? steps(iE) : c.invulnerabilityWindows[0]?.[1] ?? c.actionDurationSteps]];
+    if (cS != null) out.cancelWindows = [[steps(cS), c.actionDurationSteps]];
+    return out;
   }
   /** Extrai o mapa de janelas de combate para todas as ações suportadas do personagem. */
-  getAllCombatWindows() {
-    return {
-      tackle: this.getCombatWindows('tackle'),
-      dodge: this.getCombatWindows('dodge_forward')
+  getAllCombatWindows({withProfile = false} = {}) {
+    const out = {
+      tackle: this.getCombatWindows('tackle', {withProfile}),
+      dodge: this.getCombatWindows('dodge_forward', {withProfile})
     };
+    if (withProfile) {   // Moves com clipe próprio (move_<id>): o contrato de fases também vale para eles
+      const moves = {};
+      for (const def of listMoves()) if (!def.charge && def.duration > 0 && this.variantsOf('move_' + def.id).length) moves[def.id] = this.getCombatWindows('move_' + def.id, {withProfile, actionSeconds: def.duration});
+      if (Object.keys(moves).length) out.moves = moves;
+    }
+    return out;
   }
   /**
    * Atualiza a pose. ctx: {tick, source: 'jogador'|'IA'} para o sorteio determinístico e a telemetria.
@@ -716,7 +744,8 @@ export class Character {
     if (!foot && !track && !this.rigLayers) return;
     this.rigLayers ??= new RigLayers(T, this.model, this.hips);
     this.root.updateMatrixWorld(true);
-    this.rigLayers.apply(f, dt, {foot, track, G, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
+    const moveId = f.action?.kind === 'move' ? f.action.move : null, mode = (moveId && this.trackProfile[moveId]) || moveDefaultTracking(moveId);
+    this.rigLayers.apply(f, dt, {foot, track, G, mode, occluded: ctx.occluded, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
   }
   /** Texto de diagnóstico das camadas de pose (pés e olhar) para o painel do personagem. */
   rigDiagnostic() {return this.rigLayers ? this.rigLayers.diagnostics() : 'Camadas de pose (pés e olhar) ainda não ativadas: ligue-as em Ajustes › Visual › Game feel 5–9.';}

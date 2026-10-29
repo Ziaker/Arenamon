@@ -274,7 +274,7 @@ test('10. Lançamento vertical seguido de aterrissagem verdadeira: landing real 
 
   assert.ok(target.flight !== null, 'Deve entrar em voo (flight)');
   assert.equal(target.state, 'airborne', 'Deve estar airborne no ar');
-  assert.equal(ch.stateKey(target), 'airborne', 'Visual deve ser airborne');
+  assert.equal(ch.stateKey(target), 'airborne_up', 'Visual: lançamento com subida forte usa a reação ascendente (hit_up) quando o modelo tem o clipe');
 
   let sawRealLanding = false;
   for (let i = 0; i < 150; i++) {
@@ -362,7 +362,7 @@ test('14. Duas reações concorrentes e prioridade de estados', () => {
 
   applyHit(g, 0, target, {damage: 5, knockback: {horizontal: 2, vertical: 5}}, vec(1, 0));
   assert.equal(target.state, 'airborne', 'Voo físico tem prioridade sobre empurrão horizontal');
-  assert.equal(ch.stateKey(target), 'airborne', 'Visual reflete airborne');
+  assert.equal(ch.stateKey(target), 'airborne_up', 'Visual reflete o lançamento ascendente (hit_up)');
 
   target.hp = 0;
   g.step(cmd({}), cmd({}));

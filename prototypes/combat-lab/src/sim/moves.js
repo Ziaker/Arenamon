@@ -171,7 +171,8 @@ export function setLoadout(f, ids) {
 export function moveSpec(action) {
   const d = action.def ?? getMove(action.move);
   if (!d) return {duration: 0, chainAfter: 0, invulnerable: 0, invulnerableFrom: 0, recovery: 0};
-  return {duration: d.duration, chainAfter: d.cancelAfter ?? d.duration, invulnerable: d.invulnerable?.[1] ?? 0, invulnerableFrom: d.invulnerable?.[0] ?? 0, recovery: 0};
+  const ph = action.phase;   // game feel 6: tempos aprovados da animação capturados no início do uso (move-phase.js); sem eles, a definição de sempre
+  return {duration: d.duration, chainAfter: ph?.chainAfter ?? d.cancelAfter ?? d.duration, invulnerable: ph?.invulnerable?.[1] ?? d.invulnerable?.[1] ?? 0, invulnerableFrom: ph?.invulnerable?.[0] ?? d.invulnerable?.[0] ?? 0, recovery: 0};
 }
 
 /** Posição/direção de uma entidade relativa ao lutador: offset {forward, side, up}, rotação do rumo em `angle` (rad). */

@@ -2,6 +2,7 @@
 
 import {C} from '../config.js';
 import {nominalDistance, chainOpen, actionSpec, getFighterMaxStamina} from '../entity.js';
+import {applyMovePhase} from '../move-phase.js';
 import {stat, hasFlag} from '../status.js';
 import {moveInSlot, getMove, getTackleSetup, nearestEligible, targetReachOf} from '../moves.js';
 import {chargeParams, chargeLevel, interruptCooldown, boostPlan} from '../charge.js';
@@ -76,6 +77,7 @@ function startMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHeld) {
   const heading = aim === 'facing' ? f.facing : aim === 'input' && length(inputDir) > .01 ? angleOf(inputDir) : hasTarget || length(inputDir) <= .01 ? desiredHeading : angleOf(inputDir);
   // M28.4: a execução guarda a definição EFETIVA (com os sliders do momento) e os parâmetros do grupo; mexer em slider depois não a altera.
   f.action = {kind: 'move', move: def.id, slot, elapsed: 0, startAngle: heading, heading, offensive: false, hits: new Set(), fired: [], from: {...f.velocity}, def, params: def.group ? structuredClone(C.world[def.group]) : null, lock: dirs.lock ?? null};
+  applyMovePhase(f, f.action, def, f.action.params);   // game feel 6: fases aprovadas da animação (sem contrato aplicado, não faz nada)
   f.comboLeft = 0;
   const cost = costOf(f, def.cost ?? 1);f.stamina = Math.max(0, f.stamina - cost);f.regenBase = f.stamina;f.regenAge = 0;f.exhausted = isDepleted(f.stamina);
   if (def.cooldown > 0) (f.moveCooldowns ??= {})[def.id] = def.cooldown;
@@ -101,6 +103,7 @@ function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHel
   const a = f.action, P = def.group ? structuredClone(C.world[def.group]) : {};
   a.move = def.id;a.slot = slot;a.params = P;a.moveDef = def;a.pl = 1;a.plSpeed = 1;a.plDamage = 1;
   a.antiAir = !!def.antiAir;a.airReach = def.group ? (C.world[def.group]?.airReach ?? 0) : 0;
+  applyMovePhase(f, a, def, P);   // antes do preparo: hitStart/hitEnd aprovados entram nas janelas que o preparo monta
   getTackleSetup(def.tackle)?.(f, a, P, {fighters, def, hasTarget});
 }
 /** Soltura de um Charge que vira Tackle (`def.tackle` + `charge`): ação de Tackle com PL da carga; o custo do Tackle volta (o do Move foi cobrado ao apertar). */

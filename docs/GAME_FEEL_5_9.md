@@ -1,4 +1,4 @@
-# Game feel 5–9 — implementação (v1.48.0)
+# Game feel 5–9 — implementação (v1.49.0)
 
 Brief de origem: `docs/ARENAMON_GAME_FEEL_IMPROVEMENTS_5_9_EN.docx`. Tudo abre em `JOGAR_ARENAMON.html`; todos os controles estão em **Ajustes › Visual › «Game feel 5–9»** (`C.extras.gameFeel`) e, por personagem, em **Personagens › Altura visual**.
 
@@ -22,10 +22,21 @@ Estados novos: `ledge_grab` (entrada, enquanto a simulação encaixa), `ledge_ha
 `RigLayers` detecta coxa/canela/pé, tronco/pescoço e cabeça por nome (Mixamo, Rigify e similares). Perna ausente, ambígua ou com cadeia/eixos inválidos desliga **só aquela perna/camada** e mostra o motivo em «Personagens» (diagnóstico do rig). As rotações são calculadas em espaço mundial, então não dependem da orientação local dos ossos. Os pés usam IK de dois ossos com correção limitada, pelve compartilhada e fade em salto, queda, knockback, borda e vault. O olhar usa **apenas o alvo já travado pela simulação** (`action.lock` ou o ponto de mira confirmado), limita cabeça e tronco, desliga em hitstun/stagger/parede/derrota/borda/ar e volta suave à pose base.
 
 ## 6 · Fases da animação
-Modos: **Definição** (padrão), **Animação aprovada** e **Comparar** (só calcula a tabela). No modo aprovado cada fase (ativa, cancelamento, invulnerabilidade) precisa de autorização própria. O contrato é validado (ordem, sobreposição, duração, janela ativa com ≥ 1 passo, cancelamento não antes do primeiro compromisso, clipe presente); **qualquer falha rejeita o contrato inteiro** e o combate usa a definição, com a mensagem exata no painel. O contrato resolvido vai nas janelas de combate do `Game` (salvas no replay). Novos marcadores de clipe aceitos: `cancel_start` / `cancel_end`.
+Modos: **Definição** (padrão), **Animação aprovada** e **Comparar** (só calcula a tabela). Cada fase (ativa, cancelamento, invulnerabilidade) precisa de autorização própria.
+- **De onde vêm os tempos:** marcadores do clipe (`hitbox_on/off`, `invulnerable_start/end`, `cancel_start/end`) **e os campos «Ativo início/fim», «Cancelamento», «Invencível início/fim» do editor de animações** (% do clipe, que é esticado sobre a duração da ação). O campo editado vence o marcador. Valores fora de ordem não são corrigidos: o contrato é recusado com o motivo.
+- **O que cobre:** Tackle X, Esquiva C e **todos os Moves com clipe próprio `move_<id>`** (não-carga): cancelamento e invulnerabilidade entram na ação do Move (capturados no início do uso, como os sliders); a janela ativa entra em `hitStart/hitEnd` dos Moves que têm janela de acerto. Startup e recuperação não são consumidos à parte pela simulação: derivam do início da janela ativa e do cancelamento.
+- **Validação:** ordem, sobreposição, duração da ação, janela ativa ≥ 1 passo, cancelamento não antes do primeiro compromisso, clipe presente. Qualquer falha rejeita o contrato inteiro (nunca parcial) e o combate usa a definição.
+- **Restaurar:** por **personagem e ação** (botão na tabela; «Reautorizar» desfaz). Os checkboxes de autorização continuam gerais.
+- **Replay/save:** o contrato resolvido viaja com a ação e com o `Game.save()`; o combate lê `phaseContract.applied` da própria ação, então trocar o modo global depois de salvar **não** reinterpreta a partida (teste: `save/load preserva o contrato`).
+
+## 9 · Olhar — perfil por Move
+Por Move (Personagens › Olhar para o alvo travado › perfil por Move; padrão: `tracking` da definição ou «cabeça e tronco»): só cabeça, cabeça e tronco, **cabeça + membro de mira** (braço direito até `trackAimLimit`) ou desligado. A camada solta se o segmento cabeça → alvo atravessa um sólido (oclusão pelo cenário).
 
 ## Modelos grandes (Wookada como referência)
 O Wookada (1,85× em altura e largura) é a referência de modelo pesado. Testado no jogo real com ele: rastro e poeira do golpe no vazio nascem a partir do tamanho **visual** (antes ficavam dentro do corpo); na borda o modelo baixa o excedente de altura (`ledgeSizeComp`, ×) para as mãos ficarem na quina, sem afundar abaixo do piso; os pés (correção até 0,2 m numa plataforma de 0,15 m) e o olhar (alvo travado a ~30°) rodaram sem NaN e sem erro de página.
+
+## Desempenho
+`game-feel-wookada.browser.mjs` mede quadros de tela com Wookada × Cogumelo, camadas ligadas × desligadas (Edge headless, render por software): média 17,2 → 18,6 ms, p95 19,6 → 19,1 ms; custo de animação das camadas ≈ 0,4 ms. Houve um engasgo isolado de aquecimento (primeiro cálculo de curva de apoio de clipes) nas duas condições.
 
 ## Verificação
 - `node prototypes/combat-lab/test/game-feel-5-9.test.mjs` (21 verificações: decisão de whiff, detecção de rig, limites de olhar, contrato de fases, paridade com o modo Definição).
