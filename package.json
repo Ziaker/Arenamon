@@ -1,6 +1,6 @@
 {
   "name": "arenamon",
-  "version": "1.49.4",
+  "version": "1.49.5",
   "description": "Laboratórios offline do projeto Arenamon",
   "scripts": {
     "morto": "npx --yes knip@5 --no-progress --reporter compact",
@@ -22,6 +22,7 @@
     "fichas": "node prototypes/combat-lab/gen-fichas.mjs",
     "novo-move": "node prototypes/combat-lab/novo-move.mjs",
     "build:combat-lab": "node prototypes/combat-lab/build.mjs",
+    "verificar:tamanho": "node scripts/check-tamanho.mjs",
     "build:vfx-elemental": "node prototypes/vfx-elemental/build.mjs",
     "build:vfx-composer": "node prototypes/vfx-composer/build.mjs",
     "build:hud-consumiveis": "node prototypes/hud-consumiveis/build.mjs",

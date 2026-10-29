@@ -61,6 +61,13 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
 4. **Publicação Segura de Compilados no GitHub:**
    Arquivos HTML compilados (`dist/`) podem permanecer ignorados pelo Git quando forem regeneráveis, mas devem existir na pasta local oficial ao serem entregues. Quando for necessário disponibilizar um HTML compilado externamente pelo GitHub, utilize mecanismos apropriados de publicação (como GitHub Releases ou artefatos de GitHub Actions), sem inflar o histórico de commits do repositório Git com arquivos gerados desnecessários.
 
+## Limite de tamanho de arquivo (regra obrigatória, verificada na CI)
+
+**Nenhum arquivo-fonte de código passa de 2.000 linhas** (`.js .mjs .ts .py .css .bat…`); **1.200 linhas é o alerta** para avaliar a modularização. Meta para módulos novos: 200–600 linhas, sem fragmentação artificial.
+- Divida **por funcionalidade real** (dados, materiais, uma família de efeitos, um conjunto de operadores…), preservando exports, parâmetros, comportamento visual, seeds determinísticas e caminhos de importação. Não vale comprimir várias operações numa linha, minificar nem mover tudo para outro módulo central gigante.
+- Arquivos **gerados ou compilados** (`dist/`, `*.generated.js`, `proposta-*.html`, evidências, replays, dados `.json`) não entram na regra; a lista aberta de isenções, com o motivo de cada uma, está em `scripts/check-tamanho.mjs`. Não divida HTML autocontido gerado: ele é offline por desenho.
+- Verifique com `npm run verificar:tamanho` (a CI roda o mesmo script e falha acima de 2.000 linhas). Ao tocar num arquivo em alerta, não o faça crescer sem dividir.
+
 ## Antes de editar
 
 1. Execute `git status --short --branch`, `git remote -v` e `git fetch origin`.

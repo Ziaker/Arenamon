@@ -67,3 +67,6 @@ Todas as 3 opções (A, B, C) em todas as abas (`Psíquico`, `Voador` e `Fogo`) 
 - **Dinâmica, Espaço e Cores:** `intensity`, `size`, `duration`, `velocity`, `amount`, `scatter`, `lift`, `turbulence`, `pulseFreq`, `glow` e 3 seletores de cor (`Cor Principal`, `Cor Secundária / Tinta / Runas`, `Cor do Núcleo / Fagulhas`).
 - **Exportador JSON (`arenamon-vfx-elemental-v3`) & Gerador de Prompt:** exporta todas as mudanças de sliders de todas as abas e gera o prompt pronto para implementação no jogo principal.
 
+
+## Código-fonte dividido (v1.49.5)
+`prototypes/vfx-elemental/src/main.js` passou de 2.920 para ≈ 730 linhas (limite de 2.000, AGENTS.md). Ele é só a entrada (renderer, câmera, interface, exportação e laço de render); o resto ficou em `data.js` (efeitos e sliders), `math.js`, `materials.js` (shaders), `scene-assets.js` (geometrias e lutadores-modelo), `stage.js` (classe `OptionStage`: criação dos nós, pool e despacho) e `effects/fire.js`, `effects/flying.js`, `effects/psychic.js` (uma família de efeitos cada, aplicada ao palco por mixin). O HTML gerado em `dist/` é equivalente (verify.mjs passa) e nada foi retirado.

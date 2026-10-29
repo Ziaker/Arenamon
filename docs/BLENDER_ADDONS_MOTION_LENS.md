@@ -60,3 +60,10 @@ Existe uma segunda versão de `motion_lens.py` em `Documents\Codex\…\outputs\`
 ## Relacionados
 
 - [Documentação do Blender Vision (percepção ativa)](BLENDER_VISION_PERCEPCAO.md)
+
+
+## Divisão por responsabilidade (v1.49.5)
+
+Para respeitar o limite de 2.000 linhas por arquivo (AGENTS.md), `scripts/blender-vision/addons/motion_lens.py` virou o **ponto de entrada** (≈ 55 linhas: `bl_info`, reexporta toda a API anterior e `register/unregister`) e o código foi para `scripts/blender-vision/addons/motion_lens_parts/`: `common` (utilitários e constantes), `contract`, `analysis`, `graphs`, `sheets` (contact sheet e esqueleto), `comparison` (ações e baseline), `report`, `ghosts`, `strikes`, `operators` e `ui`. Nenhuma função ou operador foi removido; o teste `tests/test_motion_lens_background.py` dá 7/7 e resultados idênticos aos da versão de arquivo único.
+
+**Instalar:** copie `motion_lens.py` **e** a pasta `motion_lens_parts/` juntos (ou rode `python scripts/blender-vision/instalar_motion_lens.py`, que por padrão só simula; `--instalar` copia e guarda a versão anterior como `.bak`). Uma cópia antiga de arquivo único instalada no Blender continua funcionando até ser trocada.

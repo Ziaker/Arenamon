@@ -51,6 +51,8 @@ jobs:
         run: npx tsc --noEmit -p prototypes/combat-lab/tsconfig.json
       - name: TypeScript estrito (catraca, o número de erros só pode cair)
         run: node scripts/estrito.mjs
+      - name: Limite de 2.000 linhas por arquivo-fonte
+        run: node scripts/check-tamanho.mjs
       - name: Build offline do laboratório
         run: npm run build:combat-lab
       - name: Contratos, fichas e índice dos Moves
