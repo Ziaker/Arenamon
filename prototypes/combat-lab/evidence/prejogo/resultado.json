@@ -88,7 +88,7 @@
     {
       "label": "three.quarks: cada seleção dispara rajadas na cena da prévia (contagem emitida > 0)",
       "ok": true,
-      "detail": "[{\"emitted\":12,\"active\":6},{\"emitted\":4,\"active\":0}]"
+      "detail": "[{\"emitted\":12,\"active\":4},{\"emitted\":4,\"active\":0}]"
     },
     {
       "label": "A→B→C→A (e passando por «Atual»): seleções, loadout do jogo, tick, fase e vida idênticos — nenhum reset, nenhuma partida iniciada",
@@ -197,8 +197,8 @@
     },
     {
       "label": "sem personagem carregado nem salvo: a tela abre, avisa «prévia indisponível» e não fabrica modelo nem seleção",
-      "ok": true,
-      "detail": "{\"visible\":true,\"noModel\":[true,true],\"note\":\"Nenhum personagem salvo no workspace: usando o carregado.\",\"name\":\"Sem modelo carregado\",\"cards\":58}"
+      "ok": false,
+      "detail": "{\"visible\":true,\"noModel\":[true,true],\"name\":\"Sem modelo carregado\",\"cards\":58}"
     },
     {
       "label": "sem modelo: sem erros de página",
@@ -216,5 +216,5 @@
       "detail": "THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context. | THREE.WebGLRenderer: THREE.WebGLRenderer: Error creating WebGL context."
     }
   ],
-  "failures": 0
+  "failures": 1
 }

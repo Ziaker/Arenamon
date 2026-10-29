@@ -17,8 +17,16 @@ try {
   await page.waitForFunction(() => window.__lab.ui.sources[0]?.name === 'wookada.glb', null, {timeout: 60000});
   const species = await page.evaluate(() => window.__lab.quickMenu.speciesOf(0));
   assert.equal(species, 'wookada', 'Espécie reconhecida');
+  const size = await page.evaluate(() => {
+    const ch = window.__lab.ui.characters[0];
+    return {height: ch.heightScale, width: ch.widthScale, free: ch.freeVerticalMotion, x: ch.root.scale.x, y: ch.root.scale.y};
+  });
+  assert.equal(size.height, 2, 'Altura 2×');
+  assert.equal(size.width, 2, 'Largura 2×');
+  assert.ok(size.y > 0 && Math.abs(size.x / size.y - 1) < 1e-6, 'Escala aplicada no modelo (largura = altura)');
+  assert.deepEqual(size.free, ['dodge', 'jump', 'tackle'], 'Esquiva, pulo e tackles fora da trava vertical');
   assert.deepEqual(errors, [], 'Sem erros de página');
-  console.log('ok: Wookada listado, carregado no Azul, espécie', species);
+  console.log('ok: Wookada listado, carregado no Azul, 2× em altura/largura, espécie', species);
 } finally {
   await browser.close();
 }
