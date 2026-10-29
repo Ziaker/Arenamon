@@ -2285,44 +2285,44 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.sandWave.waveSpeed` | Velocidade de avanço da onda | m/s | 0.25 | 80 | 0.05 | 13.3333 | src/sim/moves/sand-wave/sand-wave.js:29 | muda · sand-wave/perto |
 | `world.sandWave.waveAccel` | Aceleração da frente da onda | m/s² | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-wave.js:25 | muda · sand-wave/perto |
 | `world.sandWave.dissipate` | Dissipação visual | s | 0 | 6 | 0.05 | 0.75 | src/sim/moves/sand-wave/sand-wave.js:31 | muda · sand-wave/perto |
-| `world.sandWave.damage` | Dano fixo | número | 0 | 80 | 0.5 | 6 | src/sim/sand.js:145 | muda · sand-wave/perto |
-| `world.sandWave.knockbackH` | Knockback horizontal (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:145 | muda · sand-wave/perto |
-| `world.sandWave.knockbackV` | Knockback vertical (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:145 | muda · sand-wave/perto |
-| `world.sandWave.accel` | Empurrão contínuo (aceleração) | m/s² | 0 | 80 | 0.5 | 12 | src/sim/sand.js:187 | muda · sand-wave/perto |
-| `world.sandWave.pushSpeed` | Impulso inicial do empurrão | m/s | 0 | 40 | 0.5 | 13.3333 | src/sim/sand.js:155 | muda · sand-wave/perto |
+| `world.sandWave.damage` | Dano fixo | número | 0 | 80 | 0.5 | 6 | src/sim/sand.js:146 | muda · sand-wave/perto |
+| `world.sandWave.knockbackH` | Knockback horizontal (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:146 | muda · sand-wave/perto |
+| `world.sandWave.knockbackV` | Knockback vertical (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:146 | muda · sand-wave/perto |
+| `world.sandWave.accel` | Empurrão contínuo (aceleração) | m/s² | 0 | 80 | 0.5 | 12 | src/sim/sand.js:188 | muda · sand-wave/perto |
+| `world.sandWave.pushSpeed` | Impulso inicial do empurrão | m/s | 0 | 40 | 0.5 | 13.3333 | src/sim/sand.js:156 | muda · sand-wave/perto |
 | `world.sandWave.pushDuration` | Limite de tempo do empurrão | s | 0 | 6 | 0.05 | 0 | src/sim/moves/sand-wave/sand-push.js:61 | pendente (move) |
 | `world.sandWave.pushDurationMode` | Duração do empurrão | inteiro | 0 | 3 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:46 | muda · sand-wave/perto |
 | `world.sandWave.pushContinueAfterActive` | Modo legado: continua depois da janela de dano | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:66 | pendente (move) |
 | `world.sandWave.pushContinuesOutsideArea` | Empurrão continua fora do retângulo (experimental) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:113 | pendente (move) |
 | `world.sandWave.pushReleaseDelay` | Tolerância ao perder contato | s | 0 | 1 | 0.05 | 0 | src/sim/moves/sand-wave/sand-push.js:109 | pendente (move) |
 | `world.sandWave.pushContinuesDuringStagger` | Empurrão continua durante stagger/recuperação | liga/desliga | 0 | 1 | 1 | 1 | src/sim/moves/sand-wave/sand-push.js:116 | muda · sand-wave/defesa |
-| `world.sandWave.pushPreserveVelocity` | Velocidade própria preservada no contato | % | 0 | 1 | 0.05 | 0 | src/sim/sand.js:152 | pendente (move) |
+| `world.sandWave.pushPreserveVelocity` | Velocidade própria preservada no contato | % | 0 | 1 | 0.05 | 0 | src/sim/sand.js:153 | pendente (move) |
 | `world.sandWave.pushMaxSpeed` | Velocidade máxima do empurrão | m/s | 0 | 80 | 0.5 | 13.3333 | src/sim/moves/sand-wave/sand-wave.js:36 | pendente (move) |
 | `world.sandWave.pushAccelerationMode` | Modo de aceleração do empurrão | inteiro | 0 | 2 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:50 | muda · sand-wave/perto |
 | `world.sandWave.pushCurvePower` | Expoente da curva de aceleração | número | 0.25 | 4 | 0.05 | 1 | src/sim/moves/sand-wave/sand-push.js:139 | muda · sand-wave/perto |
 | `world.sandWave.pushTargetSpeed` | Velocidade-alvo do empurrão | m/s | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-push.js:143 | pendente (move) |
 | `world.sandWave.pushRampTime` | Constante de tempo da velocidade-alvo | s | 0.01 | 2 | 0.01 | 0.2 | src/sim/moves/sand-wave/sand-push.js:144 | pendente (move) |
-| `world.sandWave.pushClearsLocomotion` | Zerar movimento próprio no primeiro contato | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:152 | pendente (move) |
-| `world.sandWave.pushCancelsDodge` | Empurrão bloqueia nova esquiva | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:179 | pendente (move) |
-| `world.sandWave.pushCancelsExistingDodge` | Empurrão interrompe esquiva em andamento | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:179 | pendente (move) |
-| `world.sandWave.partialFactor` | Fator do empurrão na defesa parcial | número | 0 | 2 | 0.05 | 0.5 | src/sim/sand.js:155 | muda · sand-wave/defesa |
-| `world.sandWave.blind` | Duração da cegueira | s | 0 | 30 | 0.25 | 4 | src/sim/sand.js:161 | muda · sand-wave/perto |
-| `world.sandWave.blindOnPartial` | Cegar também na defesa parcial | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:161 | muda · sand-wave/defesa |
-| `world.sandWave.wallStagger` | Stagger contra a parede | s | 0 | 4 | 0.05 | 0.3 | src/sim/sand.js:222 | pendente (move) |
-| `world.sandWave.wallStaggerOn` | Ativar stagger ao ser prensado contra parede | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:221 | pendente (move) |
+| `world.sandWave.pushClearsLocomotion` | Zerar movimento próprio no primeiro contato | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:153 | pendente (move) |
+| `world.sandWave.pushCancelsDodge` | Empurrão bloqueia nova esquiva | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:180 | pendente (move) |
+| `world.sandWave.pushCancelsExistingDodge` | Empurrão interrompe esquiva em andamento | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:180 | pendente (move) |
+| `world.sandWave.partialFactor` | Fator do empurrão na defesa parcial | número | 0 | 2 | 0.05 | 0.5 | src/sim/sand.js:156 | muda · sand-wave/defesa |
+| `world.sandWave.blind` | Duração da cegueira | s | 0 | 30 | 0.25 | 4 | src/sim/sand.js:162 | muda · sand-wave/perto |
+| `world.sandWave.blindOnPartial` | Cegar também na defesa parcial | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:162 | muda · sand-wave/defesa |
+| `world.sandWave.wallStagger` | Stagger contra a parede | s | 0 | 4 | 0.05 | 0.3 | src/sim/sand.js:223 | pendente (move) |
+| `world.sandWave.wallStaggerOn` | Ativar stagger ao ser prensado contra parede | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:222 | pendente (move) |
 | `world.sandWave.visionRadius` | Raio de visão do cegado | m | 2 | 60 | 0.5 | 10 | src/sim/vision.js:13 | muda · sand-wave/contra-ataque |
 | `world.sandWave.fogDarkness` | Escurecimento do fog (só a câmera do cegado) | % | 0 | 2 | 0.05 | 0.6 | src/view/view.js:420 | pendente (move) |
-| `world.sandWave.cell` | Resolução do caminho livre (técnico) | m | 0.1 | 2 | 0.05 | 0.25 | src/sim/sand.js:48 | pendente (move) |
-| `world.sandWave.detour` | Margem de desvio (técnico) | m | 0 | 20 | 0.5 | 3 | src/sim/sand.js:48 | pendente (move) |
-| `world.sandWave.replanSteps` | Recalcular obstáculos a cada (passos) | inteiro | 1 | 120 | 1 | 6 | src/sim/sand.js:106 | pendente (move) |
+| `world.sandWave.cell` | Resolução do caminho livre (técnico) | m | 0.1 | 2 | 0.05 | 0.25 | src/sim/sand.js:49 | pendente (move) |
+| `world.sandWave.detour` | Margem de desvio (técnico) | m | 0 | 20 | 0.5 | 3 | src/sim/sand.js:49 | pendente (move) |
+| `world.sandWave.replanSteps` | Recalcular obstáculos a cada (passos) | inteiro | 1 | 120 | 1 | 6 | src/sim/sand.js:107 | pendente (move) |
 | `world.sandWave.waveHeight` | Altura mecânica da barragem | m | 0.1 | 6 | 0.05 | 0.35 | src/sim/moves/sand-wave/sand-wave.js:33 | pendente (move) |
-| `world.sandWave.wallPressMinSpeed` | Velocidade mínima para pressão na parede (técnico) | m/s | 0.1 | 10 | 0.1 | 0.6 | src/sim/sand.js:108 | pendente (move) |
-| `world.sandWave.wallPressMoveRatio` | Limiar de frenagem contra parede (técnico) | % | 0.05 | 1.8 | 0.05 | 0.25 | src/sim/sand.js:108 | muda · sand-wave/perto |
-| `world.sandWave.wallPressStopRatio` | Fração da intenção que conta como parada na parede | % | 0 | 2 | 0.05 | 0.3 | src/sim/sand.js:220 | muda · sand-wave/perto |
-| `world.sandWave.wallUnpinDistance` | Distância para soltar da parede | m | 0 | 1 | 0.005 | 0.01 | src/sim/sand.js:168 | pendente (move) |
-| `world.sandWave.waveBottomTolerance` | Tolerância da base da onda (técnico) | m | 0 | 2 | 0.01 | 0.2 | src/sim/sand.js:121 | pendente (move) |
-| `world.sandWave.hitsAirborne` | Acertar alvos em voo baixo | liga/desliga | 0 | 1 | 1 | 0 | src/sim/sand.js:119 | pendente (move) |
-| `world.sandWave.maxTargets` | Máximo de alvos por execução | inteiro | 1 | 32 | 1 | 16 | src/sim/sand.js:109 | pendente (move) |
+| `world.sandWave.wallPressMinSpeed` | Velocidade mínima para pressão na parede (técnico) | m/s | 0.1 | 10 | 0.1 | 0.6 | src/sim/sand.js:109 | pendente (move) |
+| `world.sandWave.wallPressMoveRatio` | Limiar de frenagem contra parede (técnico) | % | 0.05 | 1.8 | 0.05 | 0.25 | src/sim/sand.js:109 | muda · sand-wave/perto |
+| `world.sandWave.wallPressStopRatio` | Fração da intenção que conta como parada na parede | % | 0 | 2 | 0.05 | 0.3 | src/sim/sand.js:221 | muda · sand-wave/perto |
+| `world.sandWave.wallUnpinDistance` | Distância para soltar da parede | m | 0 | 1 | 0.005 | 0.01 | src/sim/sand.js:169 | pendente (move) |
+| `world.sandWave.waveBottomTolerance` | Tolerância da base da onda (técnico) | m | 0 | 2 | 0.01 | 0.2 | src/sim/sand.js:122 | pendente (move) |
+| `world.sandWave.hitsAirborne` | Acertar alvos em voo baixo | liga/desliga | 0 | 1 | 1 | 0 | src/sim/sand.js:120 | pendente (move) |
+| `world.sandWave.maxTargets` | Máximo de alvos por execução | inteiro | 1 | 32 | 1 | 16 | src/sim/sand.js:110 | pendente (move) |
 | `world.sandWave.hitShakeOn` | Tremor de câmera ao acertar | liga/desliga | 0 | 1 | 1 | 0 | src/view/vfx.js:54 | visual/depuração |
 | `world.sandWave.hitShakeAmount` | Tremor ao acertar: intensidade | × | 0 | 12 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
 | `world.sandWave.hitShakeDuration` | Tremor ao acertar: duração | × | 0.1 | 10 | 0.05 | 1 | src/view/vfx.js:54 | visual/depuração |
