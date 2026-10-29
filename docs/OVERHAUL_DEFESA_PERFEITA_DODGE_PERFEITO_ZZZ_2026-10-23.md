@@ -4,6 +4,8 @@
 
 **DOCX:** [`OVERHAUL_DEFESA_PERFEITA_DODGE_PERFEITO_ZZZ_2026-10-23.docx`](./OVERHAUL_DEFESA_PERFEITA_DODGE_PERFEITO_ZZZ_2026-10-23.docx)
 
+**Evolução:** para a versão ambiciosa (contra-golpe PL3, afterimage, stagger para trás), ver [`DEFESA_OVERHAUL_EPICO_BRAINSTORM.md`](./DEFESA_OVERHAUL_EPICO_BRAINSTORM.md) (29/10/2026). Este documento continua válido como auditoria e contrato-base.
+
 **Escopo:** auditoria read-only, especificação, câmera, VFX, testes e prompt operacional Claude com descoberta e uso verificado de Superpowers, Superskills e skills locais.
 
 ESPECIFICAÇÃO + PROMPT DE IMPLEMENTAÇÃO
