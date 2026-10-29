@@ -204,3 +204,13 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **Skill `arenamon-routing`:** direcionou a investigação para o runtime three.js do combat lab e preservou o escopo do jogo principal.
 - **Skill `threejs-gltf-loading`:** orientou a leitura do fluxo GLTFLoader, AnimationMixer, clipes, variantes, eventos do GLB e root motion existente em `prototypes/combat-lab/src/view/characters.js`.
 - **Resultado:** briefing transferível em `docs/BRIEFING_IA_EDITOR_ANIMACOES_ARENAMON.docx`, acessível pelo portal `ABRIR_ARENAMON.html`.
+
+### 2026-10-29 — Fundação de sensação dos Moves
+
+- **Tarefa:** iniciar o overhaul de resposta dos 19 Moves sem alterar balanceamento nem remover fallbacks, unificando identidade visual, fases mecânicas e feedback imediato de comando.
+- **Skill `arenamon-routing`:** manteve a mudança no Combat Lab three.js e direcionou a avaliação para game feel, física e câmera próprios do projeto.
+- **Skill `game-feel`:** orientou feedback transitório e proporcional. O HUD agora mostra `comando aceito`, `no buffer` ou a razão da negação, sem alterar permissões, stamina, cooldown ou simulação.
+- **Skill `physics-tuning`:** preservou a simulação como autoridade e impediu que metadados visuais passassem a criar hitboxes ou janelas ativas inexistentes.
+- **Skill `camera-systems`:** manteve todo feedback de câmera aditivo e exclusivamente visual; nenhum shake passou a deslocar corpos ou colisores.
+- **TDD:** novos testes `move-presentation.test.mjs`, `move-phases.test.mjs` e `move-command-feedback.test.mjs` foram observados em RED antes da implementação e depois aprovados em GREEN, junto das regressões de animação, timeline, UI e ordem de entradas.
+- **Preservação:** todos os 19 Moves, quatro slots, animações `move_1…move_4`, fallbacks para Tackle/idle, sliders, eventos e painéis permanecem disponíveis.

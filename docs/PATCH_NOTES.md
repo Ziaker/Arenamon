@@ -4,6 +4,14 @@ Versão atual: **v1.21.0** (22/10/2026). A versão aparece na barra superior do 
 
 ---
 
+## Em desenvolvimento — Fundação de sensação dos Moves (29/10/2026)
+
+- O HUD dos Moves responde imediatamente ao toque: **comando aceito**, **no buffer** ou **negado** com o motivo real do motor.
+- Novo contrato de identidade visual permite que um Move use animação própria independentemente do slot; quando ela não existe, o jogo preserva integralmente `move_1…move_4`, Tackle e idle.
+- Startup, janela ativa, recovery, cancelamento, invulnerabilidade e impactos agora possuem uma projeção efetiva única para timeline e futuras integrações, sem transformar marcações visuais em regras de dano.
+- Nenhum valor de dano, stamina, cooldown, alcance, Power Level, IA ou permissão foi rebalanceado nesta etapa.
+- Especificação e plano: `docs/superpowers/specs/2026-10-29-moves-feel-foundation-design.md` e `docs/superpowers/plans/2026-10-29-moves-feel-foundation.md`.
+
 ## v1.21.0 — Pré-jogo em três identidades visuais (22/10/2026)
 - **Seletor «Estilo: Atual · A Impacto · B Quadrinhos · C Clássico»** na tela inicial (Seleção Rápida). As três telas herdam a identidade dos HUDs do laboratório (`prototypes/hud-moves`) e trabalham sobre o MESMO estado do menu: trocar de estilo não perde escolhas, não reinicia nada e não inicia partida. Nenhum estilo é o oficial; o padrão continua «Atual».
 - Conteúdo real: personagens (modelos salvos + carregado) com prévia 3D, os Moves do registro executável (15), passivas genéricas e exclusivas da espécie com gatilho/efeito reais, validação do motor, teclado e movimento reduzido.

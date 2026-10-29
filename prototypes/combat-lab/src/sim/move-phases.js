@@ -22,8 +22,9 @@ export function effectiveMovePhases(def, group = null) {
   }
   const firstDanger = active[0]?.[0] ?? impacts[0]?.at ?? duration;
   const activeEnd = active.length ? active.at(-1)[1] : firstDanger;
-  const cancelAt = Number.isFinite(def?.tackle ? group?.chainAfter : def?.cancelAfter)
-    ? clamp(def.tackle ? group.chainAfter : def.cancelAfter, duration)
+  const cancelSource = def?.tackle ? group?.chainAfter : def?.cancelAfter;
+  const cancelAt = Number.isFinite(cancelSource)
+    ? clamp(cancelSource, duration)
     : null;
   const invulnerable = Array.isArray(def?.invulnerable) && def.invulnerable[1] > def.invulnerable[0]
     ? [[clamp(def.invulnerable[0], duration), clamp(def.invulnerable[1], duration)]]

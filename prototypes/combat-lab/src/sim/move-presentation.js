@@ -3,7 +3,7 @@
 // específica, a ordem de fallbacks permanece a mesma do caminho legado por slot.
 
 const clampSlot = (/** @type {number} */ slot) => Math.max(0, Math.min(3, Number.isFinite(slot) ? Math.trunc(slot) : 0));
-const unique = (/** @type {(string | null | undefined)[]} */ values) => [...new Set(values.filter(v => typeof v === 'string' && v.length > 0))];
+const unique = (/** @type {(string | null | undefined)[]} */ values) => /** @type {string[]} */ ([...new Set(values.filter((/** @returns {v is string} */ v => typeof v === 'string' && v.length > 0)))]);
 
 /**
  * @param {{id?: string, presentation?: {action?: string, charge?: string, release?: string}}} def
