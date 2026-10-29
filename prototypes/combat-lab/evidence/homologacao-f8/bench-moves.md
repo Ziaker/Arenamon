@@ -9,12 +9,12 @@
 
 | Cenário | P50 µs | P95 µs | P99 µs | Máx µs | P95 / orçamento | Passos/s (P50) | Entidades (máx) | Heap Δ KB | Ruído entre repetições |
 |---|---|---|---|---|---|---|---|---|---|
-| IA × IA, nenhum Move equipado (baseline) | 23.3 | 37.3 | 64.9 | 1879.5 | 0.448% | 42.918 | 0 | -20327 | 21.8% ⚠ alto |
-| IA × IA com 4 Moves equipados em cada lado | 16.5 | 38.2 | 80.6 | 553.4 | 0.458% | 60.606 | 3 | 5693 | 0.8% |
-| Swift repetido (stamina infinita): muitos projéteis | 33.8 | 72.4 | 113.8 | 1049.5 | 0.869% | 29.586 | 9 | 16043 | 17.6% ⚠ alto |
-| Fire Spin repetido: várias zonas de pulso ativas | 10.8 | 19.8 | 40.8 | 496.3 | 0.238% | 92.593 | 1 | 7105 | 19.2% ⚠ alto |
-| Reflect do azul contra projéteis do vermelho | 18.2 | 46.5 | 92.1 | 635.8 | 0.558% | 54.945 | 8 | 233 | 11.9% |
-| Mundo no limite de entidades (C.world.maxEntities) | 276.5 | 370.8 | 620.4 | 899.9 | 4.45% | 3.617 | 64 | -11321 | 0.5% |
+| IA × IA, nenhum Move equipado (baseline) | 19.4 | 36.8 | 58.5 | 678.8 | 0.442% | 51.546 | 0 | 1395 | 4.4% |
+| IA × IA com 4 Moves equipados em cada lado | 16.9 | 43 | 92.5 | 794.8 | 0.516% | 59.172 | 3 | 5967 | 7.4% |
+| Swift repetido (stamina infinita): muitos projéteis | 29.8 | 70.5 | 106.7 | 710.5 | 0.846% | 33.557 | 9 | -5152 | 17% ⚠ alto |
+| Fire Spin repetido: várias zonas de pulso ativas | 7.8 | 16.2 | 31 | 463.6 | 0.194% | 128.205 | 1 | 7085 | 31.4% ⚠ alto |
+| Reflect do azul contra projéteis do vermelho | 20.1 | 55 | 100.6 | 591.2 | 0.66% | 49.751 | 8 | 247 | 15.8% ⚠ alto |
+| Mundo no limite de entidades (C.world.maxEntities) | 271.5 | 379.4 | 619.5 | 904.2 | 4.553% | 3.683 | 64 | -11605 | 0.5% |
 
 ## Leitura
 

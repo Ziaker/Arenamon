@@ -60,3 +60,22 @@ A integridade do Editor é aferida continuamente por `moves-contracts.test.mjs` 
   ✓ cada slider tem rótulo, descrição, faixa que contém o padrão e formato com unidade
 11 verificações dos sliders dos Moves aprovadas, 0 falhas.
 ```
+
+---
+
+## 5. Cobertura real medida (F7, atualizado em 29/10/2026)
+
+A matriz executável está em `docs/MATRIZ_SLIDERS_F7.md`, gerada por `scripts/gen-matriz-sliders.mjs` e exigida em dia pelo teste `prototypes/combat-lab/test/f7-sliders-coverage.test.mjs` (commits a43a487 e 60bad42).
+
+| Medida | Valor |
+|---|---|
+| Sliders (Ajustes + Moves) | **1632** (1195 + 437); o mesmo número antes e depois do overhaul |
+| Round-trip JSON (exportar → importar e preset salvo) | 1632 de 1632 preservados |
+| Gameplay com A/B mín × máx que muda o cenário curto | **499** |
+| Visual/depuração (sem A/B da simulação) | 805 |
+| Gameplay sem A/B observável em cenário curto (pendentes, com motivo) | **304** (orçamento que só pode diminuir) |
+| Órfãos rotulados «(sem efeito)» com ajuda «Não aplicado» | **24** (nenhum apagado) |
+| Sliders numéricos sem unidade no formato | **354** (orçamento que não pode crescer) |
+| Só no HUD, a simulação não aplica | `map.stageCooldownReduction`, `map.stageSpeedBonus` |
+
+**Decisão pendente do responsável:** para cada órfão e para os 2 bônus que só aparecem no HUD, escolher entre ligar com padrão neutro, manter como legado ou remover com alias e migração de preset. A lista fica em `docs/MATRIZ_SLIDERS_F7.md`, seção «Decisões pendentes do responsável».

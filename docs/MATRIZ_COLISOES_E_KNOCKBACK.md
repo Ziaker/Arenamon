@@ -69,3 +69,18 @@ Para garantir que personagens e projéteis rápidos não atravessem sólidos em 
 - Projéteis utilizam varredura volumétrica contínua (`sweepBox` / `firstContact`).
 - Em caso de múltiplos contatos no mesmo passo, a resolução ocorre em ordem física temporal estrita (menor $t \in [0, 1]$).
 - Lutadores empurrados contra paredes pelo *Sand Wave* ou *Meteor Slam* têm sua translação limitada pelo plano de contato da parede antes de qualquer aplicação de dano residual.
+
+---
+
+## 5. O que está implementado hoje (F3–F9, atualizado em 29/10/2026)
+
+| Item | Código | Teste | Commit |
+|---|---|---|---|
+| Consultas de colisão únicas: `solidsOf(mapState, world, {platforms, barriers, destructibles})`, `pointInSolid`, `segmentClear` (amostragem de 0,2 m mantida para não mudar a IA), `navSolidsOf`, `insideFootprint`, `groundSurface`, `groundHeightAt`, `closestOnShape` | `src/sim/collision/queries.js` (consumidos por `vision.js`, `nav/nav-graph.js`, `world.js`, `map/map-step.js`, `physics.js`) | `f4-collider-queries.test.mjs` (oráculo com 5 sementes: resultado idêntico às cópias antigas) | 3fb7a64 |
+| Spawn validado com recusa determinística (espiral sem sortear; o RNG fica igual) | `src/sim/map/map-spawn.js` (`placeOrReject`, `nearestValidInArena`) | `f4-spawn.test.mjs` (oráculo de 250 sementes) | 536af4b |
+| Solver: penetração residual medida (`physicsProbe.staticResidualMax` por passo, `staticResidualPeak` acumulado, mostrados no painel ao vivo) e escape `pinEscape` acima de 0,02 m (busca própria em anéis de 0,1 m até 4 m, com fallback para a arena inteira) | `src/sim/physics.js`, `src/sim/collision-probe.js`, `src/app/live-panels.js` | `f4-solver.test.mjs` | ad4973b, db5222e |
+| Projétil varrido contra lutadores no subpasso (antes só sobreposição no fim): corrige o tunelamento ao raspar quina (24 de 1.968 casos) | `src/sim/world.js` | `f4-geometry-gate.test.mjs` (120 m/s contra lutador parado sempre acerta; pierce 2; ricochete radial) | db5222e |
+| Gate geométrico: salto sobre plataforma de 1,0 e 1,5 m só pousa com contato real; queda pela borda mantém vx/vz e cai balística; mapa reembaralhado sem interseção | — | `f4-geometry-gate.test.mjs` (14 cenários) | db5222e |
+| `C.test.penetrationTolerance` (tolerância técnica, sem slider): o reset de configuração devolve o valor embutido (0,02 m) | `src/sim/config.js` (`resetConfig`) | `f4-solver.test.mjs` | F9 (este commit) |
+
+**Limites conhecidos (não alterados):** a ordem lutador × parede no mesmo subpasso segue a ordem do laço, não o instante de impacto. O arrasto `launchDrag` age na queda pela borda, o que é uma decisão de gameplay. O efeito colateral da varredura de projéteis (2 acertos de raspão novos em 200 lutas) explica a guarda estatística do `ai-eval` que falha (ver o relatório final).

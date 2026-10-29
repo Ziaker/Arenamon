@@ -2,7 +2,7 @@
 "map-config":["MAP_DEFAULTS","CONSUMABLE_TYPES"],
 "map-state":["createMapState","nextRandom","randomRange","getArenaScale","effectiveArenaRadius","pickRandomConsumableType","dist2D","dist3D","solidGap"],
 "map-spawn":["footprintOf","isValidSpawnPosition","findNearestValidPosition","bodyGapToBox","fighterBlocksBox","clearPlatformsOfFighters","initMap","generateFighterSpawnPositions"],
-"map-step":["stepMap","getGroundHeightAt"],
+"map-step":["stepMap"],
 "map-consumables":["applyConsumableEffect","applyHpHeal","applyStaminaHeal","applyShield","stepShield"],
 "map-damage":["processDamageWithShieldAndStages","damageDestructible"],
 "map-collision":["TOUCH_EPS","risesOver","isLaunchThrow","bounceOffSolid","collideMapFighter"]}}

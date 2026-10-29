@@ -201,8 +201,11 @@ function paramsOf(/** @type {string} */ id) {
 
 // ---------- (b)/(c) verificação estática ----------
 const walk = (/** @type {string} */ dir) => readdirSync(dir).flatMap(/** @returns {string[]} */ f => {const p = `${dir}/${f}`;return statSync(p).isDirectory() ? walk(p) : p.endsWith('.js') ? [p] : [];});
-/** Mutação direta de HP/escudo de qualquer objeto: `.hp =`, `.hp -=`, `.hp +=`, `.hp--`, `.shield.hp …`, `['hp'] =`. */
-export const HP_WRITE = /\.hp\s*(?:[-+*/]?=(?!=)|--|\+\+)|\[['"]hp['"]\]\s*[-+]?=(?!=)/;
+/**
+ * Mutação direta de HP/escudo de qualquer objeto: `.hp =`, `.hp -=`/`+=`/`*=`/`/=`/`%=`/`**=`, `.hp ??=`/`||=`/`&&=`, `.hp--`, `--x.hp` (prefixo),
+ * `.shield.hp …`, `['hp'] =`, troca do objeto inteiro `.shield = {` e `Object.assign(…hp|shield…)` (F9: brechas apontadas na revisão da F6).
+ */
+export const HP_WRITE = /\.hp\s*(?:(?:[-+*/%]|\*\*|\?\?|\|\||&&)?=(?!=)|--|\+\+)|(?:--|\+\+)\s*[\w$.]*\.hp\b|\[['"]hp['"]\]\s*(?:[-+*/%]|\?\?|\|\||&&)?=(?!=)|\.shield\s*=\s*\{|Object\.assign\([^)]*\b(?:hp|shield)\b/;
 export const DEFENSE_MATH = /guardDamageMultiplier|stageDefenseReduction/;
 /**
  * Lista EXPLÍCITA do que pode escrever HP/escudo fora de src/sim/resolvers/ — cada entrada com o motivo. Uma linha nova que escreva HP fora daqui
@@ -220,13 +223,14 @@ export const HP_WRITE_ALLOW = Object.freeze([
   {file: 'src/sim/world.js', match: /b\.hp -= p\.hit\?\.damage/, why: 'HP de barreira (entidade do mundo) atingida por projétil'},
   {file: 'src/sim/scenarios-collision.js', match: /\.hp = 30/, why: 'montagem do estado inicial de cenário técnico (não roda na partida)'},
   {file: 'src/sim/scenarios-map.js', match: /\.hp = /, why: 'montagem do estado inicial de cenário técnico (não roda na partida)'},
+  {file: 'src/sim/scenarios-map.js', match: /\.shield = \{hp: \d+, duration: [\d.]+, maxHp: 80\};/, why: 'escudo inicial montado no cenário técnico (não roda na partida); pego pela varredura endurecida da F9'},
   {file: 'src/sim/scenarios-passives.js', match: /\.hp = /, why: 'montagem do estado inicial de cenário técnico (não roda na partida)'},
 ]);
 /** Leitura de guardDamageMultiplier/stageDefenseReduction fora do resolvedor — cada entrada justificada (nenhuma recalcula o dano do golpe). */
 export const DEFENSE_MATH_ALLOW = Object.freeze([
   {file: 'src/sim/config.js', match: /guardDamageMultiplier: \.5/, why: 'valor de fábrica (config)'},
   {file: 'src/sim/map/map-config.js', match: /stageDefenseReduction: 0\.10/, why: 'valor de fábrica (config do mapa)'},
-  {file: 'src/sim/combat.js', match: /defStageKnockbackMult/, why: 'estágio de Defesa reduz o KNOCKBACK do Tackle (R6.11) — reação, não dano; o dano já saiu do resolvedor'},
+  {file: 'src/sim/combat.js', match: /const defStageKnockbackMult = /, why: 'estágio de Defesa reduz o KNOCKBACK do Tackle (R6.11) — reação, não dano; o dano já saiu do resolvedor'},
   {file: 'src/sim/moves/move-mechanics-audit.js', match: /path: 'extras\.combat\.guardDamageMultiplier'/, why: 'catálogo da auditoria (texto do caminho do parâmetro)'},
   {file: 'src/sim/scenarios-tackle.js', match: /guardDamageMultiplier/, why: 'oráculo do cenário técnico (valor esperado), não aplica dano'},
   {file: 'src/sim/scenarios.js', match: /guardDamageMultiplier/, why: 'oráculo do cenário técnico (valor esperado), não aplica dano'},

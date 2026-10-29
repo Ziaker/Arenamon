@@ -64,6 +64,7 @@ Grupos do DOCX §13. «Parâmetros» = linhas da ficha no editor; a cobertura de
 | `prototypes/combat-lab/src/sim/world.js` | `b\.hp -= p\.hit\?\.damage` | HP de barreira (entidade do mundo) atingida por projétil |
 | `prototypes/combat-lab/src/sim/scenarios-collision.js` | `\.hp = 30` | montagem do estado inicial de cenário técnico (não roda na partida) |
 | `prototypes/combat-lab/src/sim/scenarios-map.js` | `\.hp = ` | montagem do estado inicial de cenário técnico (não roda na partida) |
+| `prototypes/combat-lab/src/sim/scenarios-map.js` | `\.shield = \{hp: \d+, duration: [\d.]+, maxHp: 80\};` | escudo inicial montado no cenário técnico (não roda na partida); pego pela varredura endurecida da F9 |
 | `prototypes/combat-lab/src/sim/scenarios-passives.js` | `\.hp = ` | montagem do estado inicial de cenário técnico (não roda na partida) |
 
 Nenhuma escrita fora da lista.
@@ -74,7 +75,7 @@ Nenhuma escrita fora da lista.
 |---|---|---|
 | `prototypes/combat-lab/src/sim/config.js` | `guardDamageMultiplier: \.5` | valor de fábrica (config) |
 | `prototypes/combat-lab/src/sim/map/map-config.js` | `stageDefenseReduction: 0\.10` | valor de fábrica (config do mapa) |
-| `prototypes/combat-lab/src/sim/combat.js` | `defStageKnockbackMult` | estágio de Defesa reduz o KNOCKBACK do Tackle (R6.11) — reação, não dano; o dano já saiu do resolvedor |
+| `prototypes/combat-lab/src/sim/combat.js` | `const defStageKnockbackMult = ` | estágio de Defesa reduz o KNOCKBACK do Tackle (R6.11) — reação, não dano; o dano já saiu do resolvedor |
 | `prototypes/combat-lab/src/sim/moves/move-mechanics-audit.js` | `path: 'extras\.combat\.guardDamageMultiplier'` | catálogo da auditoria (texto do caminho do parâmetro) |
 | `prototypes/combat-lab/src/sim/scenarios-tackle.js` | `guardDamageMultiplier` | oráculo do cenário técnico (valor esperado), não aplica dano |
 | `prototypes/combat-lab/src/sim/scenarios.js` | `guardDamageMultiplier` | oráculo do cenário técnico (valor esperado), não aplica dano |

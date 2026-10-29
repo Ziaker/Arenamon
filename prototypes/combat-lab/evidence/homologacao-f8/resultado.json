@@ -1,6 +1,6 @@
 {
- "geradoEm": "2026-10-29T04:08:13.728Z",
- "commitBase": "d079833",
+ "geradoEm": "2026-10-29T11:33:44.123Z",
+ "commitBase": "d7539ac",
  "maquina": {
   "cpu": "12th Gen Intel(R) Core(TM) i5-12450H",
   "nucleos": 12,
@@ -16,7 +16,7 @@
     4
    ],
    "secondsPerSession": 180,
-   "wallSeconds": 8.5,
+   "wallSeconds": 8.9,
    "totals": {
     "events": 1659,
     "impacts": 260,
@@ -28,11 +28,11 @@
    },
    "stepTimeMs": {
     "steps": 86400,
-    "p50": 0.0653,
-    "p95": 0.1639,
-    "p99": 0.3192,
-    "max": 23.6518,
-    "mean": 0.094
+    "p50": 0.0683,
+    "p95": 0.1823,
+    "p99": 0.3641,
+    "max": 29.7944,
+    "mean": 0.0984
    },
    "budgetMs": {
     "p95": 2,
@@ -828,67 +828,67 @@
    "rows": [
     {
      "id": "ia-sem-moves",
-     "p50us": 23.3,
-     "p95us": 37.3,
-     "p99us": 64.9,
-     "maxUs": 1879.5,
-     "budgetPctP95": 0.448,
+     "p50us": 19.4,
+     "p95us": 36.8,
+     "p99us": 58.5,
+     "maxUs": 678.8,
+     "budgetPctP95": 0.442,
      "maxEntities": 0,
-     "noisy": true
+     "noisy": false
     },
     {
      "id": "ia-todos-os-moves",
-     "p50us": 16.5,
-     "p95us": 38.2,
-     "p99us": 80.6,
-     "maxUs": 553.4,
-     "budgetPctP95": 0.458,
+     "p50us": 16.9,
+     "p95us": 43,
+     "p99us": 92.5,
+     "maxUs": 794.8,
+     "budgetPctP95": 0.516,
      "maxEntities": 3,
      "noisy": false
     },
     {
      "id": "swift-metralhadora",
-     "p50us": 33.8,
-     "p95us": 72.4,
-     "p99us": 113.8,
-     "maxUs": 1049.5,
-     "budgetPctP95": 0.869,
+     "p50us": 29.8,
+     "p95us": 70.5,
+     "p99us": 106.7,
+     "maxUs": 710.5,
+     "budgetPctP95": 0.846,
      "maxEntities": 9,
      "noisy": true
     },
     {
      "id": "zonas-fire-spin",
-     "p50us": 10.8,
-     "p95us": 19.8,
-     "p99us": 40.8,
-     "maxUs": 496.3,
-     "budgetPctP95": 0.238,
+     "p50us": 7.8,
+     "p95us": 16.2,
+     "p99us": 31,
+     "maxUs": 463.6,
+     "budgetPctP95": 0.194,
      "maxEntities": 1,
      "noisy": true
     },
     {
      "id": "reflect-x-projeteis",
-     "p50us": 18.2,
-     "p95us": 46.5,
-     "p99us": 92.1,
-     "maxUs": 635.8,
-     "budgetPctP95": 0.558,
+     "p50us": 20.1,
+     "p95us": 55,
+     "p99us": 100.6,
+     "maxUs": 591.2,
+     "budgetPctP95": 0.66,
      "maxEntities": 8,
-     "noisy": false
+     "noisy": true
     },
     {
      "id": "entidades-no-limite",
-     "p50us": 276.5,
-     "p95us": 370.8,
-     "p99us": 620.4,
-     "maxUs": 899.9,
-     "budgetPctP95": 4.45,
+     "p50us": 271.5,
+     "p95us": 379.4,
+     "p99us": 619.5,
+     "maxUs": 904.2,
+     "budgetPctP95": 4.553,
      "maxEntities": 64,
      "noisy": false
     }
    ]
   },
-  "extraWallSeconds": 33.7
+  "extraWallSeconds": 35.6
  },
  "browser": {
   "geradoEm": "2026-10-29T04:09:34.569Z",

@@ -24,7 +24,7 @@ Moves registrados: **19**. Em ficha única (um arquivo): 16. Veja `docs/COMO_CRI
 | `water-pulse` | `waterPulse` | 9 | 11 | 28 | 15 |
 | `fire-spin` | `fireSpin` | 8 | 9 | 18 | 9 |
 | `air-slash` | `airSlash` | 8 | 9 | 21 | 9 |
-| `seed-bomb` | `seedBomb` | 8 | 10 | 16 | 9 |
+| `seed-bomb` | `seedBomb` | 8 | 10 | 16 | 10 |
 
 ## Detalhe por Move
 
@@ -246,7 +246,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-elemental.test.mjs` · 
 - **ui (painéis):** `prototypes/combat-lab/src/ui/elemental-move-controls.js`, `prototypes/combat-lab/src/ui/elemental-visual-model.js`, `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`, `prototypes/combat-lab/src/ui/moves-vfx-panel.js`
 - **view (desenho):** `prototypes/combat-lab/src/view/quarks/elemental-game-params.js`, `prototypes/combat-lab/src/view/quarks/elemental-game.js`, `prototypes/combat-lab/src/view/quarks/elemental-preview.js`, `prototypes/combat-lab/src/view/quarks/presets.js`, `prototypes/combat-lab/src/view/vfx.js`
 - **testes:** `prototypes/combat-lab/test/ai-elemental.test.mjs`, `prototypes/combat-lab/test/ai-profile.test.mjs`, `prototypes/combat-lab/test/elemental-quarks.browser.mjs`, `prototypes/combat-lab/test/elemental-seed-controls.browser.mjs`, `prototypes/combat-lab/test/elemental-water-controls.browser.mjs`, `prototypes/combat-lab/test/f6-moves-contract-lib.mjs`, `prototypes/combat-lab/test/f6-seedbomb-visual.test.mjs`, `prototypes/combat-lab/test/f7-sliders-coverage-lib.mjs`, `prototypes/combat-lab/test/move-editor.test.mjs`, `prototypes/combat-lab/test/moves-ab-sensitivity.test.mjs`, `prototypes/combat-lab/test/moves-contracts.test.mjs`, `prototypes/combat-lab/test/moves-elementais.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-rodada-23-10.test.mjs`, `prototypes/combat-lab/test/moves-seed-bomb.test.mjs`, `prototypes/combat-lab/test/vfx-colisao.browser.mjs`
-- **documentos:** `docs/AUDITORIA_SLIDERS_MECANICOS_MOVES.md`, `docs/CODIGO_SEM_USO_KNIP.md`, `docs/MATRIZ_COBERTURA_NUMERICA.md`, `docs/MATRIZ_MIGRACAO_MOVES_F6.md`, `docs/MATRIZ_MOVES_2026-10-23.md`, `docs/MATRIZ_MOVES_2026-10-25.md`, `docs/MATRIZ_SLIDERS_F7.md`, `docs/MOVES_ELEMENTAIS_PROTOTIPO.md`, `docs/PLANO_EDITOR_DE_MOVES.md`
+- **documentos:** `docs/AUDITORIA_SLIDERS_MECANICOS_MOVES.md`, `docs/CODIGO_SEM_USO_KNIP.md`, `docs/CONTRATO_EVENTOS_VFX.md`, `docs/MATRIZ_COBERTURA_NUMERICA.md`, `docs/MATRIZ_MIGRACAO_MOVES_F6.md`, `docs/MATRIZ_MOVES_2026-10-23.md`, `docs/MATRIZ_MOVES_2026-10-25.md`, `docs/MATRIZ_SLIDERS_F7.md`, `docs/MOVES_ELEMENTAIS_PROTOTIPO.md`, `docs/PLANO_EDITOR_DE_MOVES.md`
 
 Testes executáveis: `node prototypes/combat-lab/test/ai-elemental.test.mjs` · `node prototypes/combat-lab/test/ai-profile.test.mjs` · `node prototypes/combat-lab/test/f6-seedbomb-visual.test.mjs` · `node prototypes/combat-lab/test/move-editor.test.mjs` · `node prototypes/combat-lab/test/moves-ab-sensitivity.test.mjs` · `node prototypes/combat-lab/test/moves-contracts.test.mjs` · `node prototypes/combat-lab/test/moves-revisao.test.mjs` · `node prototypes/combat-lab/test/moves-rodada-23-10.test.mjs` · `node prototypes/combat-lab/test/moves-seed-bomb.test.mjs`
 

@@ -119,3 +119,36 @@ As seguintes skills foram inspecionadas em seus arquivos `SKILL.md` e registrada
 - [x] Confirmação e classificação individual de todos os achados EST-01..06, VFX-01..07 e ARC-01..09.
 - [x] Mapeamento dos riscos e arquitetura-alvo documentada.
 - [ ] **Aprovação do usuário para transição à Fase F1 (Definição de Contratos e Testes RED).**
+
+---
+
+## 6. Estado dos achados depois do overhaul F3–F9 (atualizado em 29/10/2026, F9)
+
+Branch `feat/overhaul-arquitetural-f3-f9`. Os testes citados ficam em `prototypes/combat-lab/test/`. «Commit» é onde a correção entrou; os commits `6e82475`, `9ef45ba`, `8b476f8`, `7eecc57` e `c0ed032` são da main antes do branch (base `96205a5`). Status: **validado em teste** = há teste automático verde que cobre o achado; **parcial** = coberto em parte, com limite escrito ao lado; **pendente decisão humana** = depende do responsável.
+
+| ID | Status | Teste | Commit(s) | Observação |
+|---|---|---|---|---|
+| EST-01 | validado em teste | `p0-vfx-states.test.mjs` (EST-01) | 6e82475, 9ef45ba | — |
+| EST-02 | validado em teste | `p0-vfx-states.test.mjs` (EST-02); `f3-reaction-resolver.test.mjs` (guardBreak) | 6e82475, d4e8560 | `resolveHit` usa `applyReaction` (`recoil/guardBreak/guardStun/perfectGuard`). |
+| EST-03 | validado em teste | `p0-vfx-states.test.mjs` (EST-03); `f3-reaction-resolver.test.mjs` (`stagger`) | 6e82475, d4e8560 | — |
+| EST-04 | validado em teste | `p0-vfx-states.test.mjs` (EST-04) | 6e82475 | — |
+| EST-05 | validado em teste | `p0-vfx-states.test.mjs` (EST-05); `f3-permissions.test.mjs` | 6e82475, a7c77dc | `actionPermissions(f)` deriva o que o lutador pode fazer (derrotado: nada). |
+| EST-06 | validado em teste | `p0-vfx-states.test.mjs` (EST-06) | 6e82475 | — |
+| VFX-01 | validado em teste | `p0-vfx-states.test.mjs` (VFX-01); `f5-vfx-coords.test.mjs` | 6e82475, 71536bc | Projéteis gravam o ponto do contato (CONTRATO_EVENTOS_VFX §6). |
+| VFX-02 | validado em teste | `f3-combat-event.test.mjs` (destructibleSplat); `f5-vfx-dispatch.test.mjs` | 6e82475, 3e36d48 | Evento ambiental: `attackerId` null, `indirectAttackerId` preenchido. |
+| VFX-03 | validado em teste | `f3-combat-event.test.mjs` (wall splat); `f5-vfx-dispatch.test.mjs` | 6e82475, 8b476f8, 3e36d48 | — |
+| VFX-04 | validado em teste | `p0-vfx-states.test.mjs` (clash do Jogador 2, dois clashes no mesmo tick) | 8b476f8, 7eecc57 | — |
+| VFX-05 | validado em teste | `p0-vfx-states.test.mjs` (VFX-05); `f5-vfx-dispatch.test.mjs` (resultado sem dono não desenha) | 6e82475, e5e52ae, 2f1e5dd | Tabela `OWNERS` + lista `SEM_VISUAL` em `src/view/vfx/dispatch.js`. |
+| VFX-06 | validado em teste | `p0-vfx-states.test.mjs` (EST-03 confere a `normal`) | 6e82475 | — |
+| VFX-07 | validado em teste | `f5-reset.test.mjs` (100 ciclos headless); `f8-homologacao.browser.mjs` (100 reinícios, memória da GPU) | 6e82475, 9dcfcf5, 33ef5d5 | — |
+| ARC-01 | validado em teste | `p0-vfx-states.test.mjs` (ARC-01); `f4-geometry-gate.test.mjs` (pierce 2 no mesmo passo) | 6e82475, db5222e | — |
+| ARC-02 | validado em teste | `f4-spawn.test.mjs` | 536af4b | `placeOrReject` recusa em vez de `found \|\| rawPos`; `spawnRejected` + `mapState.spawnLog`. |
+| ARC-03 | validado em teste | `f4-solver.test.mjs`; `f4-geometry-gate.test.mjs` | ad4973b, db5222e | Resíduo medido (`physicsProbe.staticResidualMax/Peak`) e escape `pinEscape` acima de 0,02 m. |
+| ARC-04 | parcial | `f5-vfx-coords.test.mjs` (45 casos de corte) | afb0e3e, 71536bc | A frente visual é cortada onde a física não alcança, mas continua um retângulo reto: não faz curva em volta do obstáculo. |
+| ARC-05 | validado em teste | `f5-vfx-coords.test.mjs` (Sand Wave na posição do contato) | 9ef45ba, 8b476f8, 42d5235 | — |
+| ARC-06 | validado em teste | `f5-vfx-coords.test.mjs` (Water Pulse: ordem `sync → onEvent`, escudo/parcial/plataforma) | 7eecc57, afb0e3e | — |
+| ARC-07 | pendente decisão humana | `f5-vfx-dispatch.test.mjs` (um dono de partículas por resultado nos 4 modos) | e5e52ae, 2f1e5dd | `useNewVfx` continua `false` por padrão; ninguém viu os modos novo e quarks no navegador. |
+| ARC-08 | validado em teste | `f3-reaction-resolver.test.mjs` | d4e8560 | `applyReaction` separa `impulse` (m/s), `displacement` (m e s) e a força contínua do Sand Wave (`'force'`); todo evento grava `displacementPolicy`. |
+| ARC-09 | validado em teste | `f3-damage-resolver.test.mjs` (oráculo 23.040 combinações, conservação de HP); `f6-moves-contract.test.mjs` | 7e6e914, d4e8560, ad32c13 | Dano só por `resolveDamage` (varredura estática endurecida na F9). |
+
+Adaptadores que continuam existindo e o motivo estão no relatório final `docs/RELATORIO_OVERHAUL_F0_F9.md` (seção «Auditoria de legados»).

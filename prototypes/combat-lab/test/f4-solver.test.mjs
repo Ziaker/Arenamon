@@ -127,3 +127,10 @@ test('destrutível morto sem posição de respawn: UMA recusa (evento + spawnLog
   for (let t = 0; t < 3 / dt; t++) stepMap(ms, dt, [], events, t);
   assert.equal(events.filter(e => e.result === 'spawnRejected').length, 1, 'novo ciclo morto: uma recusa');
 });
+
+test('F9: resetConfig desfaz override de C.test.penetrationTolerance (tolerância técnica fora de defaults(), sem slider)', () => {
+  resetConfig(defaults());C.test.penetrationTolerance = .5;
+  resetConfig(defaults());
+  assert.equal(C.test.penetrationTolerance, undefined, 'o override de um teste não pode vazar para o próximo');
+  assert.equal('penetrationTolerance' in defaults().test, false, 'continua fora de defaults() (não vira slider nem entra em presets)');
+});

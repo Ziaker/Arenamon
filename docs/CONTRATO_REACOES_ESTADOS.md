@@ -70,3 +70,17 @@ Ao tocar clipes com base no tempo de atordoamento (`hitstun` ou `stagger`):
   $$\text{progresso} = 1.0 - \text{clamp}\left(\frac{f.stun}{f.stunMax},\; 0,\; 1\right)$$
 - Onde $f.stunMax$ é a duração real do atordoamento atribuída no momento do impacto.
 - É estritamente proibido normalizar por constantes estáticas pequenas (como `R.guardStun` de 0.15s), pois stuns pesados de 0.6s a 1.2s geravam valores fora do intervalo $[0, 1]$, travando a animação no primeiro frame.
+
+---
+
+## 5. O que está implementado hoje (F3–F9, atualizado em 29/10/2026)
+
+| Contrato | Código | Teste | Commit |
+|---|---|---|---|
+| Uma autoridade de reação: `applyReaction(target, intent)` com `intent.kind ∈ impulse \| displacement \| knockback \| hitstun \| stagger \| guardStun \| guardBreak \| perfectGuard \| recoil`; devolve `{policy, …}` gravado no evento como `displacementPolicy` | `src/sim/resolvers/reaction-resolver.js` | `f3-reaction-resolver.test.mjs` (estado, timers, `hitSerial`, altitude preservada no juggle, empurrão com distância e duração exatas) | d4e8560 |
+| Regra única de knockback: vertical > 1e-6 ou já no ar → `impulse`; só horizontal → `displacement` com `distance = max(0,45; 1,5·h)` e `duration = C.test.pushDuration ?? 0,3` | `reaction-resolver.js` (`kind: 'knockback'`) | `f3-reaction-resolver.test.mjs`; `landing-false-recovery.test.mjs` | d4e8560 |
+| `launch`, `pushAway` e `knockbackReaction` são adaptadores finos de `applyReaction` (mantidos: têm consumidores; ver a auditoria de legados no relatório final) | `src/sim/combat.js` | `f3-reaction-resolver.test.mjs` | d4e8560 |
+| Permissões derivadas, sem gravar estado: `actionPermissions(f) → {canMove, canAttack, canDodge, canGuard, canJump}` a partir de `canMove/canAct`, voo, stun, `hp` e `absent`; usadas na telemetria e lidas pela IA da própria partida | `src/sim/entity.js`; `src/sim/telemetry.js`; `src/sim/controller/ctrl-update.js` (`setControllerContext`) | `f3-permissions.test.mjs`; `f8-homologacao.test.mjs` (dois jogos alternados) | a7c77dc, 33ef5d5 |
+| Sem pouso falso: stagger, footstool e empurrão não geram `landing`; sair da borda cai balístico sem `landing` até tocar o chão | `src/sim/physics.js` | `f4-geometry-gate.test.mjs`; vigia de pouso em todo passo de `f8-homologacao.test.mjs` | db5222e, 33ef5d5 |
+
+**Ponto em aberto (decisão de jogo, não alterado):** o estágio de Defesa reduz o knockback do Tackle (`defStageKnockbackMult` em `combat.js`), mas não o de projéteis e áreas. A inconsistência já existia antes do overhaul e foi registrada na F6.

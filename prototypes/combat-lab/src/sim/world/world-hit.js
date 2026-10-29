@@ -19,6 +19,8 @@ export {closestOnShape};
  * ignoreInvulnerability, statuses: [def], hitstop}. normal: direção do empurrão (da fonte para o alvo).
  * Ordem: invulnerável → defesa frontal (perfeita: sem dano; comum: dano × guardDamageMultiplier e guard stun) → acerto
  * (dano com modificadores, lançamento ou recuperação, status). Devolve o evento.
+ * @param {any} game @param {number | null} ownerId @param {any} target @param {any} hit @param {any} normal
+ * @param {{entity?: any, source?: string, pl?: any, move?: string | null, scale?: number, origin?: any, contact?: string}} [info]
  */
 export function applyHit(game, ownerId, target, hit, normal, info = {}) {
   const R = C.rules, X = C.extras.combat, T = C.extras.toggles, owner = ownerId == null ? null : game.fighters[ownerId];

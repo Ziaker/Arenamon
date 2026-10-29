@@ -4,7 +4,7 @@ Gerado por `npx knip@5 --reporter compact` (config: `knip.json`). **Nada foi rem
 
 ```
 Unused exports (114)
-prototypes/combat-lab/src/nav/nav-graph.js: navParams, insideSolid, layoutSignature, NavGraph
+prototypes/combat-lab/src/nav/nav-graph.js: navParams, layoutSignature, NavGraph
 prototypes/combat-lab/src/nav/nav-planner.js: directlyReachable
 prototypes/combat-lab/src/physics-poc/poc-bench.js: RapierSim
 prototypes/combat-lab/src/physics-poc/poc-metrics.js: maxPenetration, restJitter
@@ -24,7 +24,7 @@ prototypes/combat-lab/src/sim/entity.js: riposteWindow
 prototypes/combat-lab/src/sim/geometry.js: faceNormals
 prototypes/combat-lab/src/sim/graphics.js: isGraphicsPath
 prototypes/combat-lab/src/sim/ledge.js: ledgeSurfaces, findLedge
-prototypes/combat-lab/src/sim/map.js: randomRange, getArenaScale, pickRandomConsumableType, dist2D, dist3D, bodyGapToBox, fighterBlocksBox, getGroundHeightAt
+prototypes/combat-lab/src/sim/map.js: randomRange, getArenaScale, pickRandomConsumableType, dist2D, dist3D, bodyGapToBox, fighterBlocksBox
 prototypes/combat-lab/src/sim/math.js: dodgeCurve
 prototypes/combat-lab/src/sim/motion.js: phasedCurve, phasedSpeed
 prototypes/combat-lab/src/sim/move-effects.js: unregisterEffect, listEffects
@@ -130,3 +130,5 @@ prototypes/combat-lab/src/view/vfx/effects/movement.js: buildDodgeA, buildDodge
 prototypes/combat-lab/src/view/vfx/effects/status.js: buildRegenA, buildRegen
 prototypes/combat-lab/src/view/vfx/effects/status.js: buildExhaustA, buildExhaust
 ```
+
+Nota (29/10/2026, F9 do overhaul): `getGroundHeightAt` (map-step) foi removido em 3fb7a64 ao virar `groundHeightAt(…, {footMargin: 0})` em `sim/collision/queries.js`, e `insideSolid` (vision e nav-graph) virou `pointInSolid`/`insideFootprint` no mesmo commit; por isso saíram da lista acima. Os adaptadores `pushAway` e `knockbackReaction` (combat.js) continuam: são usados por testes e adaptam `applyReaction`.

@@ -646,7 +646,7 @@ export async function buildMatrix(abFor) {
     `- Gameplay com A/B: **${counts.gameplay}** — muda no cenário: **${counts.muda}**${counts.falha ? ` · **FALHA: ${counts.falha}**` : ''}.`,
     `- Visual/depuração (sem A/B da simulação): ${counts.visual}. Pendentes de cenário (listados com motivo): ${counts.pendente}. Órfãos rotulados «(sem efeito)»: ${counts.orfao}.`,
     `- Parâmetros jogáveis sem slider: ${hidden.length ? hidden.map(h => '`' + h + '`').join(', ') : 'nenhum'} (fora os ${Object.keys(TECHNICAL_NO_SLIDER).length} limites técnicos abaixo).`,
-    `- Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): ${units} (orçamento ${UNIT_MISSING_BUDGET}, não pode crescer).`,,
+    `- Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): ${units} (orçamento ${UNIT_MISSING_BUDGET}, não pode crescer).`, '',
     `- Pendentes de A/B: ${counts.pendente} (orçamento ${PENDING_BUDGET}, só diminui); pendentes só com evidência fraca de consumidor (consumerWeak): ${counts.weakPending} (orçamento ${WEAK_PENDING_BUDGET}). Total com evidência fraca (inclui visuais): ${counts.weak}.`, '',
     '## Decisões pendentes do responsável', '',
     'Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Não foram ligados (mudaria o jogo no padrão) nem apagados (proibido sem pedido). Opções: ligar com padrão neutro, manter como legado ou remover com alias + migração de preset.', '',

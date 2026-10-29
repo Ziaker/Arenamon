@@ -38,6 +38,12 @@ test('(b) nenhuma escrita de HP/escudo em src/sim fora de resolvers/ e da lista 
   const {fora, ociosas} = staticScan(HP_WRITE, HP_WRITE_ALLOW);
   assert.deepEqual(fora, []);assert.deepEqual(ociosas, []);
 });
+test('(b) a varredura pega as formas indiretas de escrita de HP/escudo e ignora comparações (F9)', () => {
+  const pega = ['a.hp ??= 3', 'a.hp ||= 1', 'a.hp &&= 0', 'a.hp %= 2', 'a.hp **= 2', '--x.hp;', '++f.hp;', 'f.shield = {hp: 3}', 'Object.assign(f, {hp: 2})', "f['hp'] ??= 1"];
+  const ignora = ['if (a.hp >= 2)', 'a.hp === 0', 'a.hp <= 0', 'a.hpMax = 3', 'a.hp != 2', 'x = a.hp - 1'];
+  assert.deepEqual(pega.filter(s => !HP_WRITE.test(s)), [], 'escrita não detectada');
+  assert.deepEqual(ignora.filter(s => HP_WRITE.test(s)), [], 'falso positivo');
+});
 test('(c) nenhum Move/sistema reimplementa guarda ou estágio de Defesa (guardDamageMultiplier/stageDefenseReduction fora do resolvedor só com justificativa)', () => {
   const {fora, ociosas} = staticScan(DEFENSE_MATH, DEFENSE_MATH_ALLOW);
   assert.deepEqual(fora, []);assert.deepEqual(ociosas, []);

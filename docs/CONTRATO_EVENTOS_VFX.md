@@ -223,3 +223,27 @@ Para garantir determinismo em reinicializações e testes A/B:
 - **Acerto em lutador** (`impact`/`partial`/`perfect` de projétil): a simulação grava `contactPoint {x, y, z}` e **não** `x/z`. Assim a `position` continua nula e as faíscas de impacto de todos os golpes seguem no corpo do alvo. Só o splash do Water Pulse lê `contactPoint`.
 - **Sand Wave:** `impact`/`partial`/`perfect`/`sandStagger` levam `x/z` dos pés do alvo no contato.
 - **Ordem de entrega no `movesVfx`:** os eventos da entidade que sai do mundo chegam ANTES de `onDeath` (`MovesVfxRegistry.sync(…, events)`), sem repetição em `onEvent`.
+
+---
+
+## 7. O que está implementado hoje (F3–F9, atualizado em 29/10/2026)
+
+As seções 1–5 descrevem o contrato. Esta seção diz onde cada parte está no código e qual teste a prova.
+
+| Parte do contrato | Código | Teste | Commit |
+|---|---|---|---|
+| Normalização de todo evento do passo, sem apagar campos legados: `eventId`, `outcome`, `attackerId`, `targetId`, `indirectAttackerId`, `sourceKind`, `position`, `normal`, `rawDamage`, `hpDamage`, `shieldAbsorbed` | `src/sim/events/combat-event.js` (`normalizeCombatEvent`, `validateCombatEvent`), chamado no laço final de `Game.step` (`src/sim/game.js`) | `f3-combat-event.test.mjs` (todos os cenários + 4 sementes IA × IA) | 43354f1, 3e36d48 |
+| `eventId` único por `Game`: contador `Game.eventIdSeq`, salvo e carregado; `id`/`eventSeq` legados intactos (hash do replay) | `src/sim/game.js` | `f3-combat-event.test.mjs`; `f8-homologacao.test.mjs` (dois jogos alternados, save/load bit a bit) | 3e36d48, 33ef5d5 |
+| `contactId` por instância de `Game` em `world.contactSeq`; save antigo com `clashContactSeq` é hidratado | `src/sim/combat.js` (`clash(a, b, normal, world)`), `src/sim/world.js`, `src/sim/game.js` | `f3-contact-id.test.mjs` | 769f04e, bf2b8de |
+| Dano: `rawDamage/hpDamage/shieldAbsorbed/sourceKind` saem do resolvedor; ambiental nunca tem `attackerId` numérico | `src/sim/resolvers/damage-resolver.js` (`resolveDamage`) | `f3-damage-resolver.test.mjs`; `f6-moves-contract.test.mjs` | 7e6e914, ad32c13 |
+| Reação: `displacementPolicy ∈ impulse \| displacement \| none` (e `force` no Sand Wave) | `src/sim/resolvers/reaction-resolver.js` (`applyReaction`) | `f3-reaction-resolver.test.mjs`; `f3-combat-event.test.mjs` | d4e8560, 3e36d48 |
+| Spawn recusado: evento `spawnRejected {kind, reason, position}` e `mapState.spawnLog` (últimas 32 recusas) | `src/sim/map/map-spawn.js` (`placeOrReject`, `logSpawnRejection`) | `f4-spawn.test.mjs` | 536af4b, ad4973b |
+| Escape de imprensamento: evento `pinEscape {target, from, to, depth}` quando o resíduo passa de `C.test.penetrationTolerance ?? 0,02 m` | `src/sim/physics.js` | `f4-solver.test.mjs`; `f4-geometry-gate.test.mjs` | ad4973b, db5222e |
+| Despachante único: deduplica por `eventId` uma vez por quadro e entrega só os eventos novos a cada consumidor; tabela `OWNERS` (dono por resultado e canal) e `SEM_VISUAL`; resultado sem dono vai para `diagnostics().unknown` e não desenha | `src/view/vfx/dispatch.js` (`VfxDispatch`), `src/view/view.js` | `f5-vfx-dispatch.test.mjs`; `vfx-colisao.browser.mjs` | e5e52ae, 2f1e5dd |
+| Reset sem vazamento (sobreposições, aura de status, marcadores de mira, prévia de carga, lotes vazios do three.quarks) | `src/view/view.js`, `src/view/world-view.js` | `f5-reset.test.mjs`; `f8-homologacao.browser.mjs` | 9dcfcf5, 33ef5d5 |
+| Paridade visual com ROI: `roiSimilarity`/`outSimilarity` por efeito; `--update-baselines` grava em `baselines-candidatas/`, nunca em `baselines/` | `test/moves-vfx-parity.browser.mjs`; página `evidence/moves-vfx-parity/AB_PARIDADE.html` | o próprio teste de navegador | 9abf3d9, 37741e2 |
+| Captura determinística: relógio do WorldView e sorteios visuais semeados durante a captura | `src/view/visual-random.js` | `f5-vfx-coords.test.mjs`; dispersão 0 pp em 3 execuções da paridade | 42d5235 |
+| Coordenadas dos emissores Quarks: posição por `worldToLocal`, direção pelo quaternion mundial inverso | `src/view/quarks/*`, pilotos `src/sim/moves/{sand-wave,bullet-punch,water-pulse}/*.vfx.js` | `f5-vfx-coords.test.mjs` | 42d5235 |
+| `move` nos acertos corpo a corpo e na explosão do Seed Bomb, com o visual antigo do Seed Bomb preservado (cor padrão e tremor genérico) | `src/sim/combat.js`, `src/sim/moves/seed-bomb.js`, `src/view/vfx.js` | `f6-moves-contract.test.mjs`; `f6-seedbomb-visual.test.mjs` | ad32c13, 01ca8d0 |
+
+**Limites conhecidos:** `useNewVfx` continua `false` (padrão do jogo é o VFX legado). Os modos novo e quarks passam nos testes de dono único, mas não foram olhados no navegador. As 5 referências de paridade esperam aceite humano (ver `docs/RELATORIO_OVERHAUL_F0_F9.md`).

@@ -374,6 +374,8 @@ export const V6_COMPAT = {'actions.tackle.fromRecoil': 1, 'actions.tackle.fromGu
 /** Restaura os padrões do laboratório (mantendo a identidade dos objetos, que outros módulos guardam). */
 export function resetConfig(values = defaults()) {
   for (const key of ROOT_KEYS) deepAssign(C[key], values[key]);
+  // Tolerância técnica fora de defaults() (sem slider, fora dos presets): o reset volta ao valor embutido no código (physics.js, 0,02 m).
+  if (!(values.test && 'penetrationTolerance' in values.test)) delete C.test.penetrationTolerance;
 }
 function deepAssign(target, source) {
   for (const [k, v] of Object.entries(source)) {

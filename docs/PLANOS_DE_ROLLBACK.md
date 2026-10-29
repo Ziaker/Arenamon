@@ -49,3 +49,22 @@ npm run rapido:build
 - Scripts de teste e migração em `scratch/` (`scratch/apply_p0_fixes.mjs`, `scratch/patch_*.mjs`) foram mantidos na pasta de rascunhos para histórico determinístico e podem ser arquivados ou removidos sem afetar o runtime de produção.
 - A suíte canônica de testes de regressão permaneceu versionada em `prototypes/combat-lab/test/p0-vfx-states.test.mjs`.
 - O bundle oficial `prototypes/combat-lab/dist/arenamon-combate-laboratorio.html` encontra-se 100% atualizado e pronto para uso pelo usuário através de `JOGAR_ARENAMON.html`.
+
+---
+
+## 5. Rollback do overhaul F3–F9 (atualizado em 29/10/2026)
+
+Branch `feat/overhaul-arquitetural-f3-f9`, criado de `feat/wookada-integracao` (`98fbc66` = main `96205a5` + 2 commits do Wookada). Cada fase é um conjunto de commits pequenos. A forma segura de desfazer uma fase é `git revert <hash>` (cria um commit novo e não reescreve histórico), do mais novo para o mais antigo, seguido de `npm run rapido:build` e `npm run rapido`. Não use `git reset --hard` nem `push --force`: o checkout é compartilhado com outras sessões.
+
+| Fase | Commits (do mais antigo ao mais novo) | O que volta ao estado anterior | Risco de reverter |
+|---|---|---|---|
+| F3 dano e reação | 7e6e914, d4e8560 | Dano e reação calculados de novo em cada chamador; o evento perde `rawDamage/hpDamage/shieldAbsorbed/displacementPolicy` | Alto: F4–F8 dependem dos resolvedores. Reverter só junto com tudo o que vem depois. |
+| F3 contactId, permissões, eventos | 769f04e, a7c77dc, bf2b8de, 43354f1, 3e36d48 | `contactId` volta a ser global do módulo; sem `eventId`/normalização | Alto: o despachante de VFX (F5) deduplica por `eventId`. |
+| F4 colisões e mapa | 3fb7a64, 536af4b, ad4973b, db5222e | Volta a duplicação de consultas, o `found \|\| rawPos`, a penetração aceita em silêncio e o projétil sem varredura | Médio: os replays de referência continuam iguais (não houve mudança de número); o `ai-eval` volta a passar com +19. |
+| F5 VFX | e5e52ae, 2f1e5dd, 9dcfcf5, 9abf3d9, 37741e2, 42d5235, afb0e3e, 71536bc | Sem despachante único (desenho duplo quarks + legado), vazamentos no reset, paridade sem ROI, posição dos projéteis no lutador 0/origem | Médio: visual. Afeta o que o jogador vê, não a simulação. |
+| F6 Moves | ad32c13, 01ca8d0 | Golpes corpo a corpo e explosão do Seed Bomb sem `move` no evento | Baixo. |
+| F7 Editor | a43a487, 60bad42 | Sem matriz/teste de cobertura; órfãos sem o rótulo «(sem efeito)»; Sand Wave com cegueira 0 volta ao erro | Baixo. |
+| F8 homologação | 33ef5d5, d7539ac | Sem bateria F8; volta o bug da IA lendo lutadores de outra partida (`setControllerContext`) e o cache de navegação de um mapa só | Médio: o bug multijogo volta. |
+| F9 limpeza e entrega | commit da F9 (ver `docs/RELATORIO_OVERHAUL_F0_F9.md`) | Docs, portal, versão 1.43.0, varredura estática endurecida e reset de `penetrationTolerance` | Baixo. |
+
+Commits alheios ao overhaul que estão no mesmo branch (Wookada, menu, HUD, docs) **não** devem ser revertidos junto: `7783962`, `98fbc66`, `5cb4f21`, `4e37b90`, `3b5960f`, `f57e3a9`, `d079833`.
