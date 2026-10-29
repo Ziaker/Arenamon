@@ -197,3 +197,10 @@ Cada entrada: data · tarefa · skill · o que foi aplicado de fato.
 - **Skill `physics-tuning` (leitura seletiva):** a integração é fechada com arrasto (`exp(-k·t)`) e gravidade, de modo que scrub e rewind não dependem de passo variável nem acumulam estado entre quadros.
 - **TDD à mão:** `test/f3-particles.test.mjs` cobre contrato positivo/negativo, determinismo, rewind, seed diferente, teto por emissor, duração de emissão, perfis low/high, bloqueio de publicação, acessibilidade e roundtrip do documento; `test/f3-app.browser.mjs` repete o fluxo no Edge offline com captura e `resultado.json`.
 - **Arquivos:** `prototypes/vfx-composer/src/particles/particles.ts`, `src/app/particle-preview.ts`, `src/app/main.ts`, `src/editor/document-store.ts`, `src/core/types.ts`, `src/core/content.ts`, `test/f3-particles.test.mjs`, `test/f3-app.browser.mjs`, `docs/VFX_COMPOSER_F3.md`.
+
+### 2026-10-28 — Briefing do Editor de Animações
+
+- **Tarefa:** mapear o runtime atual e documentar para outra IA a nova aba de animações do jogo, com preview, timeline, painéis redimensionáveis, todas as configurações por animação, hitboxes opcionais e as fases completas do salto.
+- **Skill `arenamon-routing`:** direcionou a investigação para o runtime three.js do combat lab e preservou o escopo do jogo principal.
+- **Skill `threejs-gltf-loading`:** orientou a leitura do fluxo GLTFLoader, AnimationMixer, clipes, variantes, eventos do GLB e root motion existente em `prototypes/combat-lab/src/view/characters.js`.
+- **Resultado:** briefing transferível em `docs/BRIEFING_IA_EDITOR_ANIMACOES_ARENAMON.docx`, acessível pelo portal `ABRIR_ARENAMON.html`.

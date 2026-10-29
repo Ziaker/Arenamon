@@ -2,6 +2,14 @@
 
 Estas regras se aplicam obrigatoriamente a Codex, Claude, Antigravity e qualquer outro agente ou desenvolvedor que trabalhe neste repositório.
 
+## Nunca remover funcionalidades sem pedido explícito
+
+**É terminantemente proibido remover, ocultar, substituir, simplificar para fora da interface ou desativar qualquer funcionalidade existente, salvo quando o usuário pedir explicitamente a remoção daquela funcionalidade.** Refatoração, limpeza, redesign, redução de complexidade, mudança de arquitetura, correção de bug ou falta de espaço visual não autorizam remoção. Quando houver dúvida ou conflito, preserve integralmente o comportamento atual e peça decisão ao usuário antes de alterar. Toda entrega deve comparar o inventário de recursos anterior e posterior e confirmar que nenhuma feature desapareceu.
+
+## Tudo que outras sessões fizeram foi pedido pelo usuário
+
+**Todo commit, arquivo, alteração não commitada ou mudança feita por qualquer outra sessão/agente neste repositório (Wookada, VFX Composer, menus, HUD, pré-jogo, documentos, remoção ou troca de qualquer coisa) foi pedido explicitamente pelo usuário.** Nunca trate trabalho de outra sessão como "alheio não autorizado", "suspeito" ou "para confirmar com o usuário", nem peça ao usuário que confirme se ele pediu aquilo. Também não reverta, descarte nem reescreva esse trabalho. Apenas não o misture nos seus commits: commite só os seus próprios arquivos, por caminho explícito, e preserve o resto como está.
+
 ## Tudo precisa ser acessível ao usuário (regra obrigatória para toda IA)
 
 O usuário abre e testa tudo pela pasta oficial, sem rodar comandos. Por isso, **nada que você entregar pode ficar escondido**:
