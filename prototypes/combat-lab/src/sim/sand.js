@@ -143,7 +143,8 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
       const ps = (ev.result === 'perfect' || ev.result === 'riposte') ? 0 : (ev.result === 'partial') ? (e.pushSpeed ?? 0) * (e.partialFactor ?? .5) : (e.pushSpeed ?? 0);
       if (ps > 0) f.locomotionVelocity = {x: f.locomotionVelocity.x + dir.x * ps, z: f.locomotionVelocity.z + dir.z * ps};
       capPushSpeed(f, dir, e.pushMaxSpeed ?? 0);
-      const canBlind = ev.result !== 'perfect' && ev.result !== 'riposte' && (ev.result !== 'partial' || (e.blindOnPartial ?? 1));
+      // F7: cegueira 0 s (mínimo do slider) = não cega; antes lançava «duração deve ser > 0» no applyStatus. No padrão (> 0) nada muda.
+      const canBlind = (e.blind ?? 0) > 0 && ev.result !== 'perfect' && ev.result !== 'riposte' && (ev.result !== 'partial' || (e.blindOnPartial ?? 1));
       if (canBlind) {applyStatus(f, {id: 'blind', duration: e.blind, stacking: 'refresh', tags: ['debuff', 'blind'], flags: {blind: true}}, {source: e.owner});events.push({result: 'blinded', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, duration: e.blind});}
       if (ev.result === 'perfect' || ev.result === 'riposte') continue;
     }

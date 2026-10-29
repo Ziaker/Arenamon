@@ -67,7 +67,7 @@ const SPRINT = {
   staminaDrain: ['Consumo de stamina por segundo', 'Stamina gasta por segundo de sprint. A regeneração fica suspensa durante o sprint.', R(0, 3, .01, n => n.toFixed(2) + '/s')],
   minStamina: ['Stamina mínima para entrar', 'Sem esta stamina, segurar C depois da esquiva não inicia o sprint.', R(0, 3, .05, num)],
   entryFraction: ['Entrada a partir de (fração da esquiva)', 'Com C ainda pressionado e uma direção, a esquiva vira sprint a partir desta fração (1 = só quando a esquiva termina). Invulnerabilidade e janelas anteriores não mudam.', R(.3, 1, .01, pct)],
-  exhaustedStop: ['Stamina zerada encerra o sprint', 'Ao zerar a stamina o sprint termina com o freio do sprint e o lutador fica exausto (regra da stamina).', toggle],
+  exhaustedStop: ['Stamina zerada encerra o sprint (sem efeito)', 'Ao zerar a stamina o sprint termina com o freio do sprint e o lutador fica exausto (regra da stamina).', toggle],
 };
 const AI = {
   useCharge: ['IA usa o tackle carregado', 'Ligado: a IA carrega PL2/PL3 quando o alvo está fora do alcance normal, dentro do alcance da carga e há tempo seguro para carregar.', toggle],
@@ -123,10 +123,10 @@ const VFX_PARAMS = {
   mixA: ['Combinado (D): poeira (A)', R(0, 2, .01, x)], mixB: ['Combinado (D): anel (B)', R(0, 2, .01, x)], mixC: ['Combinado (D): estilhaços (C)', R(0, 2, .01, x)], minImpact: ['Impacto mínimo para disparar', R(0, 15, .1, n => n.toFixed(1) + ' m/s')], fallSpeed: ['Velocidade de queda', R(.1, 6, .01, n => n.toFixed(2) + ' m/s')],
   startHeight: ['Altura inicial', R(.3, 4, .01, m)], height: ['Altura', R(.3, 4, .01, m)], scaleWithRate: ['Intensidade acompanha a taxa de recuperação', toggle],
   rotSpeed: ['Velocidade de rotação', R(0, 10, .1, n => n.toFixed(1) + ' rad/s')], trail: ['Rastro de partículas', toggle],
-  trailDensity: ['Densidade do rastro', R(1, 30, 1, n => String(n))], shatter: ['Estilhaçar no impacto', toggle],
+  trailDensity: ['Densidade do rastro (sem efeito)', R(1, 30, 1, n => String(n))], shatter: ['Estilhaçar no impacto', toggle],
   shatterCount: ['Fragmentos de estilhaço', R(4, 32, 1, n => String(n))], cracksEmissive: ['Brilho das veias de energia', toggle],
   shatterSpeed: ['Velocidade dos estilhaços', R(.2, 3, .05, x)], shatterLife: ['Duração dos estilhaços', R(.3, 3, .05, x)], shatterSize: ['Tamanho dos estilhaços', R(.4, 3, .05, x)],
-  pulseFreq: ['Frequência de pulsação', R(.5, 8, .1, n => n.toFixed(1) + ' Hz')], ripples: ['Ondas de impacto na barreira', toggle],
+  pulseFreq: ['Frequência de pulsação', R(.5, 8, .1, n => n.toFixed(1) + ' Hz')], ripples: ['Ondas de impacto na barreira (sem efeito)', toggle],
   shatterFragments: ['Fragmentos ao quebrar', R(6, 48, 2, n => String(n))], edgeGlow: ['Brilho nas bordas', R(.2, 3, .1, x)],
   maxObjects: ['Limite de objetos 3D ativos', R(8, 512, 1, n => String(n))], quality: ['Qualidade dos efeitos 3D', select(['Baixa (menos objetos)', 'Média', 'Alta (mais objetos)'])],
   target: ['Mostrar em', select(['Adversário', 'Ambos', 'Jogador'])], enabled: ['Ligado', toggle], variant: ['Variante', null],
@@ -284,7 +284,7 @@ const RULES2 = {
   wallSplatMinSpeed: ['Wall-splat: velocidade mínima', 'Velocidade horizontal mínima (m/s) para o lançado, já CAINDO, ficar preso na parede. Abaixo disso (ou subindo) vale o ricochete.', R(0, 30, .5, n => n.toFixed(1) + ' m/s')],
   wallSplatDuration: ['Wall-splat: duração', 'Quanto tempo o lutador fica suspenso e indefeso na parede, na altura do impacto (janela de combo), antes de cair.', R(.1, 2, .01, sec)],
   wallSplatDamage: ['Wall-splat: dano extra', 'HP perdido ao ficar preso na parede. 0 = nenhum (o ganho é a janela de combo).', R(0, 30, .5, n => n.toFixed(1) + ' HP')],
-  slamAngle: ['Meteor slam: ângulo do mergulho', 'Ângulo de descida em relação ao chão: 45° desce 1 m por metro andado. Maior = mais vertical e mais curto.', R(Math.PI / 18, Math.PI * 80 / 180, Math.PI / 180, n => (n * 180 / Math.PI).toFixed(0) + '°')],
+  slamAngle: ['Meteor slam: ângulo do mergulho (sem efeito)', 'Ângulo de descida em relação ao chão: 45° desce 1 m por metro andado. Maior = mais vertical e mais curto.', R(Math.PI / 18, Math.PI * 80 / 180, Math.PI / 180, n => (n * 180 / Math.PI).toFixed(0) + '°')],
   slamMinHeight: ['Meteor slam: altura mínima do C → X', 'Altura mínima (m) do salto do vault para o X virar mergulho. Abaixo disso o X desce suave como antes.', R(0, 2, .05, m)],
   slamSpeedLoss: ['Meteor slam: velocidade perdida na preparação', 'Quanto da velocidade que o personagem trazia do dash ele perde durante a preparação no ar. 0% = continua deslizando com a velocidade inteira; 100% = para na hora. Ao terminar a preparação a velocidade herdada zera por completo e ele despenca sobre o inimigo.', R(0, 1, .01, pct)],
   tackleFriction1: ['Tackle PL1: atrito durante o movimento', 'Atrito (1/s) aplicado durante o movimento do Tackle PL1: a velocidade decai com o tempo do ataque e o alcance diminui. 0 = sem atrito (como antes); valores altos fazem o Tackle frear logo.', R(0, 12, .1, n => n.toFixed(1) + ' /s')],
@@ -356,7 +356,7 @@ export function overhaulMeta(path) {
   if (root === 'rules' && RULES2[key]) return out(...RULES2[key]);
   // Teclas (jogador e vermelho): seleção pela tecla física.
   if (parts[1] === 'bindings' || parts[1] === 'bindings2') {
-    const names = {forward: 'Mover para cima', back: 'Mover para baixo', left: 'Mover à esquerda', right: 'Mover à direita', tackle: 'Tackle (X)', dodge: 'Esquiva (C) — segure para sprint', defend: 'Defesa (D)', lock: 'Fixar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração', skill1: 'Movimento especial 1', skill2: 'Movimento especial 2', skill3: 'Movimento especial 3', skill4: 'Movimento especial 4'};
+    const names = {forward: 'Mover para cima', back: 'Mover para baixo', left: 'Mover à esquerda', right: 'Mover à direita', tackle: 'Tackle (X)', dodge: 'Esquiva (C) — segure para sprint', defend: 'Defesa (D)', lock: 'Fixar alvo', pause: 'Pausar', restart: 'Reiniciar', debug: 'Depuração', skill1: 'Movimento especial 1', skill2: 'Movimento especial 2', skill3: 'Movimento especial 3', skill4: 'Movimento especial 4', jump: 'Pular'};
     const codes = C.extras.keyCodes, who = parts[1] === 'bindings2' ? 'Vermelho · ' : '';
     return out(who + (names[key] || key), `Tecla física de “${names[key] || key}”${who ? ' do vermelho no controle manual' : ''}. Evite repetir a mesma tecla em comandos diferentes.`, select(codes.map(c => c.replace(/^Key/, '').replace(/^Digit/, '').replace('Arrow', 'Seta '))));
   }

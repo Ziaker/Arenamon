@@ -3,7 +3,7 @@
 // exportação/importação versionada e relatório de diferenças em relação ao config.ts do jogo.
 import {C, ROOT_KEYS, defaults, resetConfig} from '../sim/config.js';
 import {AI_MODES} from '../sim/ai.js';
-import {NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
+import {NAMES, PATH_NAMES, SECTIONS, TOOLTIPS, KEY_HELP} from './tuning-meta.js';
 import {OFFICIAL} from './official.js';
 import {STYLES} from '../sim/tactics.js';
 import {actionMeta, OFFICIAL_MAP, migrateFlat, flatten} from './actions-meta.js';
@@ -225,18 +225,39 @@ export const EXTRA_SECTIONS = [['Smear de Membros', 'extras.visual.smear', null]
   ['Cenário do laboratório', 'display.scenery', null], ['HUD de progressão (Banco de Células)', 'display.progress', null], ['Consumíveis (Gemas Facetadas)', 'display.consumables', null], ['Objetos na frente do lutador (transparência)', 'display.occlusion', null], ['Círculo de alcance dos Moves de alvo único', 'display.rangeRing', null]];
 /** Parâmetros mostrados em outras abas (sem duplicar controles no Ajustes). */
 const ELSEWHERE = new Set(['extras.toggles.enableEnemyAI', 'extras.toggles.enemyManual', 'extras.visual.shadowMin', 'extras.visual.shadowHeightFade']);
-export function createTuning({apply}) {
-  const base = defaults(), manifest = [];
+/** F7: manifesto PURO (sem DOM) de todos os sliders do Ajustes — seção, caminho em C, rótulo, dica, faixa, formato e padrão. Fonte única do painel e da
+ * matriz de cobertura (scripts/gen-matriz-sliders.mjs, test/f7-sliders-coverage.test.mjs). */
+export function tuningManifest(base = defaults()) {
+  const manifest = [];
   for (const [section, rootPath, subset] of [...SECTIONS, ...EXTRA_SECTIONS]) {
     const root = pathGet(C, rootPath);
     for (const key of subset ?? Object.keys(root)) {
       const v = root[key];if (typeof v !== 'number') continue;
       const path = rootPath + '.' + key, am = overhaulMeta(path) || actionMeta(path), r = {...widenCombatRange(path, am ? am.range : range(key, v, path))};
       r.min = Math.max(r.min, SAFE_MIN[path] ?? -Infinity);r.min = Math.min(r.min, v);r.max = Math.max(r.max, v);
-      const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : NAMES[key] || key;
+      const label = am ? am.label : path.startsWith('extras.colors.') ? (COLOR_NAMES[key.slice(0, -1)] || key) + ' · ' + ({R: 'Vermelho', G: 'Verde', B: 'Azul'})[key.slice(-1)] : path === 'extras.bindings.dodge' ? 'Tecla de esquiva (C)' : PATH_NAMES[path] || NAMES[key] || key;
       manifest.push({section, path, key, label, help: am ? am.help : help(path, label), initial: pathGet(base, path), official: officialValue(path), ...r});
     }
   }
+  return manifest;
+}
+/** Importação PURA do JSON do Ajustes (mesma regra do painel): migra caminhos antigos, valida a faixa de cada slider e aceita os números fora do
+ * manifesto que existem no padrão. `current`/`base` são objetos no formato de C. Devolve {changes, schema, version, converted, ignored} ou {error}. */
+export function previewTuningImport(raw, manifest, current, base) {
+  const rootsOf = obj => Object.fromEntries(ROOT_KEYS.map(k => [k, obj[k]])), manifestPaths = new Set(manifest.map(m => m.path));
+  let data;try {data = JSON.parse(raw);} catch (e) {return {error: 'JSON inválido: ' + e.message};}
+  const nested = data?.values ?? data;if (!nested || typeof nested !== 'object' || Array.isArray(nested)) return {error: 'Objeto de configurações não encontrado.'};
+  const migration = migrateFlat(flatten(nested), new Set([...manifestPaths, ...Object.keys(flatten(rootsOf(base)))])), values = migration.values;
+  const changes = [], invalid = [];
+  for (const m of manifest) {const v = values[m.path];if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(current, m.path))) changes.push([m.path, v]);}
+  // Parâmetros sem controle no Ajustes (Moves em `world.*` etc.): aceitos se existem no padrão e são números finitos (sem faixa de slider).
+  const extra = importOutsideManifest(values, rootsOf(base), rootsOf(current), manifestPaths);
+  changes.push(...extra.changes);invalid.push(...extra.invalid);
+  if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0, 5).join(', ')}${invalid.length > 5 ? '…' : ''}`};
+  return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—', converted: migration.converted, ignored: migration.ignored};
+}
+export function createTuning({apply}) {
+  const base = defaults(), manifest = tuningManifest(base);
   const byPath = new Map(manifest.map(m => [m.path, m]));
   const state = {tab: TABS[0][0], filter: 'all', undo: [], redo: [], saved: snapshotValues(), savedLabel: 'padrão', listeners: new Set(), folds: new Map(), external: new Set(), view: 'type', mech: MECHANIC_ORDER[0], level: 'basic', tagFilter: '', tags: loadTags()};
   try {const o = JSON.parse(localStorage.getItem('arenamon-lab-tune-view-v1') || '{}');if (o.view === 'mech' || o.view === 'type') state.view = o.view;if (['basic', 'advanced', 'technical'].includes(o.level)) state.level = o.level;} catch {/* sem armazenamento */}
@@ -448,18 +469,7 @@ export function createTuning({apply}) {
       note: 'Valores do laboratório. Nada é aplicado ao jogo automaticamente; use differencesFromGame para decidir o que levar ao config.ts.'};
   }
   /** Valida sem aplicar. Aceita JSON v5/v6 ({values}), v7 e v8; formatos antigos são migrados com relatório. */
-  function preview(raw) {
-    let data;try {data = JSON.parse(raw);} catch (e) {return {error: 'JSON inválido: ' + e.message};}
-    const nested = data?.values ?? data;if (!nested || typeof nested !== 'object' || Array.isArray(nested)) return {error: 'Objeto de configurações não encontrado.'};
-    const migration = migrateFlat(flatten(nested), known()), values = migration.values;
-    const changes = [], invalid = [];
-    for (const m of manifest) {const v = values[m.path];if (v === undefined) continue;if (typeof v !== 'number' || !Number.isFinite(v) || v < m.min - 1e-8 || v > m.max + 1e-8) {invalid.push(`${m.path} = ${v}`);continue;}if (!same(v, pathGet(C, m.path))) changes.push([m.path, v]);}
-    // Parâmetros sem controle no Ajustes (Moves em `world.*` etc.): aceitos se existem no padrão e são números finitos (sem faixa de slider).
-    const extra = importOutsideManifest(values, rootsOf(base), rootsOf(C), manifestPaths());
-    changes.push(...extra.changes);invalid.push(...extra.invalid);
-    if (invalid.length) return {error: `Valores inválidos ou fora da faixa (${invalid.length}): ${invalid.slice(0, 5).join(', ')}${invalid.length > 5 ? '…' : ''}`};
-    return {changes, schema: data.schema || 'v5/v6', version: data.version ?? '—', converted: migration.converted, ignored: migration.ignored};
-  }
+  const preview = raw => previewTuningImport(raw, manifest, C, base);
   function apply_(changes, label) {const n = commit(changes, label);markSaved(label);return n;}
   function resetAll() {commit(manifest.map(m => [m.path, m.initial]), 'Restaurar todos os padrões');}
   render();

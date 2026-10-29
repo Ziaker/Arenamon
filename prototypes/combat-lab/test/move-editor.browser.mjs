@@ -52,8 +52,9 @@ try {
   check('Perfil tem 2 gráficos SVG e tabela de 1–4 m', profile.svgs === 2 && profile.rows === 5 && profile.abRows === 5, `${profile.svgs} SVG, ${profile.rows} linhas`);
   check('Modo de duração tem 4 opções (fim da barragem + 3 experimentais) e o de aceleração tem 3', profile.modes.length === 4 && profile.accels.length === 3, `${profile.modes.join(' / ')}`);
   check('dissipate continua acessível na Mecânica', profile.dissipate);
-  check('Padrão mostra a duração caindo com a distância e o motivo de saída da área', /1 m[\s\S]*0\.708 s/.test(profile.defaultText) && /3 m[\s\S]*0\.408 s/.test(profile.defaultText) && /Saiu do retângulo/.test(profile.defaultText));
-  check('Prova de contenção mantém o alvo no retângulo e mostra o fim da barragem', /1\.308 s/.test(profile.containmentText) && /Fim da barragem/.test(profile.containmentText), profile.containmentText);
+  // F7: valores atuais do modo oficial «fim da barragem» (sand-push.js: active + dissipate = 1,5 s; contato em 0,083 s → 1,417 s contido; na arena aberta sai do retângulo antes).
+  check('Padrão mostra a duração caindo com a distância e o motivo de saída da área', /1 m[\s\S]*1\.225 s/.test(profile.defaultText) && /3 m[\s\S]*1\.083 s/.test(profile.defaultText) && /Saiu do retângulo/.test(profile.defaultText));
+  check('Prova de contenção mantém o alvo no retângulo e mostra o fim da barragem', /1\.417 s/.test(profile.containmentText) && /Fim da barragem/.test(profile.containmentText), profile.containmentText);
 
   if (!process.env.ARENAMON_SKIP_SCREENSHOTS) {
     mkdirSync(root + 'evidence/editor', {recursive: true});
