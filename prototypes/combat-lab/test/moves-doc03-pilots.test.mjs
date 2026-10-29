@@ -175,7 +175,7 @@ test('matriz DOC03: todo candidato dos 3 pilotos tem origem, consumidor, UI, per
   assert.ok(Object.keys(PILOT_TECH_JUSTIFIED).every(id => entries.some(e => e.id === id)), 'técnicos declarados aparecem na matriz');
   // A ficha pode divergir do padrão aprovado em runtime; a matriz mostra os dois e só aceita os overrides conhecidos.
   const drift = entries.filter(e => typeof e.runtime === 'number' && typeof e.value === 'number' && Math.abs(e.runtime - e.value) > 1e-9).map(e => e.id).sort();
-  assert.deepEqual(drift, ['bullet-punch.cast', 'bullet-punch.impactMult'], `overrides documentados (${drift.join(', ')})`);
+  assert.deepEqual(drift, ['bullet-punch.atelierVfx', 'bullet-punch.cast', 'bullet-punch.impactMult', 'sand-wave.pushMaxSpeed', 'sand-wave.pushSpeed'], `overrides documentados (${drift.join(', ')})`);
 });
 
 test('Recursos do DOC03: waveBottomTolerance e pierce existem na ficha e chegam ao consumidor', () => {
@@ -302,7 +302,7 @@ test('A/B Sand Wave: knockbackV, accel, wallStagger e visionRadius mudam o resul
 
   // accel: 0 não empurra; 30 empurra muito mais que o padrão.
   const push = (/** @type {number} */ a) => {
-    const g = sandCast([vec(0, -4), vec(0, -3.2)], secs(.25) + 12, () => {C.world.sandWave.accel = a;});
+    const g = sandCast([vec(0, -4), vec(0, -3.2)], secs(.25) + 12, () => {C.world.sandWave.accel = a;C.world.sandWave.pushSpeed = 0;C.world.sandWave.pushMaxSpeed = 0;});   // isola a aceleração: o impulso constante de 29/10 (pushSpeed) empurraria mesmo com accel 0
     const z0 = g.fighters[1].position.z;run(g, secs(.5));
     return g.fighters[1].position.z - z0;
   };

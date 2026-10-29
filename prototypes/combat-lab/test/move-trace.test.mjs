@@ -71,8 +71,9 @@ ok('currentValues lê os sliders atuais e defaultValues lê o move.json', () => 
   fresh();C.world.sandWave.damage = 9;
   assert.equal(currentValues(sand).damage, 9);
   assert.equal(defaultValues(sand).damage, 6);
-  assert.equal(diffCount(defaultValues(sand), currentValues(sand)), 1);
-  fresh();assert.equal(diffCount(defaultValues(sand), currentValues(sand)), 0);
+  // 29/10/2026: pushSpeed e pushMaxSpeed saem da ficha com 0 e o padrão do jogo (tabela de calibração) é 13,33: 2 diferenças de base
+  assert.equal(diffCount(defaultValues(sand), currentValues(sand)), 3);
+  fresh();assert.equal(diffCount(defaultValues(sand), currentValues(sand)), 2);
 });
 ok('rastrear com os valores atuais (null) é igual a rastrear com eles explicitamente', () => {
   fresh();C.world.sandWave.damage = 8;

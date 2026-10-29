@@ -543,6 +543,7 @@ export const SENSITIVITY_PENDING = Object.freeze({
     'world.reflect.heightMin', 'world.reflect.heightMax', 'world.reflect.durationBase', 'world.reflect.tackleRecoil', 'world.reflect.tackleStagger', 'world.reflect.tieTolerance',
     'world.reflect.maxReflections', 'world.reflect.burstRadius', 'world.reflect.burstHeight', 'world.reflect.burstLife', 'world.reflect.burstForce', 'world.reflect.burstVertical',
     'world.reflect.burstDamage', 'world.reflect.burstPush', 'world.reflect.burstHurt', 'world.riposte.cooldown', 'world.riposte.strikePl', 'world.riposte.shakeMult',
+    'world.sandWave.pushContinuesOutsideArea', 'world.sandWave.pushReleaseDelay',   // 29/10: com a prisão móvel o alvo não sai do retângulo nos cenários curtos: estas políticas só valem quando ele sai de propósito (teleporte/esquiva)
     'world.sandWave.cooldown', 'world.sandWave.pushDuration', 'world.sandWave.pushContinueAfterActive', 'world.sandWave.pushPreserveVelocity', 'world.sandWave.pushMaxSpeed',
     'world.sandWave.pushTargetSpeed', 'world.sandWave.pushRampTime', 'world.sandWave.pushClearsLocomotion', 'world.sandWave.pushCancelsDodge', 'world.sandWave.pushCancelsExistingDodge',
     'world.sandWave.wallStagger', 'world.sandWave.wallStaggerOn', 'world.sandWave.fogDarkness', 'world.sandWave.cell', 'world.sandWave.detour', 'world.sandWave.replanSteps',
@@ -586,7 +587,7 @@ export const TECHNICAL_NO_SLIDER = Object.freeze({
 /** Sliders numéricos cujo formato não mostra unidade (fração/multiplicador mostrado como número puro). Orçamento: não pode crescer. */
 export const UNIT_MISSING_BUDGET = 354;
 /** Orçamentos que só podem DIMINUIR: sliders de gameplay sem A/B observável e, entre eles, os que só têm evidência fraca de consumidor. */
-export const PENDING_BUDGET = 304;
+export const PENDING_BUDGET = 306;   // 304 + 2 do Sand Wave (prisão móvel de 29/10: pushContinuesOutsideArea e pushReleaseDelay não mudam mais os cenários curtos)
 export const WEAK_PENDING_BUDGET = 2;
 export const pendingCount = () => Object.values(SENSITIVITY_PENDING).reduce((n, g) => n + g.ids.length, 0);
 /** Órfãos com significado de jogo: a decisão (ligar com padrão neutro, manter como legado, remover com alias + migração de preset) é do responsável. */

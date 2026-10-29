@@ -9,12 +9,12 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 ## Resumo
 
 - Sliders: **1632** (Ajustes 1195 · Moves 437).
-- Gameplay com A/B: **499** — muda no cenário: **499**.
-- Visual/depuração (sem A/B da simulação): 805. Pendentes de cenário (listados com motivo): 304. Órfãos rotulados «(sem efeito)»: 24.
+- Gameplay com A/B: **497** — muda no cenário: **497**.
+- Visual/depuração (sem A/B da simulação): 805. Pendentes de cenário (listados com motivo): 306. Órfãos rotulados «(sem efeito)»: 24.
 - Parâmetros jogáveis sem slider: nenhum (fora os 2 limites técnicos abaixo).
 - Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): 354 (orçamento 354, não pode crescer).
 
-- Pendentes de A/B: 304 (orçamento 304, só diminui); pendentes só com evidência fraca de consumidor (consumerWeak): 2 (orçamento 2). Total com evidência fraca (inclui visuais): 23.
+- Pendentes de A/B: 306 (orçamento 306, só diminui); pendentes só com evidência fraca de consumidor (consumerWeak): 2 (orçamento 2). Total com evidência fraca (inclui visuais): 23.
 
 ## Decisões pendentes do responsável
 
@@ -100,7 +100,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 - **passiva** (25): gatilho da passiva não ocorreu no duelo de 5 s nem no roteiro de 7 s com a passiva no azul (detecção de ataque, veneno/queimadura, perda de item, queda de atributo ou recarga longa).
 - **nav** (3): cenários de navegação (muro, plataforma, torre, arena completa) não ficam presos nem exigem ataque com desnível: detecção de travamento e limite de altura do ataque pendentes.
 - **iaMoves** (14): decisão de carga/IA com Moves não ocorreu no duelo de 6 s com Reflect/Psyshock/Water Pulse/Swift.
-- **move** (116): os estágios curtos do Move (perto, defesa, longe, contra-ataque, correndo, carga curta, colado, duelo) não acionam esta condição (parede, alvo no ar, cadeia, limite técnico).
+- **move** (118): os estágios curtos do Move (perto, defesa, longe, contra-ataque, correndo, carga curta, colado, duelo) não acionam esta condição (parede, alvo no ar, cadeia, limite técnico).
 
 ## Limites técnicos sem slider
 
@@ -418,7 +418,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `locomotion.moveFrame` | Referencial das setas com lock-on | seletor | 0 | 1 | 1 | 0 | src/ui/input.js:15 | pendente (combate) |
 | `locomotion.frameLatch` | Travar o referencial enquanto a seta é mantida | liga/desliga | 0 | 1 | 1 | 1 | src/ui/input.js:31 | pendente (combate) |
 | `locomotion.lockFacing` | Orientação do corpo com lock-on | seletor | 0 | 2 | 1 | 2 | src/sim/controller/ctrl-update.js:263 | muda · duel |
-| `locomotion.stopThreshold` | Limiar das animações de freio | % | 0 | 2 | 0.01 | 0.55 | src/view/characters.js:467 | pendente (combate) |
+| `locomotion.stopThreshold` | Limiar das animações de freio | % | 0 | 2 | 0.01 | 0.55 | src/view/characters.js:492 | pendente (combate) |
 | `locomotion.lockTackleHoming` | Lock-on: tackle sempre rumo ao oponente | liga/desliga | 0 | 1 | 1 | 1 | src/sim/controller/ctrl-update.js:401 | pendente (combate) |
 
 ## Câmera
@@ -1400,7 +1400,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `vfx.elemental.fireVariant` | Fogo · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:20 (consumerWeak) | visual/depuração |
 | `vfx.elemental.airVariant` | Vento · opção (0 = A · 1 = B · 2 = C) | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:20 (consumerWeak) | visual/depuração |
 | `vfx.elemental.seedShotEffect` | Efeito de disparo do Seed Bomb | — | 0 | 0.5 | 0.001 | 0 | src/view/quarks/elemental-game.js:84 | visual/depuração |
-| `vfx.elemental.shotFollowTime` | Tempo de seguimento do efeito de disparo | — | 0 | 2 | 0.01 | 0.3 | src/view/world-view/wv-update.js:317 | visual/depuração |
+| `vfx.elemental.shotFollowTime` | Tempo de seguimento do efeito de disparo | — | 0 | 2 | 0.01 | 0.3 | src/view/world-view/wv-update.js:316 | visual/depuração |
 
 ## Tremor · geral
 
@@ -1577,8 +1577,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `display.grounding.autoGround` | Ajuste automático de altura (GLB) | liga/desliga | 0 | 1 | 1 | 1 | src/view/characters.js:799 | visual/depuração |
-| `display.grounding.visualOffset` | Altura visual global | m | -1 | 1 | 0.01 | 0 | src/view/characters.js:811 | visual/depuração |
+| `display.grounding.autoGround` | Ajuste automático de altura (GLB) | liga/desliga | 0 | 1 | 1 | 1 | src/view/characters.js:833 | visual/depuração |
+| `display.grounding.visualOffset` | Altura visual global | m | -1 | 1 | 0.01 | 0 | src/view/characters.js:845 | visual/depuração |
 
 ## Indicador da janela C → X
 
@@ -1852,22 +1852,22 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `display.consumables.gemStyle` | Estilo dos consumíveis (0 = clássico · 1 = Gemas Facetadas) | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-map.js:198 | visual/depuração |
+| `display.consumables.gemStyle` | Estilo dos consumíveis (0 = clássico · 1 = Gemas Facetadas) | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-map.js:201 | visual/depuração |
 | `display.consumables.gemScale` | Escala visual dos consumíveis | × | 0.3 | 3 | 0.05 | 1 | src/view/consumables-gems.js:138 | visual/depuração |
 | `display.consumables.gemHover` | Altura de flutuação das gemas (m) | m | 0 | 3 | 0.05 | 0.9 | src/view/consumables-gems.js:138 | visual/depuração |
 | `display.consumables.gemIndicators` | Indicadores flutuantes dos consumíveis | liga/desliga | 0 | 1 | 1 | 1 | src/view/consumables-gems.js:147 | visual/depuração |
 | `display.consumables.gemIndicatorSize` | Tamanho do indicador flutuante | × | 0.3 | 3 | 0.05 | 1 | src/view/consumables-gems.js:150 | visual/depuração |
 | `display.consumables.gemAnimate` | Animações dos consumíveis (giro, flutuar, brilho) | liga/desliga | 0 | 1 | 1 | 1 | src/view/consumables-gems.js:137 | visual/depuração |
-| `display.consumables.gemParticles` | Centelhas dos consumíveis (three.quarks) | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-map.js:228 | visual/depuração |
+| `display.consumables.gemParticles` | Centelhas dos consumíveis (three.quarks) | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-map.js:231 | visual/depuração |
 | `display.consumables.gemPedestal` | Pedestal hexagonal sob os consumíveis | liga/desliga | 0 | 1 | 1 | 1 | src/view/consumables-gems.js:140 | visual/depuração |
 
 ## Objetos na frente do lutador (transparência)
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `display.occlusion.occEnabled` | Objetos na frente do lutador ficam translúcidos | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-map.js:331 | visual/depuração |
-| `display.occlusion.occOpacity` | Opacidade do objeto que cobre o lutador | % | 0 | 1 | 0.05 | 0.25 | src/view/world-view/wv-map.js:331 | visual/depuração |
-| `display.occlusion.occFade` | Velocidade da transição de transparência | % por quadro | 0.02 | 1 | 0.02 | 0.3 | src/view/world-view/wv-map.js:331 | visual/depuração |
+| `display.occlusion.occEnabled` | Objetos na frente do lutador ficam translúcidos | liga/desliga | 0 | 1 | 1 | 1 | src/view/world-view/wv-map.js:334 | visual/depuração |
+| `display.occlusion.occOpacity` | Opacidade do objeto que cobre o lutador | % | 0 | 1 | 0.05 | 0.25 | src/view/world-view/wv-map.js:334 | visual/depuração |
+| `display.occlusion.occFade` | Velocidade da transição de transparência | % por quadro | 0.02 | 1 | 0.02 | 0.3 | src/view/world-view/wv-map.js:334 | visual/depuração |
 
 ## Círculo de alcance dos Moves de alvo único
 
@@ -1991,7 +1991,7 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.bulletPunch.rayStep` | Passo da varredura contra paredes (técnico) | m | 0.05 | 2 | 0.05 | 0.25 | src/sim/moves/bullet-punch/bullet-punch.js:51 | pendente (move) |
 | `world.bulletPunch.freeSearchRadius` | Raio máximo de busca por espaço livre (técnico) | m | 1 | 24 | 0.5 | 6 | src/sim/moves/bullet-punch/bullet-punch.js:64 | pendente (move) |
 | `world.bulletPunch.freeSearchStep` | Passo da busca por espaço livre (técnico) | m | 0.05 | 2 | 0.05 | 0.25 | src/sim/moves/bullet-punch/bullet-punch.js:64 | muda · bullet-punch/contra-ataque |
-| `world.bulletPunch.atelierVfx` | VFX do Ateliê (punho novo) | liga/desliga | 0 | 1 | 1 | 1 | src/sim/moves/bullet-punch/bullet-punch.vfx.js:30 | visual/depuração |
+| `world.bulletPunch.atelierVfx` | VFX do Ateliê (punho novo) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/bullet-punch/bullet-punch.vfx.js:30 | visual/depuração |
 
 ## Moves · Emerging Stone
 
@@ -2256,31 +2256,31 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.sandWave.waveSpeed` | Velocidade de avanço da onda | m/s | 0.25 | 80 | 0.05 | 13.3333 | src/sim/moves/sand-wave/sand-wave.js:29 | muda · sand-wave/perto |
 | `world.sandWave.waveAccel` | Aceleração da frente da onda | m/s² | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-wave.js:25 | muda · sand-wave/perto |
 | `world.sandWave.dissipate` | Dissipação visual | s | 0 | 6 | 0.05 | 0.75 | src/sim/moves/sand-wave/sand-wave.js:31 | muda · sand-wave/perto |
-| `world.sandWave.damage` | Dano fixo | número | 0 | 80 | 0.5 | 6 | src/sim/sand.js:135 | muda · sand-wave/perto |
-| `world.sandWave.knockbackH` | Knockback horizontal (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:135 | muda · sand-wave/perto |
-| `world.sandWave.knockbackV` | Knockback vertical (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:135 | muda · sand-wave/perto |
-| `world.sandWave.accel` | Empurrão contínuo (aceleração) | m/s² | 0 | 80 | 0.5 | 12 | src/sim/sand.js:175 | muda · sand-wave/perto |
-| `world.sandWave.pushSpeed` | Impulso inicial do empurrão | m/s | 0 | 40 | 0.5 | 0 | src/sim/sand.js:145 | muda · sand-wave/perto |
+| `world.sandWave.damage` | Dano fixo | número | 0 | 80 | 0.5 | 6 | src/sim/sand.js:145 | muda · sand-wave/perto |
+| `world.sandWave.knockbackH` | Knockback horizontal (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:145 | muda · sand-wave/perto |
+| `world.sandWave.knockbackV` | Knockback vertical (golpe inicial) | m/s | 0 | 15 | 0.1 | 0 | src/sim/sand.js:145 | muda · sand-wave/perto |
+| `world.sandWave.accel` | Empurrão contínuo (aceleração) | m/s² | 0 | 80 | 0.5 | 12 | src/sim/sand.js:187 | muda · sand-wave/perto |
+| `world.sandWave.pushSpeed` | Impulso inicial do empurrão | m/s | 0 | 40 | 0.5 | 13.3333 | src/sim/sand.js:155 | muda · sand-wave/perto |
 | `world.sandWave.pushDuration` | Limite de tempo do empurrão | s | 0 | 6 | 0.05 | 0 | src/sim/moves/sand-wave/sand-push.js:61 | pendente (move) |
 | `world.sandWave.pushDurationMode` | Duração do empurrão | inteiro | 0 | 3 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:46 | muda · sand-wave/perto |
 | `world.sandWave.pushContinueAfterActive` | Modo legado: continua depois da janela de dano | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:66 | pendente (move) |
-| `world.sandWave.pushContinuesOutsideArea` | Empurrão continua fora do retângulo (experimental) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:113 | muda · sand-wave/perto |
-| `world.sandWave.pushReleaseDelay` | Tolerância ao perder contato | s | 0 | 1 | 0.05 | 0 | src/sim/moves/sand-wave/sand-push.js:109 | muda · sand-wave/perto |
+| `world.sandWave.pushContinuesOutsideArea` | Empurrão continua fora do retângulo (experimental) | liga/desliga | 0 | 1 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:113 | pendente (move) |
+| `world.sandWave.pushReleaseDelay` | Tolerância ao perder contato | s | 0 | 1 | 0.05 | 0 | src/sim/moves/sand-wave/sand-push.js:109 | pendente (move) |
 | `world.sandWave.pushContinuesDuringStagger` | Empurrão continua durante stagger/recuperação | liga/desliga | 0 | 1 | 1 | 1 | src/sim/moves/sand-wave/sand-push.js:116 | muda · sand-wave/defesa |
-| `world.sandWave.pushPreserveVelocity` | Velocidade própria preservada no contato | % | 0 | 1 | 0.05 | 0 | src/sim/sand.js:142 | pendente (move) |
-| `world.sandWave.pushMaxSpeed` | Velocidade máxima do empurrão | m/s | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-wave.js:36 | pendente (move) |
+| `world.sandWave.pushPreserveVelocity` | Velocidade própria preservada no contato | % | 0 | 1 | 0.05 | 0 | src/sim/sand.js:152 | pendente (move) |
+| `world.sandWave.pushMaxSpeed` | Velocidade máxima do empurrão | m/s | 0 | 80 | 0.5 | 13.3333 | src/sim/moves/sand-wave/sand-wave.js:36 | pendente (move) |
 | `world.sandWave.pushAccelerationMode` | Modo de aceleração do empurrão | inteiro | 0 | 2 | 1 | 0 | src/sim/moves/sand-wave/sand-push.js:50 | muda · sand-wave/perto |
 | `world.sandWave.pushCurvePower` | Expoente da curva de aceleração | número | 0.25 | 4 | 0.05 | 1 | src/sim/moves/sand-wave/sand-push.js:139 | muda · sand-wave/perto |
 | `world.sandWave.pushTargetSpeed` | Velocidade-alvo do empurrão | m/s | 0 | 80 | 0.5 | 0 | src/sim/moves/sand-wave/sand-push.js:143 | pendente (move) |
 | `world.sandWave.pushRampTime` | Constante de tempo da velocidade-alvo | s | 0.01 | 2 | 0.01 | 0.2 | src/sim/moves/sand-wave/sand-push.js:144 | pendente (move) |
-| `world.sandWave.pushClearsLocomotion` | Zerar movimento próprio no primeiro contato | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:142 | pendente (move) |
-| `world.sandWave.pushCancelsDodge` | Empurrão bloqueia nova esquiva | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:167 | pendente (move) |
-| `world.sandWave.pushCancelsExistingDodge` | Empurrão interrompe esquiva em andamento | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:167 | pendente (move) |
-| `world.sandWave.partialFactor` | Fator do empurrão na defesa parcial | número | 0 | 2 | 0.05 | 0.5 | src/sim/sand.js:145 | muda · sand-wave/defesa |
-| `world.sandWave.blind` | Duração da cegueira | s | 0 | 30 | 0.25 | 4 | src/sim/sand.js:149 | muda · sand-wave/perto |
-| `world.sandWave.blindOnPartial` | Cegar também na defesa parcial | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:149 | muda · sand-wave/defesa |
-| `world.sandWave.wallStagger` | Stagger contra a parede | s | 0 | 4 | 0.05 | 0.3 | src/sim/sand.js:210 | pendente (move) |
-| `world.sandWave.wallStaggerOn` | Ativar stagger ao ser prensado contra parede | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:209 | pendente (move) |
+| `world.sandWave.pushClearsLocomotion` | Zerar movimento próprio no primeiro contato | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:152 | pendente (move) |
+| `world.sandWave.pushCancelsDodge` | Empurrão bloqueia nova esquiva | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:179 | pendente (move) |
+| `world.sandWave.pushCancelsExistingDodge` | Empurrão interrompe esquiva em andamento | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:179 | pendente (move) |
+| `world.sandWave.partialFactor` | Fator do empurrão na defesa parcial | número | 0 | 2 | 0.05 | 0.5 | src/sim/sand.js:155 | muda · sand-wave/defesa |
+| `world.sandWave.blind` | Duração da cegueira | s | 0 | 30 | 0.25 | 4 | src/sim/sand.js:161 | muda · sand-wave/perto |
+| `world.sandWave.blindOnPartial` | Cegar também na defesa parcial | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:161 | muda · sand-wave/defesa |
+| `world.sandWave.wallStagger` | Stagger contra a parede | s | 0 | 4 | 0.05 | 0.3 | src/sim/sand.js:222 | pendente (move) |
+| `world.sandWave.wallStaggerOn` | Ativar stagger ao ser prensado contra parede | liga/desliga | 0 | 1 | 1 | 1 | src/sim/sand.js:221 | pendente (move) |
 | `world.sandWave.visionRadius` | Raio de visão do cegado | m | 2 | 60 | 0.5 | 10 | src/sim/vision.js:13 | muda · sand-wave/contra-ataque |
 | `world.sandWave.fogDarkness` | Escurecimento do fog (só a câmera do cegado) | % | 0 | 2 | 0.05 | 0.6 | src/view/view.js:412 | pendente (move) |
 | `world.sandWave.cell` | Resolução do caminho livre (técnico) | m | 0.1 | 2 | 0.05 | 0.25 | src/sim/sand.js:48 | pendente (move) |
@@ -2289,8 +2289,8 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 | `world.sandWave.waveHeight` | Altura mecânica da barragem | m | 0.1 | 6 | 0.05 | 0.35 | src/sim/moves/sand-wave/sand-wave.js:33 | pendente (move) |
 | `world.sandWave.wallPressMinSpeed` | Velocidade mínima para pressão na parede (técnico) | m/s | 0.1 | 10 | 0.1 | 0.6 | src/sim/sand.js:108 | pendente (move) |
 | `world.sandWave.wallPressMoveRatio` | Limiar de frenagem contra parede (técnico) | % | 0.05 | 1.8 | 0.05 | 0.25 | src/sim/sand.js:108 | muda · sand-wave/perto |
-| `world.sandWave.wallPressStopRatio` | Fração da intenção que conta como parada na parede | % | 0 | 2 | 0.05 | 0.3 | src/sim/sand.js:208 | muda · sand-wave/perto |
-| `world.sandWave.wallUnpinDistance` | Distância para soltar da parede | m | 0 | 1 | 0.005 | 0.01 | src/sim/sand.js:156 | pendente (move) |
+| `world.sandWave.wallPressStopRatio` | Fração da intenção que conta como parada na parede | % | 0 | 2 | 0.05 | 0.3 | src/sim/sand.js:220 | muda · sand-wave/perto |
+| `world.sandWave.wallUnpinDistance` | Distância para soltar da parede | m | 0 | 1 | 0.005 | 0.01 | src/sim/sand.js:168 | pendente (move) |
 | `world.sandWave.waveBottomTolerance` | Tolerância da base da onda (técnico) | m | 0 | 2 | 0.01 | 0.2 | src/sim/sand.js:121 | pendente (move) |
 | `world.sandWave.hitsAirborne` | Acertar alvos em voo baixo | liga/desliga | 0 | 1 | 1 | 0 | src/sim/sand.js:119 | pendente (move) |
 | `world.sandWave.maxTargets` | Máximo de alvos por execução | inteiro | 1 | 32 | 1 | 16 | src/sim/sand.js:109 | pendente (move) |

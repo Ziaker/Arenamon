@@ -62,7 +62,18 @@
       "damage": 0,
       "entity": 1,
       "kind": "sandwave",
-      "id": 1
+      "id": 1,
+      "eventId": 1,
+      "outcome": "spawn",
+      "attackerId": 0,
+      "targetId": null,
+      "indirectAttackerId": null,
+      "sourceKind": "system",
+      "position": null,
+      "normal": null,
+      "hpDamage": 0,
+      "rawDamage": 0,
+      "shieldAbsorbed": 0
     },
     {
       "tick": 51,
@@ -78,9 +89,26 @@
       "move": "sand-wave",
       "result": "impact",
       "damage": 6,
+      "rawDamage": 6,
+      "hpDamage": 6,
+      "shieldAbsorbed": 0,
+      "sourceKind": "direct",
       "launch": null,
+      "displacementPolicy": "force",
       "contact": "area",
-      "id": 2
+      "x": 0,
+      "z": -1.5,
+      "id": 2,
+      "eventId": 2,
+      "outcome": "impact",
+      "attackerId": 0,
+      "targetId": 1,
+      "indirectAttackerId": null,
+      "position": {
+        "x": 0,
+        "y": 0,
+        "z": -1.5
+      }
     },
     {
       "tick": 51,
@@ -90,7 +118,18 @@
       "damage": 0,
       "entity": 1,
       "duration": 4,
-      "id": 3
+      "id": 3,
+      "eventId": 3,
+      "outcome": "blinded",
+      "attackerId": 0,
+      "targetId": 1,
+      "indirectAttackerId": null,
+      "sourceKind": "direct",
+      "position": null,
+      "normal": null,
+      "hpDamage": 0,
+      "rawDamage": 0,
+      "shieldAbsorbed": 0
     },
     {
       "tick": 213,
@@ -100,7 +139,18 @@
       "damage": 0,
       "entity": 1,
       "kind": "sandwave",
-      "id": 4
+      "id": 4,
+      "eventId": 4,
+      "outcome": "expire",
+      "attackerId": 0,
+      "targetId": null,
+      "indirectAttackerId": null,
+      "sourceKind": "system",
+      "position": null,
+      "normal": null,
+      "hpDamage": 0,
+      "rawDamage": 0,
+      "shieldAbsorbed": 0
     }
   ],
   "ticks": [],
@@ -108,7 +158,7 @@
     "targetHp": 94,
     "targetPosition": {
       "x": 0,
-      "z": 8.984375627280372
+      "z": 8.504250698964862
     },
     "attackerStamina": 1.013718,
     "targetStatuses": [

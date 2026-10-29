@@ -125,8 +125,8 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     // (e no fim do alcance) até a barragem acabar. Antes o alvo ultrapassava o retângulo no mesmo passo e o empurrão terminava em «leftArea» muito antes da barragem.
     let held = false;
     if (st && f.sandPush?.by === e.id && !st.pinned && (f.knockRecovery ?? 0) <= 1e-8) {
-      const cur = localOf(e, f.position), maxU = Math.min(e.length - 0.1, Math.max(front - 0.05, 0.1));
-      if (cur.u >= 0 && Math.abs(cur.v) <= e.width / 2 && cur.u > maxU && cur.u <= e.length + 0.6) {
+      const cur = localOf(e, f.position), maxU = e.length - 0.1;   // só o FIM do retângulo; a retenção atrás da frente continua no bloco antigo mais abaixo
+      if (cur.u >= 0 && Math.abs(cur.v) <= e.width / 2 && cur.u > maxU && cur.u <= e.length + 4 * 0.1) {
         const side = {x: e.dir.z, z: -e.dir.x};
         f.position.x = e.pos.x + e.dir.x * maxU + side.x * cur.v;f.position.z = e.pos.z + e.dir.z * maxU + side.z * cur.v;held = true;
       }
