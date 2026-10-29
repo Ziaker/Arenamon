@@ -25,7 +25,7 @@ code{background:#1f2630;padding:1px 5px;border-radius:4px}a{color:var(--acc)}
 <div class="grid">
  <div class="k"><b>4 × 180 s</b><span>sessões IA × IA, 86.400 passos, 26 rodadas</span></div>
  <div class="k"><b class="ok">0</b><span>violações de invariante (checadas em todo passo)</span></div>
- <div class="k"><b>0,17 ms</b><span>p95 por passo (p50 0,075 · orçamento 2 ms)</span></div>
+ <div class="k"><b>0,16 ms</b><span>p95 por passo (p50 0,065 · orçamento 2 ms)</span></div>
  <div class="k"><b class="ok">bit a bit</b><span>replay, save/load e dois jogos alternados</span></div>
 </div>
 
@@ -50,7 +50,7 @@ code{background:#1f2630;padding:1px 5px;border-radius:4px}a{color:var(--acc)}
 <tr><td>100 ciclos reset + 600 passos IA × IA: arrays/Map/Set do jogo (até 4 níveis) e registros globais</td><td class="ok">nada cresceu entre o 10º e o 100º</td></tr>
 <tr><td>Estado final igual em todos os ciclos (reset completo)</td><td class="ok">1 estado distinto em 100</td></tr>
 <tr><td>Eventos guardados (teto 12) · passiveProcessed · spawnLog</td><td class="ok">12 · 0 · 0</td></tr>
-<tr><td>Navegador: 100 reinícios pelo botão Iniciar — geometrias / texturas / programas</td><td class="ok">108 / 9 / 24 do 1º ao 100º</td></tr>
+<tr><td>Navegador: 100 reinícios pelo botão Iniciar — geometrias / texturas / programas</td><td class="ok">87 / 9 / 18 do 1º ao 100º (execução anterior: 108 / 9 / 24, também estável)</td></tr>
 </table>
 
 <h2>3 · Partidas inteiras com invariantes em todo passo</h2>
@@ -62,20 +62,20 @@ code{background:#1f2630;padding:1px 5px;border-radius:4px}a{color:var(--acc)}
 <tr><td>3</td><td>6</td><td>azul 2 × 1</td><td class="ok">0</td></tr>
 <tr><td>4</td><td>6</td><td>azul 2 × 1</td><td class="ok">0</td></tr>
 </table>
-<p>Totais: 1.659 eventos, 260 impactos, 462 passos de hitstop, 183 pousos (1 sobre rocha do Emerging Stone que subia no mesmo passo, conferido à parte), 0 pinEscape, resíduo máximo 0.</p>
+<p>Totais: 1.659 eventos, 260 impactos, 462 passos de hitstop, 183 pousos (1 sobre rocha do Emerging Stone que subia no mesmo passo, conferido à parte; teto no teste: 3), 0 pinEscape, resíduo máximo 0. Arena <b>quadrada</b> (<code>|x|,|z| ≤ arenaHalf − halfExtent</code>): 60 s, 2 rodadas, 0 violação.</p>
 
 <h2>4 · Tempo por passo</h2>
 <table>
 <tr><th>Medida</th><th>Valor</th></tr>
-<tr><td>Por passo (comando do azul + Game.step com a IA do vermelho), 86.400 passos</td><td>p50 0,075 ms · p95 0,171 ms · p99 0,337 ms · máx 27,3 ms (pico isolado de GC/SO)</td></tr>
-<tr><td>Orçamento de regressão no teste</td><td>p95 &lt; 2 ms e p50 &lt; 1 ms (≈ 12× o medido; o passo tem 8,33 ms)</td></tr>
-<tr><td><code>bench:moves</code> (3 repetições × 1.800 passos)</td><td>p95 de 16 µs (zonas) a 357 µs (entidades no limite); <a href="bench-moves.md">relatório completo</a></td></tr>
+<tr><td>Por passo (comando do azul + Game.step com a IA do vermelho), 86.400 passos</td><td>p50 0,065 ms · p95 0,164 ms · p99 0,319 ms · máx 23,7 ms (pico isolado de GC/SO)</td></tr>
+<tr><td>Orçamento de regressão no teste</td><td>p95 &lt; 2 ms e p50 &lt; 1 ms (≈ 12× o medido; o passo tem 8,33 ms). Estrito sozinho e no <code>--lento</code>; dentro do <code>rapido</code> paralelo (12 testes disputando CPU) vira aviso impresso, porque ali o tempo de parede mede a disputa.</td></tr>
+<tr><td><code>bench:moves</code> (3 repetições × 1.800 passos)</td><td>p95 de 20 µs (zonas) a 371 µs (entidades no limite); <a href="bench-moves.md">relatório completo</a> (gerado por <code>runBench</code> + <code>toMarkdown</code> dentro do teste, não por <code>bench-moves.mjs --write</code>)</td></tr>
 </table>
 
 <h2>5 · Acessibilidade e interface (Edge, dist compilado)</h2>
 <table>
 <tr><th>Verificação</th><th>Resultado</th></tr>
-<tr><td>Controle, 30 s IA × IA com tudo ligado</td><td>11 golpes → 16 tremores e 3 flashes</td></tr>
+<tr><td>Controle, 30 s IA × IA com tudo ligado</td><td>12 golpes → 14 tremores e 0 flash nesta execução (a anterior: 11 golpes → 16 tremores e 3 flashes). O flash depende de qual golpe sai; a prova de Sem Flash só vale quando o controle teve flash.</td></tr>
 <tr><td>Sem Flash + Reduzir Movimento, 30 s IA × IA</td><td class="ok">golpes ocorreram; 0 tremor, 0 flash, nenhum quadro com flash/tremor ativo</td></tr>
 <tr><td>Pausa, quadro a quadro, perda de foco, reinício</td><td class="ok">sem erro</td></tr>
 </table>
@@ -84,6 +84,19 @@ code{background:#1f2630;padding:1px 5px;border-radius:4px}a{color:var(--acc)}
  <figure><img src="acessibilidade-sem-flash-reduzir-movimento.png" alt="Partida IA contra IA com Sem Flash e Reduzir Movimento"><figcaption>Sem Flash + Reduzir Movimento</figcaption></figure>
  <figure><img src="apos-100-reinicios.png" alt="Arena depois de 100 reinícios"><figcaption>Depois de 100 reinícios</figcaption></figure>
 </div>
+
+<h2>Falha conhecida fora desta entrega: <code>ai-eval.test.mjs</code></h2>
+<p><b>Não é causada pela Task 16.</b> A guarda «revisão 2 mantém ações negadas controladas» (<code>negadas(rev 2) ≤ negadas(rev 1) + 20</code>, 10 pares, semente 100) <b>passa</b> na main antes do branch (96205a5) e em ad4973b, e <b>falha</b> a partir de db5222e (Task 9, gate da F4): +19 → +23. Investigação completa: <code>.superpowers/sdd/2026-10-28-overhaul-f3-f9/ai-eval-investigation-report.md</code>.</p>
+<table>
+<tr><th>Commit</th><th>negadas rev 2 × rev 1</th><th>diferença</th><th>vitórias rev 2 × rev 1</th></tr>
+<tr><td>96205a5 (main) / ad4973b</td><td>59 × 40</td><td class="ok">+19 (passa)</td><td>13 × 7</td></tr>
+<tr><td>db5222e em diante</td><td>58 × 35</td><td class="bad">+23 (falha)</td><td>13 × 7</td></tr>
+</table>
+<ul>
+<li>Causa: fragilidade estatística da guarda de semente única. Medida do mesmo jeito, a main já tinha 9 das 10 sementes 100–109 acima de +20; em janelas de 10 pares a guarda falha em ~22 % das sementes nos dois commits (20/91 e 21/91).</li>
+<li>O que mudou de fato: só 2 acertos de raspão legítimos de projétil (contato varrido, sem sobreposição no fim do subpasso) em 200 lutas (sementes 104 e 198); vitórias inalteradas (13 × 7); a previsão da IA já usa um corredor contínuo, mais largo que o corpo.</li>
+<li>O contato varrido de projétil é a correção certa de tunelamento e fica. O teste <b>não foi alterado</b>; está na faixa lenta (fora do <code>rapido</code>) e aguarda decisão do usuário: guarda estatística com várias sementes ou reancorar o limite.</li>
+</ul>
 
 <h2>O que NÃO foi verificado</h2>
 <ul>

@@ -34,6 +34,9 @@ import {registerStandardMoves} from '../src/sim/moves/standard.js';
 
 registerStandardMoves();
 const LENTO = process.argv.includes('--lento') || process.env.F8_LENTO === '1';
+/** Dentro do `npm run rapido` (scripts/rapido.mjs põe retry-fs.mjs no NODE_OPTIONS e roda ~12 testes em paralelo): o tempo de parede por passo
+ * mede a disputa de CPU, não a simulação. Só ali as asserções de TEMPO viram aviso; a faixa lenta (--lento) e a execução sozinha mantêm o orçamento. */
+const PARALELO = !LENTO && /retry-fs/.test(process.env.NODE_OPTIONS ?? '');
 const EVID = fileURLToPath(new URL('../evidence/homologacao-f8/', import.meta.url));
 const TOL = () => C.test.penetrationTolerance ?? .02;
 const SPS = Math.round(1 / (1 / 120));   // passos por segundo (C.test.step = 1/120; conferido abaixo)
@@ -121,7 +124,7 @@ test('save/load no meio (mesmo Game e Game novo) e continuar = execução sem in
 });
 
 // ------------------------------------------------------------------------------------------------ 2. resets
-/** Tamanhos de todo array/Map/Set alcançável a partir do Game (até `depth` níveis), fora os cérebros (medidos à parte pelo hash). */
+/** Tamanhos de todo array/Map/Set alcançável a partir do Game (até `depth` níveis), inclusive os das IAs (brain/playerBrain), mais os registros globais. */
 function sizes(/** @type {any} */ g, depth = 4) {
   const out = /** @type {Record<string, number>} */ ({}), seen = new Set();
   const walk = (/** @type {any} */ o, /** @type {string} */ path, /** @type {number} */ d) => {
@@ -192,7 +195,8 @@ function watchedStep(g, st) {
   g.fighters.forEach((/** @type {any} */ f, /** @type {number} */ i) => {
     for (const [k, x] of Object.entries({x: f.position.x, z: f.position.z, vx: f.velocity.x, vz: f.velocity.z, hp: f.hp, stamina: f.stamina, groundY: f.groundY ?? 0, fy: f.flight ? f.flight.y : 0, fvy: f.flight ? f.flight.vy : 0}))
       if (!fin(x)) v.push(`${tag} f${i}: ${k} não finito (${x})`);
-    if (C.map.arenaShape !== 'square' && Math.hypot(f.position.x, f.position.z) > R + 1e-6) v.push(`${tag} f${i}: fora da arena (${Math.hypot(f.position.x, f.position.z).toFixed(4)} > ${R})`);
+    if (C.map.arenaShape !== 'square') {if (Math.hypot(f.position.x, f.position.z) > R + 1e-6) v.push(`${tag} f${i}: fora da arena (${Math.hypot(f.position.x, f.position.z).toFixed(4)} > ${R})`);}
+    else {const B = C.test.arenaHalf - C.test.halfExtent;if (Math.abs(f.position.x) > B + 1e-6 || Math.abs(f.position.z) > B + 1e-6) v.push(`${tag} f${i}: fora da arena quadrada (${f.position.x.toFixed(4)}, ${f.position.z.toFixed(4)}; limite ±${B})`);}   // mesmo limite de clampToArena
     if (f.hp < 0 || f.hp > f.attributes.hp) v.push(`${tag} f${i}: HP ${f.hp} fora de [0, ${f.attributes.hp}]`);
     if ((f.shield?.hp ?? 0) < 0) v.push(`${tag} f${i}: escudo negativo`);
     if (f.stamina < -1e-9 || f.stamina > getFighterMaxStamina(f) + 1e-6) v.push(`${tag} f${i}: stamina ${f.stamina} fora de [0, ${getFighterMaxStamina(f)}]`);
@@ -237,8 +241,8 @@ function watchedStep(g, st) {
  * Game como o «Iniciar» do laboratório, com sementes novas nas IAs como applySeed de app/match-flow.js) até somar `seconds` s de passos.
  * O placar de melhor de três sai das três primeiras rodadas. Intervalos de 45 s e preparação de 90 s NÃO existem no jogo (não simulados).
  */
-export function session(/** @type {number} */ seed, /** @type {number} */ seconds, {timings = null} = /** @type {{timings?: number[] | null}} */ ({})) {
-  prepConfig();const {g, L} = newMatch(seed);
+export function session(/** @type {number} */ seed, /** @type {number} */ seconds, {timings = null, cfg = null} = /** @type {{timings?: number[] | null, cfg?: (() => void) | null}} */ ({})) {
+  prepConfig();cfg?.();const {g, L} = newMatch(seed);
   const rounds = [], violations = /** @type {string[]} */ ([]), budget = seconds * SPS;
   let total = 0;
   damageLedger.entries = [];
@@ -272,10 +276,19 @@ test(`partida IA × IA com invariantes em todo passo (${LENTO ? '4 sementes × s
   const perf = stats(timings);
   // Orçamento de regressão: medido primeiro nesta máquina (i5-12450H: p50 0,075 · p95 0,17 · p99 0,34 ms em 86.400 passos; evidence/homologacao-f8/resultado.json) e fixado em
   // 2 ms (≈ 12× o medido; 24% do passo de 8,33 ms). Máximo isolado não entra (GC/escalonador do SO); p95 e p50 sim.
-  assert.ok(perf.p95 < 2, `p95 por passo ${perf.p95.toFixed(3)} ms ≥ orçamento de 2 ms`);
-  assert.ok(perf.p50 < 1, `p50 por passo ${perf.p50.toFixed(3)} ms ≥ 1 ms`);
-  if (LENTO) record('partidas', {seeds, secondsPerSession: secs, wallSeconds: +(wall / 1000).toFixed(1), totals: tot, stepTimeMs: perf, budgetMs: {p95: 2, p50: 1},
+  const budget = [[perf.p95 < 2, `p95 por passo ${perf.p95.toFixed(3)} ms ≥ orçamento de 2 ms`], [perf.p50 < 1, `p50 por passo ${perf.p50.toFixed(3)} ms ≥ 1 ms`]];
+  for (const [ok, msg] of budget) if (!ok) {if (PARALELO) console.log(`[f8] AVISO (rapido em paralelo, tempo de parede não vale como orçamento): ${msg}`);else assert.fail(msg);}
+  // Pouso em apoio que sobe no mesmo passo (rocha do Emerging Stone): medido 1 em 86.400 passos; teto 3 (3× o medido) para a exceção da vigia não virar regra.
+  console.log(`[f8] passos ${perf.steps} · p50 ${perf.p50} · p95 ${perf.p95} · máx ${perf.max} ms · pousos ${tot.landings} (em apoio subindo: ${tot.risingLandings}) · impactos ${tot.impacts}`);
+  assert.ok(tot.risingLandings <= 3, `${tot.risingLandings} pousos em apoio que sobe (teto 3): investigar antes de subir o teto`);
+  if (LENTO) record('partidas', {seeds, secondsPerSession: secs, wallSeconds: +(wall / 1000).toFixed(1), totals: tot, stepTimeMs: perf, budgetMs: {p95: 2, p50: 1}, risingLandingsCeiling: 3,
     matches: matches.map(m => ({seed: m.seed, simSeconds: m.simSeconds, bestOfThree: m.bestOfThree, loadouts: m.loadouts, rounds: m.rounds, violations: m.violations.length}))});
+});
+
+test(`arena QUADRADA (map.arenaShape = 'square'): invariantes em todo passo, inclusive |x|,|z| ≤ arenaHalf − halfExtent (${LENTO ? '60' : '10'} s)`, () => {
+  const m = session(7, LENTO ? 60 : 10, {cfg: () => {C.map.arenaShape = 'square';}});
+  try {assert.deepEqual(m.violations.slice(0, 30), [], `${m.violations.length} violações`);} finally {resetConfig(defaults());}
+  if (LENTO) record('arenaQuadrada', {seed: 7, simSeconds: m.simSeconds, rounds: m.rounds.length, violations: m.violations.length});
 });
 
 // ------------------------------------------------------------------------------------------------ evidência (só --lento)
@@ -295,7 +308,7 @@ if (LENTO) {
     record('resets', {cycles: rc.cycles, ticksPerCycle: rc.ticks, distinctFinalStates: rc.distinctFinalStates, grew: rc.grew, eventsCap: rc.events, entities: rc.entities, passiveProcessed: rc.passiveProcessed, spawnLogMax: rc.spawnLogMax, largestCollections: rc.largest});
     const {runBench, toMarkdown} = await import('../bench-moves.mjs');
     const b = runBench({repeats: 3, ticks: 1800});
-    mkdirSync(EVID, {recursive: true});writeFileSync(EVID + 'bench-moves.md', toMarkdown(b));
+    mkdirSync(EVID, {recursive: true});writeFileSync(EVID + 'bench-moves.md', toMarkdown(b).replace('\n', '\n\n> **Procedência deste arquivo:** gerado por `runBench({repeats: 3, ticks: 1800})` + `toMarkdown` dentro de `test/f8-homologacao.test.mjs --lento` (as mesmas funções de `npm run bench:moves`, mas NÃO por `bench-moves.mjs --write`; a linha «Gerado por» abaixo é o texto padrão do relatório).\n'));
     record('benchMoves', {command: 'runBench({repeats: 3, ticks: 1800}) — o mesmo de `npm run bench:moves`, sem --write (relatório completo em bench-moves.md)', budgetUsPerStep: b.budgetUsPerStep,
       rows: b.rows.map((/** @type {any} */ x) => ({id: x.id, p50us: x.p50, p95us: x.p95, p99us: x.p99, maxUs: x.max, budgetPctP95: x.budgetPctP95, maxEntities: x.maxEntities, noisy: x.noisy}))});
     let commit = 'desconhecido';try {commit = execSync('git rev-parse --short HEAD', {cwd: EVID}).toString().trim();} catch {}

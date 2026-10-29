@@ -1,6 +1,6 @@
 {
- "geradoEm": "2026-10-29T03:00:43.227Z",
- "commitBase": "01ca8d0",
+ "geradoEm": "2026-10-29T04:08:13.728Z",
+ "commitBase": "d079833",
  "maquina": {
   "cpu": "12th Gen Intel(R) Core(TM) i5-12450H",
   "nucleos": 12,
@@ -16,7 +16,7 @@
     4
    ],
    "secondsPerSession": 180,
-   "wallSeconds": 9,
+   "wallSeconds": 8.5,
    "totals": {
     "events": 1659,
     "impacts": 260,
@@ -28,16 +28,17 @@
    },
    "stepTimeMs": {
     "steps": 86400,
-    "p50": 0.0754,
-    "p95": 0.1706,
-    "p99": 0.3365,
-    "max": 27.3145,
-    "mean": 0.1005
+    "p50": 0.0653,
+    "p95": 0.1639,
+    "p99": 0.3192,
+    "max": 23.6518,
+    "mean": 0.094
    },
    "budgetMs": {
     "p95": 2,
     "p50": 1
    },
+   "risingLandingsCeiling": 3,
    "matches": [
     {
      "seed": 1,
@@ -711,6 +712,12 @@
     }
    ]
   },
+  "arenaQuadrada": {
+   "seed": 7,
+   "simSeconds": 60,
+   "rounds": 2,
+   "violations": 0
+  },
   "replay": {
    "alternation": {
     "steps": 3000,
@@ -821,119 +828,119 @@
    "rows": [
     {
      "id": "ia-sem-moves",
-     "p50us": 19.8,
-     "p95us": 39.2,
-     "p99us": 61.6,
-     "maxUs": 347.9,
-     "budgetPctP95": 0.47,
+     "p50us": 23.3,
+     "p95us": 37.3,
+     "p99us": 64.9,
+     "maxUs": 1879.5,
+     "budgetPctP95": 0.448,
      "maxEntities": 0,
-     "noisy": false
+     "noisy": true
     },
     {
      "id": "ia-todos-os-moves",
-     "p50us": 16.7,
-     "p95us": 37.5,
-     "p99us": 78,
-     "maxUs": 643.3,
-     "budgetPctP95": 0.45,
+     "p50us": 16.5,
+     "p95us": 38.2,
+     "p99us": 80.6,
+     "maxUs": 553.4,
+     "budgetPctP95": 0.458,
      "maxEntities": 3,
      "noisy": false
     },
     {
      "id": "swift-metralhadora",
-     "p50us": 31.3,
-     "p95us": 74.2,
-     "p99us": 116.5,
-     "maxUs": 7409,
-     "budgetPctP95": 0.89,
+     "p50us": 33.8,
+     "p95us": 72.4,
+     "p99us": 113.8,
+     "maxUs": 1049.5,
+     "budgetPctP95": 0.869,
      "maxEntities": 9,
      "noisy": true
     },
     {
      "id": "zonas-fire-spin",
-     "p50us": 9.3,
-     "p95us": 16,
-     "p99us": 39.7,
-     "maxUs": 524.7,
-     "budgetPctP95": 0.192,
+     "p50us": 10.8,
+     "p95us": 19.8,
+     "p99us": 40.8,
+     "maxUs": 496.3,
+     "budgetPctP95": 0.238,
      "maxEntities": 1,
      "noisy": true
     },
     {
      "id": "reflect-x-projeteis",
-     "p50us": 17.6,
-     "p95us": 46.3,
-     "p99us": 101.8,
-     "maxUs": 540.1,
-     "budgetPctP95": 0.556,
+     "p50us": 18.2,
+     "p95us": 46.5,
+     "p99us": 92.1,
+     "maxUs": 635.8,
+     "budgetPctP95": 0.558,
      "maxEntities": 8,
      "noisy": false
     },
     {
      "id": "entidades-no-limite",
-     "p50us": 264.1,
-     "p95us": 356.5,
-     "p99us": 527.7,
-     "maxUs": 994.8,
-     "budgetPctP95": 4.278,
+     "p50us": 276.5,
+     "p95us": 370.8,
+     "p99us": 620.4,
+     "maxUs": 899.9,
+     "budgetPctP95": 4.45,
      "maxEntities": 64,
      "noisy": false
     }
    ]
   },
-  "extraWallSeconds": 34.2
+  "extraWallSeconds": 33.7
  },
  "browser": {
-  "geradoEm": "2026-10-29T03:02:57.555Z",
+  "geradoEm": "2026-10-29T04:09:34.569Z",
   "acessibilidade": {
    "controle": {
-    "flash": 3,
-    "shake": 16,
-    "flashFrames": 25,
-    "shakeFrames": 183,
-    "frames": 1785,
-    "hits": 11,
-    "delivered": 27,
-    "tick": 3595,
-    "events": 27
+    "flash": 0,
+    "shake": 14,
+    "flashFrames": 0,
+    "shakeFrames": 198,
+    "frames": 1789,
+    "hits": 12,
+    "delivered": 36,
+    "tick": 3605,
+    "events": 36
    },
    "semFlashReduzirMovimento": {
     "flash": 0,
     "shake": 0,
     "flashFrames": 0,
     "shakeFrames": 0,
-    "frames": 1798,
-    "hits": 3,
-    "delivered": 63,
-    "tick": 3595,
-    "events": 63
+    "frames": 1800,
+    "hits": 15,
+    "delivered": 42,
+    "tick": 3603,
+    "events": 42
    },
    "janelaSegundos": 30
   },
   "reinicios": [
    {
     "reset": 1,
-    "geometries": 108,
+    "geometries": 87,
     "textures": 9,
-    "programs": 24
+    "programs": 18
    },
    {
     "reset": 10,
-    "geometries": 108,
+    "geometries": 87,
     "textures": 9,
-    "programs": 24
+    "programs": 18
    },
    {
     "reset": 50,
-    "geometries": 108,
+    "geometries": 87,
     "textures": 9,
-    "programs": 24
+    "programs": 18
    },
    {
     "reset": 100,
-    "geometries": 108,
+    "geometries": 87,
     "textures": 9,
-    "programs": 24
+    "programs": 18
    }
   ],
   "renderer": "ANGLE (Intel, Intel(R) UHD Graphics (0x000046A3) Direct3D11 vs_5_0 ps_5_0, D3D11)",
@@ -941,12 +948,12 @@
    {
     "label": "controle (Sem Flash e Reduzir Movimento desligados): a partida IA × IA gera eventos e o VFX dispara tremor/flash",
     "ok": true,
-    "detail": "{\"flash\":3,\"shake\":16,\"flashFrames\":25,\"shakeFrames\":183,\"frames\":1785,\"hits\":11,\"delivered\":27,\"tick\":3595,\"events\":27}"
+    "detail": "{\"flash\":0,\"shake\":14,\"flashFrames\":0,\"shakeFrames\":198,\"frames\":1789,\"hits\":12,\"delivered\":36,\"tick\":3605,\"events\":36}"
    },
    {
     "label": "Sem Flash + Reduzir Movimento: nenhum flash de tela e nenhum tremor de câmera em nenhum quadro",
     "ok": true,
-    "detail": "{\"flash\":0,\"shake\":0,\"flashFrames\":0,\"shakeFrames\":0,\"frames\":1798,\"hits\":3,\"delivered\":63,\"tick\":3595,\"events\":63}"
+    "detail": "{\"flash\":0,\"shake\":0,\"flashFrames\":0,\"shakeFrames\":0,\"frames\":1800,\"hits\":15,\"delivered\":42,\"tick\":3603,\"events\":42}"
    },
    {
     "label": "pausa, avanço/recuo de quadro, perda de foco e reinício sem erro",
@@ -956,7 +963,7 @@
    {
     "label": "100 reinícios: geometrias, texturas e programas estáveis entre o 10º e o 100º",
     "ok": true,
-    "detail": "[{\"reset\":1,\"geometries\":108,\"textures\":9,\"programs\":24},{\"reset\":10,\"geometries\":108,\"textures\":9,\"programs\":24},{\"reset\":50,\"geometries\":108,\"textures\":9,\"programs\":24},{\"reset\":100,\"geometries\":108,\"textures\":9,\"programs\":24}]"
+    "detail": "[{\"reset\":1,\"geometries\":87,\"textures\":9,\"programs\":18},{\"reset\":10,\"geometries\":87,\"textures\":9,\"programs\":18},{\"reset\":50,\"geometries\":87,\"textures\":9,\"programs\":18},{\"reset\":100,\"geometries\":87,\"textures\":9,\"programs\":18}]"
    },
    {
     "label": "sem erros de página no teste inteiro",

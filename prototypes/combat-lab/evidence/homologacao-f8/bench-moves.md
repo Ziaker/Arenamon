@@ -1,5 +1,7 @@
 # Desempenho da simulação com carga de Moves (2026-10-29)
 
+> **Procedência deste arquivo:** gerado por `runBench({repeats: 3, ticks: 1800})` + `toMarkdown` dentro de `test/f8-homologacao.test.mjs --lento` (as mesmas funções de `npm run bench:moves`, mas NÃO por `bench-moves.mjs --write`; a linha «Gerado por» abaixo é o texto padrão do relatório).
+
 > Gerado por `node prototypes/combat-lab/bench-moves.mjs --write` (#15 do plano de 23/10/2026). **Só CPU da simulação em Node**: não mede GPU, draw calls, VFX, FPS nem P95 de render. Números de uma máquina não valem para outra; compare apenas execuções no MESMO computador.
 
 **Ambiente:** 12th Gen Intel(R) Core(TM) i5-12450H · 12 núcleos · win32 x64 · Node v25.8.0 · GPU: não medida (simulação em Node).
@@ -7,12 +9,12 @@
 
 | Cenário | P50 µs | P95 µs | P99 µs | Máx µs | P95 / orçamento | Passos/s (P50) | Entidades (máx) | Heap Δ KB | Ruído entre repetições |
 |---|---|---|---|---|---|---|---|---|---|
-| IA × IA, nenhum Move equipado (baseline) | 19.8 | 39.2 | 61.6 | 347.9 | 0.47% | 50.505 | 0 | 732 | 11.4% |
-| IA × IA com 4 Moves equipados em cada lado | 16.7 | 37.5 | 78 | 643.3 | 0.45% | 59.880 | 3 | 5447 | 3.1% |
-| Swift repetido (stamina infinita): muitos projéteis | 31.3 | 74.2 | 116.5 | 7409 | 0.89% | 31.949 | 9 | -45102 | 19.8% ⚠ alto |
-| Fire Spin repetido: várias zonas de pulso ativas | 9.3 | 16 | 39.7 | 524.7 | 0.192% | 107.527 | 1 | 7112 | 20.6% ⚠ alto |
-| Reflect do azul contra projéteis do vermelho | 17.6 | 46.3 | 101.8 | 540.1 | 0.556% | 56.818 | 8 | 284 | 14.5% |
-| Mundo no limite de entidades (C.world.maxEntities) | 264.1 | 356.5 | 527.7 | 994.8 | 4.278% | 3.786 | 64 | 32015 | 1.3% |
+| IA × IA, nenhum Move equipado (baseline) | 23.3 | 37.3 | 64.9 | 1879.5 | 0.448% | 42.918 | 0 | -20327 | 21.8% ⚠ alto |
+| IA × IA com 4 Moves equipados em cada lado | 16.5 | 38.2 | 80.6 | 553.4 | 0.458% | 60.606 | 3 | 5693 | 0.8% |
+| Swift repetido (stamina infinita): muitos projéteis | 33.8 | 72.4 | 113.8 | 1049.5 | 0.869% | 29.586 | 9 | 16043 | 17.6% ⚠ alto |
+| Fire Spin repetido: várias zonas de pulso ativas | 10.8 | 19.8 | 40.8 | 496.3 | 0.238% | 92.593 | 1 | 7105 | 19.2% ⚠ alto |
+| Reflect do azul contra projéteis do vermelho | 18.2 | 46.5 | 92.1 | 635.8 | 0.558% | 54.945 | 8 | 233 | 11.9% |
+| Mundo no limite de entidades (C.world.maxEntities) | 276.5 | 370.8 | 620.4 | 899.9 | 4.45% | 3.617 | 64 | -11321 | 0.5% |
 
 ## Leitura
 
