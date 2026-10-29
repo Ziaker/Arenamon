@@ -155,6 +155,23 @@ try {
   R.phaseBack = await firstHit();
   await scene(() => {const ch = window.__lab.ui.characters[0];delete ch.animProfile.entries.tackle;window.__lab.syncCharacterCombatWindows();});
 
+  // ===== POUSO DO SALTO NORMAL (recuperação de 0,25 s): jogo real, Wookada =====
+  R.landing = await scene(async () => {
+    const L = window.__lab, g = L.game, a = g.fighters[0], C = L.C;
+    if (g.phase !== 'playing') {L.startMatch();L.syncCharacterCombatWindows();window.__run(1);}
+    g.mapState.platforms = [];g.mapState.obstacles = [];a.ledge = null;a.flight = null;a.action = null;a.charge = null;a.aim = null;a.groundY = 0;a.position = {x: 0, z: 0};a.state = 'neutral';a.stun = 0;a.knockRecovery = 0;a.landingRecovery = 0;a.actionRecovery = 0;a.velocity = {x: 0, z: 0};a.jumpBuffered = 0;
+    g.fighters[1].position = {x: 9, z: 9};
+    const out = {recoveryCfg: C.map.jumpLandingRecovery};
+    window.__run(2);window.__run(1, {jump: true, jumpHeld: true});
+    let n = 0;while (!a.flight && n++ < 60) window.__run(1, {jumpHeld: true});
+    n = 0;while (a.flight && n++ < 600) await window.__runDraw(2);
+    out.landedState = a.state;out.recovery = +(a.landingRecovery ?? 0).toFixed(3);out.visualKey = L.ui.characters[0].stateKey(a);
+    // durante a recuperação o tackle é negado; depois dela sai
+    window.__run(1, {tackle: true});out.tackleDuring = a.action?.kind ?? null;
+    let t = 0;while ((a.landingRecovery ?? 0) > 0 && t++ < 400) await window.__runDraw(2);
+    out.ticksLocked = t;window.__run(2);window.__run(1, {tackle: true});out.tackleAfter = a.action?.kind ?? null;
+    return out;
+  });
   console.log(JSON.stringify(R, null, 1));
   writeFileSync(out + 'resultado.json', JSON.stringify(R, null, 2));
   assert.deepEqual(errors, [], 'sem erros de página');
@@ -165,6 +182,9 @@ try {
   assert.ok(R.phaseBack.applied == null || !R.phaseBack.applied.active, 'voltando ao modo Definição o contrato some: ' + JSON.stringify(R.phaseBack));
   assert.ok(R.aim.moved == null || R.aim.moved > 0.02, 'o membro de mira move a mão (ou o rig não tem braço): ' + JSON.stringify(R.aim));
   assert.ok(R.aim.twOff < .08, 'perfil «desligado» solta o olhar: ' + R.aim.twOff);
+  assert.ok(R.landing.recovery > .2 && R.landing.landedState === 'landing', 'pouso normal entra em recuperação: ' + JSON.stringify(R.landing));
+  assert.equal(R.landing.tackleDuring, null, 'sem ações durante a recuperação do pouso');
+  assert.equal(R.landing.tackleAfter, 'tackle', 'depois da recuperação a ação sai: ' + JSON.stringify(R.landing));
   assert.ok(R.track.tw > .5, 'olhar ativo no Wookada: ' + JSON.stringify(R.track));
   assert.ok(Math.abs(R.track.yaw) <= Math.PI, 'yaw finito');
   assert.deepEqual(errors, [], 'sem erros de página');

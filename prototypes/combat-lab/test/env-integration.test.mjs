@@ -145,7 +145,7 @@ check('pilar é redondo para projéteis (como para lutadores): passa rente ao ca
 // ---------- IA × IA: mesma física, sem privilégios ----------
 check('12 partidas IA × IA em mapa denso (8 + 8): nenhum conflito de espaço, nenhum NaN e ninguém afundado em sólido enquanto anda/ataca no chão', () => {
   const MOVES = ['reflect', 'psyshock', 'bounce', 'bullet-punch', 'emerging-stone', 'guard-break', 'lunge', 'quick-attack', 'sand-wave', 'spikes', 'swift'];
-  const before = physicsProbe.staticConflictsTotal, bad = [];
+  const before = physicsProbe.staticConflictsTotal, bad = [], expelling = new Map();
   for (let seed = 1; seed <= 12; seed++) {
     resetConfig(defaults());Object.assign(C.map, {obstacleCount: 8, destructibleCount: 8});
     const g = new Game({seed});g.brain.seed = seed;g.playerBrain.seed = seed + 11;g.mode = 'tactical';
@@ -157,8 +157,10 @@ check('12 partidas IA × IA em mapa denso (8 + 8): nenhum conflito de espaço, n
       for (const f of g.fighters) {
         if (![f.position.x, f.position.z, f.groundY].every(Number.isFinite)) {bad.push(`seed ${seed}: NaN`);continue;}
         if (f.flight || f.wallSplat || f.state === 'airborne' || (f.vaultHeight ?? 0) > 0.05) continue;
-        if (f.state === 'pushed' && (f.push?.elapsed ?? 1) < .05) continue;   // Emerging Stone nasce sob o alvo e o empurrão de expulsão começa no mesmo passo: a sobreposição dura 1–2 passos e some (rock_1002, seed 12)   // em voo ou em arco de vault (no ar) vale a faixa de montagem (resíduo documentado)
-        for (const s of solids) if (penetration({x: f.position.x, y: f.groundY, z: f.position.z}, s, 'box') > 0.03) bad.push(`seed ${seed} t${t} f${f.id} ${f.action?.kind ?? f.state} em ${s.id}`);
+        // Emerging Stone nasce sob o alvo e o empurrão de expulsão começa no mesmo passo (rock_1002, seed 12): a sobreposição inicial é tolerada, mas a EXPULSÃO tem de terminar em 0,5 s (60 passos).
+        const key = `${seed}:${f.id}`;
+        if (f.state === 'pushed' && (f.push?.elapsed ?? 1) < .05) {expelling.set(key, t);continue;}
+        for (const s of solids) if (penetration({x: f.position.x, y: f.groundY, z: f.position.z}, s, 'box') > 0.03) {if (expelling.has(key) && t - expelling.get(key) <= 60) continue;bad.push(`seed ${seed} t${t} f${f.id} ${f.action?.kind ?? f.state} em ${s.id}`);}
       }
     }
   }

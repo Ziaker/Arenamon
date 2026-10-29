@@ -105,6 +105,8 @@ export function flatten(obj, prefix = '', out = {}) {
  */
 export function migrateFlat(flat, known) {
   const values = {}, converted = [], ignored = [];
+  // 29/10/2026: a recuperação do pouso do salto normal passou a agir (0,25 s por decisão do responsável). O 0,19 salvo era o padrão antigo que nunca teve efeito, não uma escolha: sobe para 0,25.
+  if (flat['map.jumpLandingRecovery'] === 0.19) {flat = {...flat, 'map.jumpLandingRecovery': 0.25};converted.push({from: 'map.jumpLandingRecovery', to: 'map.jumpLandingRecovery', value: 0.25});}
   const legacyDurationTackle = 'rules.tackleDuration' in flat;
   for (const [path, v] of Object.entries(flat)) {
     if (LEGACY_MAP[path]) {
