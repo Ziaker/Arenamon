@@ -35,6 +35,13 @@ export const VFX_TYPES = [
  * @type {Record<string, ((cfg: any, ctx: any) => void) | null>}
  */
 export const HIT_BY_ELEMENT = {water: null, fire: null, air: null, grass: null, psychic: null, ground: null, normal: null};
+/**
+ * Moves cujo `move` no evento foi acrescentado só para o contrato canônico de dano (todo evento leva o id do Move) e que, no VFX LEGADO de hit,
+ * continuam tratados como antes (`move: null`: hit padrão do Tackle sem tinta do Move e tremor genérico de câmera). Seed Bomb: a explosão ganhou
+ * `move: 'seed-bomb'` na F6; sem pedido do usuário o visual aprovado não muda (AGENTS.md). O roteamento elemental/quarks não passa por aqui.
+ */
+export const LEGACY_HIT_MOVE_IGNORED = Object.freeze(['seed-bomb']);
+const legacyHitMove = move => (move && LEGACY_HIT_MOVE_IGNORED.includes(move) ? null : move);
 /** Configuração do hit para um acerto: o hit do Tackle, com a cor do Move quando houver (e estiver ligada). */
 function hitConfigFor(move) {
   const group = MOVE_GROUP[move], tint = group ? C.vfx.moveHit?.[group] : null;
@@ -205,7 +212,7 @@ export class VfxSystem {
       }
       if (!a || !b) continue;
       const tag = `evento ${e.result} (passo ${e.tick ?? '?'}: ${e.attacker === 0 ? 'azul' : 'vermelho'} → ${e.target === 0 ? 'azul' : 'vermelho'})`;
-      if (e.result === 'impact') {const hs = hitShakeFor(e.move);burst && this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch, move: e.move}, tag);if (hs.on) this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, (e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1) * hs.power, tag, hs.dur);}
+      if (e.result === 'impact') {const lm = legacyHitMove(e.move), hs = hitShakeFor(lm);burst && this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: e.slam ? 1.5 : e.riposte ? 1.9 : 1, damage: e.damage, launch: e.launch, move: lm}, tag);if (hs.on) this.shake(e.slam ? 'shakeGround' : 'shakeHit', e.normal, (e.slam ? 1.4 : e.riposte ? (C.world.riposte?.shakeMult ?? 1) : 1) * hs.power, tag, hs.dur);}
       else if (e.result === 'wallSplat') {burst && this.fire('hit', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1.4}, tag);this.shake('shakeClash', e.normal, 1, tag);}
       else if (e.result === 'footstool') {const n = e.normal ?? {x: 0, z: 0};burst && this.fire('hit', {pos: {x: b.position.x, z: b.position.z}, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n, power: 0.7}, tag);this.shake('shakeHit', n, 0.6, tag);}
       else if (e.result === 'partial') {burst && this.fire('block', {pos: b.position, lift: altitudeOf(b), floorLift: b.groundY ?? 0, n: e.normal, power: 1}, tag);this.shake('shakeGuard', e.normal, 1, tag);}
