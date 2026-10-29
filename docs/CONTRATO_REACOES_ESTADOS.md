@@ -83,11 +83,6 @@ Ao tocar clipes com base no tempo de atordoamento (`hitstun` ou `stagger`):
 | Permissões derivadas, sem gravar estado: `actionPermissions(f) → {canMove, canAttack, canDodge, canGuard, canJump}` a partir de `canMove/canAct`, voo, stun, `hp` e `absent`; usadas na telemetria e lidas pela IA da própria partida | `src/sim/entity.js`; `src/sim/telemetry.js`; `src/sim/controller/ctrl-update.js` (`setControllerContext`) | `f3-permissions.test.mjs`; `f8-homologacao.test.mjs` (dois jogos alternados) | a7c77dc, 33ef5d5 |
 | Sem pouso falso: stagger, footstool e empurrão não geram `landing`; sair da borda cai balístico sem `landing` até tocar o chão | `src/sim/physics.js` | `f4-geometry-gate.test.mjs`; vigia de pouso em todo passo de `f8-homologacao.test.mjs` | db5222e, 33ef5d5 |
 
-**Exceções à autoridade única (anteriores ao overhaul, NÃO migradas):** três caminhos ainda escrevem a família `f.stagger` (`stagger`, `staggerMax`, `knockRecovery`, `recoveryKind`, `state`) direto, sem passar por `applyReaction`:
-- `src/sim/world.js` `applyCounterStagger` (~L329): stagger do contra-golpe vencido;
-- `src/sim/world.js` `breakByTackle` (~L457): parede quebrada pelo Tackle, com stagger e recuo em `f.push` inline;
-- `src/sim/sand.js` (~L210): stagger de parede do Sand Wave. O estado empurrado do Sand Wave (~L196) é declarado `'force'` no evento.
-
-Seguimento sugerido: um `applyReaction` de `kind: 'counterStagger'` (e equivalentes para a parede e a quebra pelo Tackle) que grave a mesma família `f.stagger`, com teste de paridade campo a campo contra o código atual.
+**Autoridade única completa (v1.49.2):** `applyCounterStagger`, `breakByTackle` (`world.js`) e o stagger de parede do Sand Wave (`sand.js`) chamam `applyReaction` (`counterStagger`, `barrierRecoil`, `wallStagger`), com paridade campo a campo contra o código anterior (`f3-reaction-resolver.test.mjs`). O contrato `f3-reaction-authority.test.mjs` falha se outro arquivo de `src/` escrever `stagger`/`stun`/`hitstun`/`state` de reação. O estado empurrado do Sand Wave segue declarado `'force'` no evento.
 
 **Ponto em aberto (decisão de jogo, não alterado):** o estágio de Defesa reduz o knockback do Tackle (`defStageKnockbackMult` em `combat.js`), mas não o de projéteis e áreas. A inconsistência já existia antes do overhaul e foi registrada na F6.

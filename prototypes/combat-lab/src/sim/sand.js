@@ -11,6 +11,7 @@
 //   • PAREDE: pressionado contra um sólido, para e fica em stagger de `wallStagger` s sem dano; só repete depois de se soltar e bater de novo.
 // Obstáculos móveis: o campo de distâncias é recalculado a cada `replanSteps` passos (SW-D67). Valores: parâmetros capturados no disparo (M28.4).
 import {applyHit} from './world/world-hit.js';
+import {applyReaction} from './resolvers/reaction-resolver.js';
 import {applyStatus} from './status.js';
 import {blockingSolids, pointInSolid, segmentClear} from './collision/queries.js';
 import {dot, scale, clamp} from './math.js';
@@ -219,7 +220,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     const wantNow = Math.max(0, dot(f.locomotionVelocity ?? {x: 0, z: 0}, e.dir));
     const pressed = !held && want > minPressSpeed && (moved < moveRatio * want * dt || wantNow < (e.wallPressStopRatio ?? .3) * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
     if ((e.wallStaggerOn ?? 1) && pressed && !t.pinned && f.knockRecovery <= 1e-8) {
-      t.pinned = true;f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, e.wallStagger);f.stagger = Math.max(f.stagger ?? 0, e.wallStagger);f.staggerMax = Math.max(f.staggerMax ?? 0, e.wallStagger);f.recoveryKind = 'stagger';f.state = 'stagger';f.hitSerial = (f.hitSerial ?? 0) + 1;
+      t.pinned = true;applyReaction(f, {kind: 'wallStagger', duration: e.wallStagger});
       events.push({result: 'sandStagger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, seconds: e.wallStagger, x: f.position.x, z: f.position.z});
     }
     t.prevWant = wantNow;
