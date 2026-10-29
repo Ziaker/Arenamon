@@ -10,6 +10,7 @@ import {usageOf} from './move-matrix.js';
 import {withValues} from './compare.js';
 import {MOVE_GROUP, MELEE_MOVES, SHAKE_GROUPS} from './move-hit-map.js';
 import {MOVE_VFX, VFX_NAMES} from './move-vfx-map.js';
+import {effectiveMovePhases} from './move-phases.js';
 
 export const TICK_RATE = 120;
 const toTick = (/** @type {number} */ s) => Math.round(s * TICK_RATE);
@@ -68,26 +69,23 @@ export function buildMoveTimeline(moveId, {slot = 0} = {}) {
   const def = getMove(moveId);
   if (!def) return null;
   const g = def.group ? C.world[def.group] : null;
+  const phases = effectiveMovePhases(def, g);
   /** @type {TimelineMark[]} */ const marks = [];
   /** @type {TimelineSpan[]} */ const spans = [];
-  const total = toTick(def.duration ?? 0);
+  const total = toTick(phases.duration);
   if (total > 0) spans.push({from: 0, to: total, label: def.charge ? 'ação após soltar' : 'ação do Move', kind: 'cast'});
   for (const ev of def.timeline ?? []) {
     const kind = ev.spawn ? 'spawn' : ev.status ? 'status' : ev.hit ? 'hit' : 'effect';
     const what = ev.spawn?.kind ?? ev.status?.id ?? ev.effect ?? 'golpe';
     marks.push({tick: def.charge ? 0 : toTick(ev.at ?? 0), label: `${kind}: ${what}`, kind});
   }
-  if (def.invulnerable) {
-    const [a, b] = def.invulnerable;
+  if (phases.invulnerable.length) {
+    const [a, b] = phases.invulnerable[0];
     if (b > a) {spans.push({from: toTick(a), to: toTick(b), label: 'invulnerável', kind: 'invuln'});marks.push({tick: toTick(a), label: 'início da invulnerabilidade', kind: 'invuln'});}
   }
   // Moves que viram ação de Tackle: janela de acerto e cancelamento vêm do grupo.
-  if (def.tackle && g) {
-    if (typeof g.hitStart === 'number' && typeof g.hitEnd === 'number') {spans.push({from: toTick(g.hitStart), to: toTick(g.hitEnd), label: 'janela de acerto', kind: 'active'});marks.push({tick: toTick(g.hitStart), label: 'início da hitbox', kind: 'hit'});}
-    if (typeof g.chainAfter === 'number') {marks.push({tick: toTick(g.chainAfter), label: 'cancelável a partir daqui', kind: 'cancel'});spans.push({from: toTick(g.chainAfter), to: total, label: 'cancelável', kind: 'cancel'});}
-  } else if (typeof def.cancelAfter === 'number' && def.cancelAfter < (def.duration ?? 0)) {
-    marks.push({tick: toTick(def.cancelAfter), label: 'cancelável a partir daqui', kind: 'cancel'});spans.push({from: toTick(def.cancelAfter), to: total, label: 'cancelável', kind: 'cancel'});
-  }
+  if (phases.active.length) {const [a, b] = phases.active[0];spans.push({from: toTick(a), to: toTick(b), label: 'janela de acerto', kind: 'active'});marks.push({tick: toTick(a), label: 'início da hitbox', kind: 'hit'});}
+  if (phases.cancel) {const [a, b] = phases.cancel;marks.push({tick: toTick(a), label: 'cancelável a partir daqui', kind: 'cancel'});spans.push({from: toTick(a), to: toTick(b), label: 'cancelável', kind: 'cancel'});}
   marks.push({tick: total, label: 'fim da ação', kind: 'end'});
   marks.sort((a, b) => a.tick - b.tick);
   const cues = [...eventCues(moveId, marks), ...animationCues(def, slot)];
