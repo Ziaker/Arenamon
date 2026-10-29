@@ -48,6 +48,7 @@ function range(key, value, path) {
     if (key === 'whiffTrail' || key === 'whiffDust') return mult;
     if (key === 'whiffOvershoot') return {min: 0, max: 12, step: .5, fmt: n => n.toFixed(1) + '°'};
     if (key === 'whiffMinDistance') return {min: 0, max: 1, step: .01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'ledgeSizeComp') return mult;
     if (key === 'ledgeOffsetY' || key === 'ledgeOffsetZ') return {min: -.5, max: .5, step: .01, fmt: n => n.toFixed(2) + ' m'};
     if (key === 'footMaxCorrection') return {min: 0, max: .25, step: .005, fmt: n => n.toFixed(3) + ' m'};
     if (key === 'footPelvisMax') return {min: 0, max: .15, step: .005, fmt: n => n.toFixed(3) + ' m'};

@@ -24,6 +24,10 @@ Estados novos: `ledge_grab` (entrada, enquanto a simulação encaixa), `ledge_ha
 ## 6 · Fases da animação
 Modos: **Definição** (padrão), **Animação aprovada** e **Comparar** (só calcula a tabela). No modo aprovado cada fase (ativa, cancelamento, invulnerabilidade) precisa de autorização própria. O contrato é validado (ordem, sobreposição, duração, janela ativa com ≥ 1 passo, cancelamento não antes do primeiro compromisso, clipe presente); **qualquer falha rejeita o contrato inteiro** e o combate usa a definição, com a mensagem exata no painel. O contrato resolvido vai nas janelas de combate do `Game` (salvas no replay). Novos marcadores de clipe aceitos: `cancel_start` / `cancel_end`.
 
+## Modelos grandes (Wookada como referência)
+O Wookada (1,85× em altura e largura) é a referência de modelo pesado. Testado no jogo real com ele: rastro e poeira do golpe no vazio nascem a partir do tamanho **visual** (antes ficavam dentro do corpo); na borda o modelo baixa o excedente de altura (`ledgeSizeComp`, ×) para as mãos ficarem na quina, sem afundar abaixo do piso; os pés (correção até 0,2 m numa plataforma de 0,15 m) e o olhar (alvo travado a ~30°) rodaram sem NaN e sem erro de página.
+
 ## Verificação
 - `node prototypes/combat-lab/test/game-feel-5-9.test.mjs` (21 verificações: decisão de whiff, detecção de rig, limites de olhar, contrato de fases, paridade com o modo Definição).
-- Não foram medidos visualmente em GLB real: IK dos pés e rastreamento (rodam só com os interruptores ligados); ver «Limites» na resposta de entrega.
+- `test/game-feel-wookada.browser.mjs`: partida real IA × IA com Wookada × Cogumelo, 12 s em tempo real, sem erro de página nem NaN.
+- `test/game-feel-cenas.browser.mjs`: cenas dirigidas no jogo real (golpe no vazio, borda, degrau, olhar) com capturas em `evidence/game-feel-5-9/`.

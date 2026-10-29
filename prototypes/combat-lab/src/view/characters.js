@@ -931,7 +931,9 @@ export class Character {
     this.root.position.set(f.position.x, alt + this.groundOffset - ground * scale * (this.squash.transverse - 1), f.position.z);
     if (f.ledge) {   // pose na borda: ajuste visual por personagem + global (só apresentação; o corpo físico segue conduzido por ledge.js)
       const G = C.extras.gameFeel, n = f.ledge.n ?? {x: 0, z: 0}, oz = this.ledgeOffset.z + G.ledgeOffsetZ;
-      this.root.position.y += this.ledgeOffset.y + G.ledgeOffsetY;this.root.position.x -= n.x * oz;this.root.position.z -= n.z * oz;
+      // Modelo maior que o padrão (Wookada 1,85×): a posição pendurada vem da física do corpo padrão, então o excedente de altura baixa o modelo para as mãos ficarem na quina (sem afundar abaixo do piso).
+      const excess = Math.max(0, this.restHeight * scale - C.extras.visual.bodyHeight), comp = -excess * G.ledgeSizeComp, floor = -(f.groundY ?? 0);
+      this.root.position.y += Math.max(comp, floor) + this.ledgeOffset.y + G.ledgeOffsetY;this.root.position.x -= n.x * oz;this.root.position.z -= n.z * oz;
     }
     this.root.rotation.set(0, this.squash.heading, 0);
     this.deformation.scale.set(this.squash.transverse, this.squash.transverse, this.squash.z);

@@ -407,7 +407,7 @@ export class View {
       (this.riposteFx ??= new RiposteFx(T, this.scene)).update(fighters, fresh, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});
     } else if (this.riposteFx) {this.riposteFx.dispose();this.riposteFx = null;}
     // Game feel 5 — golpe no vazio (só apresentação; um único dono do canal «whiff»).
-    {const m = C.vfx.master ?? {};(this.whiffFx ??= new WhiffFx(T, this.scene)).update(fighters, fresh, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, visible: !!X.hud.fxVisible && !!m.enabled, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});}
+    {const m = C.vfx.master ?? {};(this.whiffFx ??= new WhiffFx(T, this.scene)).update(fighters, fresh, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, visible: !!X.hud.fxVisible && !!m.enabled, sizeOf: id => ({w: this.characters[id]?.widthScale ?? 1, h: this.characters[id]?.heightScale ?? 1}), reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});}
     // Cegueira do Sand Wave: SÓ a câmera do jogador cegado (lutador 0) recebe névoa densa perto do limite de visão e redução da luz ambiente (SW-D17/D36/D39);
     // os outros observadores não mudam. A cena volta ao normal quando o debuff acaba.
     {

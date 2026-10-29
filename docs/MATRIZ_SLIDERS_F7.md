@@ -8,9 +8,9 @@ Para cada um: caminho em `C`, rótulo, unidade (lida do formato do próprio slid
 
 ## Resumo
 
-- Sliders: **1655** (Ajustes 1218 · Moves 437).
+- Sliders: **1656** (Ajustes 1219 · Moves 437).
 - Gameplay com A/B: **497** — muda no cenário: **497**.
-- Visual/depuração (sem A/B da simulação): 824. Pendentes de cenário (listados com motivo): 310. Órfãos rotulados «(sem efeito)»: 24.
+- Visual/depuração (sem A/B da simulação): 825. Pendentes de cenário (listados com motivo): 310. Órfãos rotulados «(sem efeito)»: 24.
 - Parâmetros jogáveis sem slider: nenhum (fora os 2 limites técnicos abaixo).
 - Sliders numéricos sem unidade no formato (número puro: fração, multiplicador): 354 (orçamento 354, não pode crescer).
 
@@ -711,25 +711,26 @@ Sliders com significado de jogo que hoje não agem (ou só aparecem no HUD). Nã
 
 | id | rótulo | unidade | mín | máx | passo | padrão | consumidor | A/B |
 |---|---|---|---|---|---|---|---|---|
-| `extras.gameFeel.whiffOn` | Feedback de golpe no vazio (liga/desliga) | liga/desliga | 0 | 1 | 1 | 1 | src/view/whiff-fx.js:61 | visual/depuração |
-| `extras.gameFeel.whiffTrail` | Golpe no vazio: rastro de ar (×) | × | 0 | 2 | 0.05 | 1 | src/view/whiff-fx.js:95 | visual/depuração |
-| `extras.gameFeel.whiffDust` | Golpe no vazio: poeira no chão (×) | × | 0 | 2 | 0.05 | 1 | src/view/whiff-fx.js:104 | visual/depuração |
-| `extras.gameFeel.whiffOvershoot` | Golpe no vazio: giro de desequilíbrio na recuperação (°) | ° | 0 | 12 | 0.5 | 4 | src/view/whiff-fx.js:112 | visual/depuração |
-| `extras.gameFeel.whiffMinDistance` | Golpe no vazio: distância mínima do rival para valer (m) | m | 0 | 1 | 0.01 | 0.25 | src/view/whiff-fx.js:65 | visual/depuração |
-| `extras.gameFeel.ledgeOffsetY` | Borda: ajuste vertical da pose pendurada (m) | m | -0.5 | 0.5 | 0.01 | 0 | src/view/characters.js:934 | visual/depuração |
+| `extras.gameFeel.whiffOn` | Feedback de golpe no vazio (liga/desliga) | liga/desliga | 0 | 1 | 1 | 1 | src/view/whiff-fx.js:74 | visual/depuração |
+| `extras.gameFeel.whiffTrail` | Golpe no vazio: rastro de ar (×) | × | 0 | 2 | 0.05 | 1 | src/view/whiff-fx.js:109 | visual/depuração |
+| `extras.gameFeel.whiffDust` | Golpe no vazio: poeira no chão (×) | × | 0 | 2 | 0.05 | 1 | src/view/whiff-fx.js:118 | visual/depuração |
+| `extras.gameFeel.whiffOvershoot` | Golpe no vazio: giro de desequilíbrio na recuperação (°) | ° | 0 | 12 | 0.5 | 4 | src/view/whiff-fx.js:126 | visual/depuração |
+| `extras.gameFeel.whiffMinDistance` | Golpe no vazio: distância mínima do rival para valer (m) | m | 0 | 1 | 0.01 | 0.25 | src/view/whiff-fx.js:78 | visual/depuração |
+| `extras.gameFeel.ledgeOffsetY` | Borda: ajuste vertical da pose pendurada (m) | m | -0.5 | 0.5 | 0.01 | 0 | src/view/characters.js:936 | visual/depuração |
 | `extras.gameFeel.ledgeOffsetZ` | Borda: ajuste horizontal da pose, rumo à parede (m) | m | -0.5 | 0.5 | 0.01 | 0 | src/view/characters.js:933 | visual/depuração |
+| `extras.gameFeel.ledgeSizeComp` | Borda: compensação do tamanho do modelo na pose pendurada (× · 0 desliga) | × | 0 | 2 | 0.05 | 1 | src/view/characters.js:935 | visual/depuração |
 | `extras.gameFeel.footOn` | Apoio visual dos pés (IK) ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/characters.js:715 | visual/depuração |
-| `extras.gameFeel.footMaxCorrection` | Pés: correção máxima do tornozelo (m) | m | 0 | 0.25 | 0.005 | 0.12 | src/view/rig-layers.js:156 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.footPelvisMax` | Pés: correção máxima da pelve (m) | m | 0 | 0.15 | 0.005 | 0.06 | src/view/rig-layers.js:157 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.footSmooth` | Pés: suavização da posição (s) | s | 0.02 | 0.2 | 0.01 | 0.08 | src/view/rig-layers.js:140 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.footPlantSpeed` | Pés: velocidade abaixo da qual o pé fica plantado (m/s) | m/s | 0 | 1.5 | 0.05 | 0.6 | src/view/rig-layers.js:173 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.footSlope` | Pés: alinhamento da sola ao apoio (%) | % | 0 | 100 | 1 | 60 | src/view/rig-layers.js:182 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.footMaxCorrection` | Pés: correção máxima do tornozelo (m) | m | 0 | 0.25 | 0.005 | 0.12 | src/view/rig-layers.js:176 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.footPelvisMax` | Pés: correção máxima da pelve (m) | m | 0 | 0.15 | 0.005 | 0.06 | src/view/rig-layers.js:177 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.footSmooth` | Pés: suavização da posição (s) | s | 0.02 | 0.2 | 0.01 | 0.08 | src/view/rig-layers.js:160 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.footPlantSpeed` | Pés: velocidade abaixo da qual o pé fica plantado (m/s) | m/s | 0 | 1.5 | 0.05 | 0.6 | src/view/rig-layers.js:193 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.footSlope` | Pés: alinhamento da sola ao apoio (%) | % | 0 | 100 | 1 | 60 | src/view/rig-layers.js:202 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.trackOn` | Olhar para o alvo travado (rastreamento aditivo) ligado | liga/desliga | 0 | 1 | 1 | 0 | src/view/characters.js:715 | visual/depuração |
-| `extras.gameFeel.trackHeadYaw` | Olhar: limite horizontal da cabeça (°) | ° | 0 | 65 | 1 | 45 | src/view/rig-layers.js:242 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.trackHeadPitch` | Olhar: limite vertical da cabeça (°) | ° | 0 | 35 | 1 | 20 | src/view/rig-layers.js:247 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.trackTorso` | Olhar: contribuição do tronco (%) | % | 0 | 70 | 1 | 35 | src/view/rig-layers.js:242 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.trackSmooth` | Olhar: suavização da resposta (s) | s | 0.03 | 0.3 | 0.01 | 0.12 | src/view/rig-layers.js:232 (consumerWeak) | visual/depuração |
-| `extras.gameFeel.trackRelease` | Olhar: tempo para voltar à pose base (s) | s | 0.03 | 0.25 | 0.01 | 0.12 | src/view/rig-layers.js:232 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.trackHeadYaw` | Olhar: limite horizontal da cabeça (°) | ° | 0 | 65 | 1 | 45 | src/view/rig-layers.js:262 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.trackHeadPitch` | Olhar: limite vertical da cabeça (°) | ° | 0 | 35 | 1 | 20 | src/view/rig-layers.js:267 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.trackTorso` | Olhar: contribuição do tronco (%) | % | 0 | 70 | 1 | 35 | src/view/rig-layers.js:262 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.trackSmooth` | Olhar: suavização da resposta (s) | s | 0.03 | 0.3 | 0.01 | 0.12 | src/view/rig-layers.js:252 (consumerWeak) | visual/depuração |
+| `extras.gameFeel.trackRelease` | Olhar: tempo para voltar à pose base (s) | s | 0.03 | 0.25 | 0.01 | 0.12 | src/view/rig-layers.js:252 (consumerWeak) | visual/depuração |
 | `extras.gameFeel.phaseMode` | Fases da animação nos tempos do combate (0 = Definição do Move · 1 = Animação aprovada · 2 = Comparar sem aplicar) | Definição do Move | 0 | 2 | 1 | 0 | src/app/characters-sync.js:22 | pendente (combate) |
 | `extras.gameFeel.phaseActive` | Fases: autorizar janela ativa vinda da animação | liga/desliga | 0 | 1 | 1 | 0 | src/main.js:121 | pendente (combate) |
 | `extras.gameFeel.phaseCancel` | Fases: autorizar janela de cancelamento vinda da animação | liga/desliga | 0 | 1 | 1 | 0 | src/main.js:121 | pendente (combate) |

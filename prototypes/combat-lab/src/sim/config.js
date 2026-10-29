@@ -80,7 +80,7 @@ function buildDefaults() {
     // whiff*: feedback de golpe no vazio · ledge*: deslocamento visual da pose na borda · foot*: apoio visual dos pés (IK) · track*: olhar/tronco rumo ao alvo travado.
     gameFeel: {
       whiffOn: 1, whiffTrail: 1, whiffDust: 1, whiffOvershoot: 4, whiffMinDistance: .25,
-      ledgeOffsetY: 0, ledgeOffsetZ: 0,
+      ledgeOffsetY: 0, ledgeOffsetZ: 0, ledgeSizeComp: 1,
       footOn: 0, footMaxCorrection: .12, footPelvisMax: .06, footSmooth: .08, footPlantSpeed: .6, footSlope: 60,
       trackOn: 0, trackHeadYaw: 45, trackHeadPitch: 20, trackTorso: 35, trackSmooth: .12, trackRelease: .12,
       phaseMode: 0, phaseActive: 0, phaseCancel: 0, phaseInvuln: 0,
