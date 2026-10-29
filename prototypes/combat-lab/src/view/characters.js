@@ -111,6 +111,8 @@ const COMBAT_KEYS = new Set(['wallSplat', 'airborne_up', 'pushed_side', 'stagger
 
 /** Perfil de olhar padrão de um Move: a definição pode declarar `tracking` ('head' | 'headTorso' | 'aim' | 'off'); sem ela, cabeça e tronco. */
 export const moveDefaultTracking = id => getMove(id)?.tracking ?? 'headTorso';
+/** Perfil de olhar em vigor: o id do Move fica em action.move também nos Moves que viram ação de tackle (Quick Attack, Lunge…). */
+export const trackModeOf = (f, profile) => {const id = f?.action?.move ?? null;return (id && profile?.[id]) || moveDefaultTracking(id);};
 
 /** Recusa cedo (com motivo legível) o que não é GLB 2.0/glTF, antes de entregar ao carregador. */
 async function readGltf(file) {
@@ -744,7 +746,7 @@ export class Character {
     if (!foot && !track && !this.rigLayers) return;
     this.rigLayers ??= new RigLayers(T, this.model, this.hips);
     this.root.updateMatrixWorld(true);
-    const moveId = f.action?.kind === 'move' ? f.action.move : null, mode = (moveId && this.trackProfile[moveId]) || moveDefaultTracking(moveId);
+    const mode = trackModeOf(f, this.trackProfile);
     this.rigLayers.apply(f, dt, {foot, track, G, mode, occluded: ctx.occluded, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
   }
   /** Texto de diagnóstico das camadas de pose (pés e olhar) para o painel do personagem. */

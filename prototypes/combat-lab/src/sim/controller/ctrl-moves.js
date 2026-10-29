@@ -105,6 +105,7 @@ function startTackleMove(f, def, slot, dirs, desiredHeading, hasTarget, guardHel
   a.antiAir = !!def.antiAir;a.airReach = def.group ? (C.world[def.group]?.airReach ?? 0) : 0;
   applyMovePhase(f, a, def, P);   // antes do preparo: hitStart/hitEnd aprovados entram nas janelas que o preparo monta
   getTackleSetup(def.tackle)?.(f, a, P, {fighters, def, hasTarget});
+  applyMovePhase(f, a, def, P);   // de novo depois do preparo: ele fixa chainAfter/invulnerabilidade próprios, e o contrato aprovado deve prevalecer
 }
 /** Soltura de um Charge que vira Tackle (`def.tackle` + `charge`): ação de Tackle com PL da carga; o custo do Tackle volta (o do Move foi cobrado ao apertar). */
 function releaseTackleMove(f, def, ch, rel, cmd, ctx) {

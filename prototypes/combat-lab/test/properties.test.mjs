@@ -53,7 +53,7 @@ function run(seed) {
       if (f.hp < 0 || f.hp > f.attributes.hp) fail(t, `HP fora da faixa: ${f.hp}`);
       // Limite proporcional à configuração sorteada: a distância nominal é fixa (tempo de referência), então ações
       // curtas são mais rápidas; o pico da curva em fases fica abaixo de ~3× a velocidade média.
-      const vmax = Math.max(80, ...['dodge', 'tackle'].map(k => 3.2 * C.actions[k].distance * (C.actions[k].distanceReference || C.actions[k].duration) * 6 * C.actions.tackle.counterSpeed / C.actions[k].duration));
+      const vmax = Math.max(80, ...['dodge', 'tackle'].map(k => 3.2 * C.actions[k].distance * (C.actions[k].distanceReference || C.actions[k].duration) * 6 * C.actions.tackle.counterSpeed * Math.max(1, C.rules.chargeTackleSpeed2 ?? 1, C.rules.chargeTackleSpeed3 ?? 1) / C.actions[k].duration));   // tackle carregado (PL2/PL3) multiplica a velocidade do tackle
       if (Math.hypot(f.velocity.x, f.velocity.z) > vmax) fail(t, `velocidade absurda: ${Math.hypot(f.velocity.x, f.velocity.z)} (limite ${vmax.toFixed(1)})`);
       if (f.vaultHeight < -1e-9 || (f.vaultHeight > C.actions.dodge.vaultHeight + 1e-6 && !f.action?.slam)) fail(t, `altura de salto fora da faixa: ${f.vaultHeight}`);
       if (f.action?.fromCancel && f.action.kind === 'tackle' && f.action.elapsed <= C.test.step + 1e-9) stats.cancels++;
