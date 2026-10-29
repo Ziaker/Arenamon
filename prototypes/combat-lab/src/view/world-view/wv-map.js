@@ -1,4 +1,5 @@
 import {rockModel} from '../../../../sand-stone-lab/src/art.js';
+import {ATELIER_GAME_VARIANT} from '../quarks/atelier-game-params.js';
 // Dividido de world-view.js (comportamento idêntico): métodos de WorldView — wv-map.
 // Mixin: Object.assign(WorldView.prototype, wvMap) no arquivo original.
 
@@ -119,7 +120,8 @@ drawMap(mapState, fighters = [], dt = 0, camera = null) {
       if (!m) {
         let geo;
         if (d.rock) {
-          const variant = C.vfx?.rock?.variant ?? 0;
+          // P0-03: a rocha persistente é a MESMA aprovada no Ateliê (stone.json) que a erupção usa — antes seguia o slider da rocha de projétil (C.vfx.rock.variant) e podia trocar de modelo.
+          const variant = ATELIER_GAME_VARIANT.stone ?? 0;
           m = rockModel(variant, null);
           m.name = `destructible_${d.id}`;
           m.userData.isCustomRock = true;
@@ -152,7 +154,8 @@ drawMap(mapState, fighters = [], dt = 0, camera = null) {
         this.mapGroup.add(m);
         this.mapMeshes.set(d.id, m);
       }
-      m.position.set(d.pos.x, d.pos.y + d.size.height / 2, d.pos.z);
+      // A caixa genérica tem a origem no CENTRO; o modelo da rocha tem a origem na BASE — com +altura/2 a rocha ficava flutuando 1,5 m acima do chão.
+      m.position.set(d.pos.x, d.pos.y + (d.rock ? 0 : d.size.height / 2), d.pos.z);
       if (d.rock) {   // rocha do Emerging Stone: visual do Ateliê A/B/C com veios e estratos esculpidos
         const hScale = Math.max(0.01, d.size.height / 3.0);
         m.scale.set((d.size.hx * 2) / 2.6, hScale, (d.size.hz * 2) / 2.6);

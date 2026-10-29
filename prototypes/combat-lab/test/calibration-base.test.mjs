@@ -19,7 +19,7 @@ const get = (o, path) => path.split('.').reduce((a, k) => a?.[k], o);
 const flat = (o, p = '', out = {}) => {for (const [k, v] of Object.entries(o)) {const q = p ? p + '.' + k : k;if (v && typeof v === 'object' && !Array.isArray(v)) flat(v, q, out);else out[q] = v;}return out;};
 const fac = factoryDefaults(), base = defaults();
 
-assert.equal(CALIBRATION_BASE.length, 168);ok('a tabela tem as 168 linhas (1ª exportação de 21/10 + 2ª de 22/10 12:12 − 4 do marcador do Bullet Punch = 180; 3ª de 28/10, gerada por scripts/gen-calibration-base.mjs: troca 12 valores, acrescenta 4 e retira 16 linhas sem efeito, cujo valor novo era o de fábrica)');
+assert.equal(CALIBRATION_BASE.length, 186);ok('a tabela tem as 186 linhas (168 do export de 28/10 + 18 pedidos diretos de 29/10: empurrão constante do Sand Wave, Air Slash mais visível e Bullet Punch clássico) — antes: 168 linhas (1ª exportação de 21/10 + 2ª de 22/10 12:12 − 4 do marcador do Bullet Punch = 180; 3ª de 28/10, gerada por scripts/gen-calibration-base.mjs: troca 12 valores, acrescenta 4 e retira 16 linhas sem efeito, cujo valor novo era o de fábrica)');
 for (const [path, value, old] of CALIBRATION_BASE) {
   assert.notEqual(get(fac, path), undefined, `parâmetro inexistente: ${path}`);
   assert.deepEqual(get(fac, path), old, `valor anterior de ${path} não é o de fábrica`);
@@ -42,7 +42,8 @@ ok('defaults() = fábrica + tabela; nenhuma outra diferença');
 {
   // 3ª exportação (28/10/2026): defaults() reproduz o JSON do responsável folha a folha (números com tolerância de ruído; arrays/textos por valor).
   const json = JSON.parse(readFileSync(fileURLToPath(new URL('../../../docs/calibracao/arenamon-calibracao-v8-2026-10-28.json', import.meta.url)), 'utf8')).values;
-  const J = flat(json), B = flat(base), diff = Object.keys(J).filter(k => typeof J[k] === 'number' ? !(Math.abs(J[k] - B[k]) <= 1e-12 * Math.max(1, Math.abs(J[k]))) : JSON.stringify(J[k]) !== JSON.stringify(B[k]));
+  const AJUSTES_POSTERIORES = new Set(['world.sandWave.pushSpeed', 'world.sandWave.pushMaxSpeed', 'world.bulletPunch.atelierVfx']);   // + Air Slash mais visível (prefixo abaixo)   // 29/10: pedido direto do responsável (empurrão constante), depois do export
+  const J = flat(json), B = flat(base), diff = Object.keys(J).filter(k => !AJUSTES_POSTERIORES.has(k) && !k.startsWith('vfx.elemental.visual.airSlash') && (typeof J[k] === 'number' ? !(Math.abs(J[k] - B[k]) <= 1e-12 * Math.max(1, Math.abs(J[k]))) : JSON.stringify(J[k]) !== JSON.stringify(B[k])));
   assert.deepEqual(diff, [], `defaults() difere do JSON de 28/10: ${diff.slice(0, 5)}`);
 }
 ok('defaults() = arenamon-calibracao-v8-2026-10-28.json em todas as folhas de values');

@@ -77,7 +77,7 @@ function cycle(/** @type {any} */ view, /** @type {number} */ seed) {
     view.draw(fs, g.events, 1 / 60, {tick: g.tick, world: g.world, navGame: g});
     if (t % 20 === 0 || t === 238) sampleMats(view);
   }
-  const before = {aura: !!view.statusAura, aim: !!view.aimMarkers, nav: !!view.navDebug, water: !!view.worldView.waterChargePreview, fog: !!view.scene.fog, blind: view.blindK > .5};
+  const before = {aura: !!view.statusAura, aim: !!view.aimMarkers, nav: !!view.navDebug, water: Object.keys(view.worldView.waterCharge ?? {}).length > 0, fog: !!view.scene.fog, blind: view.blindK > .5};
   view.reset(g.fighters[0]);
   return before;
 }
@@ -95,7 +95,7 @@ test('100 resets: cena, geometrias/materiais/texturas vivos e coleções interna
       assert.ok(view.statusAura == null, 'statusAura descartada no reset');
       assert.ok(view.aimMarkers == null, 'aimMarkers descartado no reset');
       assert.ok(view.navDebug == null, 'navDebug descartado no reset');
-      assert.ok(view.worldView.waterChargePreview == null, 'waterChargePreview descartada no reset');
+      assert.ok(Object.keys(view.worldView.waterCharge ?? {}).length === 0, 'esferas de carga do Water Pulse (uma por lutador) descartadas no reset');
       assert.equal(view.worldView.waterChargeLevel, 0);
       assert.ok(view.scene.fog == null, 'névoa da cegueira removida');
       assert.equal(view.blindK, 0, 'blindK volta a 0');

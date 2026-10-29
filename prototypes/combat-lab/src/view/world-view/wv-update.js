@@ -303,11 +303,10 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
         const maxTicks = Math.max(1, ch.params?.maxTicks ?? 180), ratio = Math.min(1, ch.ticks / maxTicks);
         const level = ratio >= 1 ? 3 : ratio >= .5 ? 2 : 1, reach = .62;
         const base = C.vfx.elemental?.visual?.[`waterPulse${Math.max(0, level - 1)}`] ?? ELEMENTAL_GAME_PARAMS.waterPulse[Math.max(0, level - 1)];
-        if (!this.waterChargePreview) {
-          this.waterChargePreview = new ElementalPreview(this.group, {batch: this.elementalFx.batch, parent: this.group});
-          this.waterChargePreview.root.visible = true;
-        }
-        const p = this.waterChargePreview;
+        // P0-01: UMA esfera por lutador (antes havia uma instância única: o lutador que NÃO carregava escondia a esfera de quem carregava).
+        const wcp = this.waterCharge ??= {};
+        let p = wcp[f.id];
+        if (!p) {p = wcp[f.id] = new ElementalPreview(this.group, {batch: this.elementalFx.batch, parent: this.group});p.root.visible = true;}
         p.root.visible = true;
         p.root.position.set(f.position.x + Math.sin(f.facing) * reach, altitudeOf(f) + .58 + .12 * ratio, f.position.z + Math.cos(f.facing) * reach);
         p.root.scale.setScalar(.4 + .9 * ratio);
@@ -320,8 +319,9 @@ update(world, {fighters = [], events = [], dt = 0, skipBeams = false, camera = n
         p.noFlash = !!acc.noFlash; p.reduced = !!acc.reduceMotion;
         p.velocity = (p.p?.speed ?? base.speed);
         p.update(dt);
-      } else if (this.waterChargePreview) {
-        this.waterChargePreview.root.visible = false;
+      } else if (this.waterCharge?.[f.id]) {
+        // P0-02: terminou/cancelou/interrompeu/KO — libera os emissores (antes só escondia o grupo e as partículas ficavam no cenário).
+        this.waterCharge[f.id].dispose();delete this.waterCharge[f.id];
       }
 
       if (ch && ch.move === 'reflect') {

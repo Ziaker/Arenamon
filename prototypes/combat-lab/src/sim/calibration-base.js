@@ -191,6 +191,28 @@ export const CALIBRATION_BASE = [
   ["map.footstoolBounce", 11.1, 6.5],
   ["map.footstoolAirAccel", 46, 20],
   ["map.footstoolStagger", 0.55, 0.25],
+  // 29/10/2026 — pedido DIRETO do responsável (depois da 3ª exportação, que trazia 0/0): empurrão do Sand Wave CONSTANTE, na velocidade da frente da onda,
+  // desde o tick do contato até o fim da barragem («prisão móvel»). Se regenerar a tabela com scripts/gen-calibration-base.mjs, reaplique estas 2 linhas.
+  ["world.sandWave.pushSpeed", 13.333333, 0],
+  ["world.sandWave.pushMaxSpeed", 13.333333, 0],
+  // 29/10/2026 — pedidos DIRETOS do responsável: Air Slash bem mais visível (brilho, partículas, brilho do disparo, cor clara e LÂMINA ~30% maior: a escala do efeito é 1,45·raio ÷ size, então size MENOR = lâmina MAIOR);
+  // Bullet Punch volta ao efeito antigo (rastro de linhas) com o rush novo do Ateliê DESLIGADO (Quick Attack já vem desligado). Estas linhas não vêm do export de 28/10.
+  ["vfx.elemental.visual.airSlash0.brightness", 3.4, 1.6],
+  ["vfx.elemental.visual.airSlash0.particleSize", 0.22, 0.13],
+  ["vfx.elemental.visual.airSlash0.size", 0.9, 1.2],
+  ["vfx.elemental.visual.airSlash0.color", 12578815, 9358813],
+  ["vfx.elemental.visual.airSlash0.shotGlow", 3.2, 1.9],
+  ["vfx.elemental.visual.airSlash1.brightness", 3.4, 1.6],
+  ["vfx.elemental.visual.airSlash1.particleSize", 0.22, 0.13],
+  ["vfx.elemental.visual.airSlash1.size", 0.95, 1.25],
+  ["vfx.elemental.visual.airSlash1.color", 12578815, 9358813],
+  ["vfx.elemental.visual.airSlash1.shotGlow", 2.6, 1.4],
+  ["vfx.elemental.visual.airSlash2.brightness", 3.4, 1.6],
+  ["vfx.elemental.visual.airSlash2.particleSize", 0.22, 0.13],
+  ["vfx.elemental.visual.airSlash2.size", 0.95, 1.25],
+  ["vfx.elemental.visual.airSlash2.color", 12578815, 9358813],
+  ["vfx.elemental.visual.airSlash2.shotGlow", 2.6, 1.4],
+  ["world.bulletPunch.atelierVfx", 0, 1],
 ];
 
 /** Aplica a base de calibração a um objeto de configuração recém-criado (muta e devolve). */

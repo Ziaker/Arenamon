@@ -72,6 +72,7 @@ export * from './world-view/wv-geometry.js';
   reset() {
     // F5: a esfera de carga do Water Pulse divide o lote do elementalFx — descartada ANTES do clear() dele, que poda os lotes vazios.
     this.waterChargePreview?.dispose();this.waterChargePreview = null;this.waterChargeLevel = 0;
+    for (const p of Object.values(this.waterCharge ?? {})) p.dispose();this.waterCharge = {};
     for (const r of this.chargeRings ?? []) r.visible = false;
     if (this.preview) this.preview.visible = false;
     // F5: os Moves migrados dividem os lotes do elementalFx/atelierFx — descartados ANTES do clear() deles, que poda os lotes vazios (batch-prune.js).

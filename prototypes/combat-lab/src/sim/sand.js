@@ -121,6 +121,16 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     const botTol = e.waveBottomTolerance ?? 0.2;
     const waveBottom = e.y ?? 0, waveTop = waveBottom + (e.height ?? .35);
     const verticalOut = targetAlt < waveBottom - botTol || targetAlt > waveTop + 1e-6;
+    // P0-04 PRISÃO MÓVEL: quem já está sendo empurrado por esta onda NÃO escapa pela frente nem pelo fundo do retângulo — fica retido na frente da onda
+    // (e no fim do alcance) até a barragem acabar. Antes o alvo ultrapassava o retângulo no mesmo passo e o empurrão terminava em «leftArea» muito antes da barragem.
+    let held = false;
+    if (st && f.sandPush?.by === e.id && !st.pinned && (f.knockRecovery ?? 0) <= 1e-8) {
+      const cur = localOf(e, f.position), maxU = Math.min(e.length - 0.1, Math.max(front - 0.05, 0.1));
+      if (cur.u >= 0 && Math.abs(cur.v) <= e.width / 2 && cur.u > maxU && cur.u <= e.length + 0.6) {
+        const side = {x: e.dir.z, z: -e.dir.x};
+        f.position.x = e.pos.x + e.dir.x * maxU + side.x * cur.v;f.position.z = e.pos.z + e.dir.z * maxU + side.z * cur.v;held = true;
+      }
+    }
     const inside = inRect(e, f.position);
     const reached = inside && pathDistance(e, cache.field, solids, f.position) <= front + 1e-9;
     const contact = inside && reached && !airborneBlocked && !verticalOut;
@@ -145,6 +155,8 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
       const ps = (ev.result === 'perfect' || ev.result === 'riposte') ? 0 : (ev.result === 'partial') ? (e.pushSpeed ?? 0) * (e.partialFactor ?? .5) : (e.pushSpeed ?? 0);
       if (ps > 0) f.locomotionVelocity = {x: f.locomotionVelocity.x + dir.x * ps, z: f.locomotionVelocity.z + dir.z * ps};
       capPushSpeed(f, dir, e.pushMaxSpeed ?? 0);
+      // P0-04: Game.step copia f.velocity para locomotionVelocity no fim do passo; sem gravar a velocidade também, o impulso do contato era apagado no MESMO tick e o empurrão só nascia de uma rampa de aceleração.
+      f.velocity = {x: f.locomotionVelocity.x, z: f.locomotionVelocity.z};
       // F7: cegueira 0 s (mínimo do slider) = não cega; antes lançava «duração deve ser > 0» no applyStatus. No padrão (> 0) nada muda.
       const canBlind = (e.blind ?? 0) > 0 && ev.result !== 'perfect' && ev.result !== 'riposte' && (ev.result !== 'partial' || (e.blindOnPartial ?? 1));
       if (canBlind) {applyStatus(f, {id: 'blind', duration: e.blind, stacking: 'refresh', tags: ['debuff', 'blind'], flags: {blind: true}}, {source: e.owner});events.push({result: 'blinded', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, duration: e.blind});}
@@ -205,7 +217,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
     // parede: pressionado (queria andar e não andou) → para e fica em stagger; só repete depois de se soltar
     const want = t.prevWant ?? 0;
     const wantNow = Math.max(0, dot(f.locomotionVelocity ?? {x: 0, z: 0}, e.dir));
-    const pressed = want > minPressSpeed && (moved < moveRatio * want * dt || wantNow < (e.wallPressStopRatio ?? .3) * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
+    const pressed = !held && want > minPressSpeed && (moved < moveRatio * want * dt || wantNow < (e.wallPressStopRatio ?? .3) * want);   // vinha andando (velocidade do passo anterior) e a colisão o parou
     if ((e.wallStaggerOn ?? 1) && pressed && !t.pinned && f.knockRecovery <= 1e-8) {
       t.pinned = true;f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, e.wallStagger);f.stagger = Math.max(f.stagger ?? 0, e.wallStagger);f.staggerMax = Math.max(f.staggerMax ?? 0, e.wallStagger);f.recoveryKind = 'stagger';f.state = 'stagger';f.hitSerial = (f.hitSerial ?? 0) + 1;
       events.push({result: 'sandStagger', attacker: e.owner ?? null, target: f.id, damage: 0, entity: e.id, seconds: e.wallStagger, x: f.position.x, z: f.position.z});
