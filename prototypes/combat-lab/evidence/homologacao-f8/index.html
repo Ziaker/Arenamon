@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Homologação F8</title>
+<style>
+:root{--bg:#0f141a;--fg:#e6edf3;--mut:#9aa7b4;--ok:#3fb950;--bad:#f85149;--warn:#d29922;--card:#161c24;--line:#2a333d;--acc:#58a6ff}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,Segoe UI,sans-serif}
+main{max-width:1040px;margin:0 auto;padding:24px 16px 48px}
+h1{margin:0 0 4px;font-size:26px}h2{margin:32px 0 10px;font-size:19px;border-bottom:1px solid var(--line);padding-bottom:6px}
+p.sub{color:var(--mut);margin:0 0 18px}
+table{width:100%;border-collapse:collapse;margin:8px 0;font-size:14px}th,td{text-align:left;padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}th{color:var(--mut);font-weight:600}
+.ok{color:var(--ok);font-weight:600}.bad{color:var(--bad);font-weight:600}.warn{color:var(--warn);font-weight:600}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.k{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:12px}.k b{display:block;font-size:22px}.k span{color:var(--mut);font-size:13px}
+img{max-width:100%;border:1px solid var(--line);border-radius:6px}figure{margin:0}figcaption{color:var(--mut);font-size:13px;margin-top:4px}
+code{background:#1f2630;padding:1px 5px;border-radius:4px}a{color:var(--acc)}
+</style>
+</head>
+<body><main>
+<h1>Homologação F8 do laboratório de combate</h1>
+<p class="sub">Bateria da Task 16 (spec §15) em 29/10/2026 · base 01ca8d0 + correções desta entrega · máquina i5-12450H, Node v25.8.0, Edge (WebGL real) · números de <a href="resultado.json">resultado.json</a> · relatório: <a href="../../../../docs/RELATORIO_HOMOLOGACAO_F8.md">docs/RELATORIO_HOMOLOGACAO_F8.md</a></p>
+
+<div class="grid">
+ <div class="k"><b>4 × 180 s</b><span>sessões IA × IA, 86.400 passos, 26 rodadas</span></div>
+ <div class="k"><b class="ok">0</b><span>violações de invariante (checadas em todo passo)</span></div>
+ <div class="k"><b>0,17 ms</b><span>p95 por passo (p50 0,075 · orçamento 2 ms)</span></div>
+ <div class="k"><b class="ok">bit a bit</b><span>replay, save/load e dois jogos alternados</span></div>
+</div>
+
+<h2>Achados (corrigidos nesta entrega)</h2>
+<table>
+<tr><th>Achado</th><th>Causa raiz</th><th>Correção</th></tr>
+<tr><td>Dois jogos rodando juntos divergiam no tick 252 (a IA do azul decidia diferente)</td><td>A IA consulta a permissão dos Moves <b>antes</b> do passo; a permissão lia a lista de lutadores do módulo (<code>CTX_FIGHTERS</code>), que apontava para o último jogo simulado. O Bullet Punch dava «sem alvo» e a decisão mudava. O mesmo valia depois de carregar um save (objetos antigos).</td><td>Cada IA aponta o contexto para a própria partida ao decidir (<code>setControllerContext</code>). Teste vermelho → verde.</td></tr>
+<tr><td>Dois jogos alternados ficavam ~15× mais lentos</td><td>O grafo de navegação (Yuka) tinha cache de um único mapa: alternar mapas reconstruía o grafo a cada passo (~10 ms).</td><td>Guarda os últimos 8 mapas; o reaproveitado volta com custos base, idêntico a reconstruir.</td></tr>
+</table>
+
+<h2>1 · Replay e múltiplos jogos</h2>
+<table>
+<tr><th>Verificação</th><th>Resultado</th></tr>
+<tr><td>Jogos A (semente 11) e B (12) alternados passo a passo × cada um sozinho, 3.000 passos: hash do estado completo + eventos (eventId, contactId)</td><td class="ok">idênticos (103 eventos, 6 com contactId)</td></tr>
+<tr><td>Save no tick 1, 600, 1.777 e 3.000 e continuar até 3.600, no mesmo jogo (anda 37 passos e volta) e num jogo novo</td><td class="ok">8 de 8 idênticos bit a bit</td></tr>
+<tr><td>Replays de referência (Tackle, Quick Attack, Reflect)</td><td class="ok">verdes</td></tr>
+</table>
+
+<h2>2 · 100 resets</h2>
+<table>
+<tr><th>Verificação</th><th>Resultado</th></tr>
+<tr><td>100 ciclos reset + 600 passos IA × IA: arrays/Map/Set do jogo (até 4 níveis) e registros globais</td><td class="ok">nada cresceu entre o 10º e o 100º</td></tr>
+<tr><td>Estado final igual em todos os ciclos (reset completo)</td><td class="ok">1 estado distinto em 100</td></tr>
+<tr><td>Eventos guardados (teto 12) · passiveProcessed · spawnLog</td><td class="ok">12 · 0 · 0</td></tr>
+<tr><td>Navegador: 100 reinícios pelo botão Iniciar — geometrias / texturas / programas</td><td class="ok">108 / 9 / 24 do 1º ao 100º</td></tr>
+</table>
+
+<h2>3 · Partidas inteiras com invariantes em todo passo</h2>
+<p>Sem NaN/Infinity · lutador dentro da arena · HP em [0, máx] · stamina em [0, máx] · conservação de HP (livro do DamageResolver + curas com evento) · resíduo do solver ≤ tolerância ou pinEscape · sem pouso falso · hitstop não move nada · contrato de todo evento · eventId único e crescente.</p>
+<table>
+<tr><th>Semente</th><th>Rodadas em 180 s</th><th>Melhor de três (3 primeiras)</th><th>Violações</th></tr>
+<tr><td>1</td><td>6</td><td>vermelho 3 × 0</td><td class="ok">0</td></tr>
+<tr><td>2</td><td>8</td><td>vermelho 2 × 1</td><td class="ok">0</td></tr>
+<tr><td>3</td><td>6</td><td>azul 2 × 1</td><td class="ok">0</td></tr>
+<tr><td>4</td><td>6</td><td>azul 2 × 1</td><td class="ok">0</td></tr>
+</table>
+<p>Totais: 1.659 eventos, 260 impactos, 462 passos de hitstop, 183 pousos (1 sobre rocha do Emerging Stone que subia no mesmo passo, conferido à parte), 0 pinEscape, resíduo máximo 0.</p>
+
+<h2>4 · Tempo por passo</h2>
+<table>
+<tr><th>Medida</th><th>Valor</th></tr>
+<tr><td>Por passo (comando do azul + Game.step com a IA do vermelho), 86.400 passos</td><td>p50 0,075 ms · p95 0,171 ms · p99 0,337 ms · máx 27,3 ms (pico isolado de GC/SO)</td></tr>
+<tr><td>Orçamento de regressão no teste</td><td>p95 &lt; 2 ms e p50 &lt; 1 ms (≈ 12× o medido; o passo tem 8,33 ms)</td></tr>
+<tr><td><code>bench:moves</code> (3 repetições × 1.800 passos)</td><td>p95 de 16 µs (zonas) a 357 µs (entidades no limite); <a href="bench-moves.md">relatório completo</a></td></tr>
+</table>
+
+<h2>5 · Acessibilidade e interface (Edge, dist compilado)</h2>
+<table>
+<tr><th>Verificação</th><th>Resultado</th></tr>
+<tr><td>Controle, 30 s IA × IA com tudo ligado</td><td>11 golpes → 16 tremores e 3 flashes</td></tr>
+<tr><td>Sem Flash + Reduzir Movimento, 30 s IA × IA</td><td class="ok">golpes ocorreram; 0 tremor, 0 flash, nenhum quadro com flash/tremor ativo</td></tr>
+<tr><td>Pausa, quadro a quadro, perda de foco, reinício</td><td class="ok">sem erro</td></tr>
+</table>
+<div class="grid">
+ <figure><img src="acessibilidade-controle.png" alt="Partida IA contra IA com efeitos ligados"><figcaption>Controle (efeitos ligados)</figcaption></figure>
+ <figure><img src="acessibilidade-sem-flash-reduzir-movimento.png" alt="Partida IA contra IA com Sem Flash e Reduzir Movimento"><figcaption>Sem Flash + Reduzir Movimento</figcaption></figure>
+ <figure><img src="apos-100-reinicios.png" alt="Arena depois de 100 reinícios"><figcaption>Depois de 100 reinícios</figcaption></figure>
+</div>
+
+<h2>O que NÃO foi verificado</h2>
+<ul>
+<li><b>Intervalos de 45 s e preparação de 90 s:</b> o jogo não tem relógio de rodada, intervalo nem preparação. A «melhor de três» é contada pelo teste sobre rodadas reiniciadas como o botão Iniciar faz.</li>
+<li><b>100 resets pelo fluxo completo do app (match-flow) sem navegador:</b> o match-flow depende do DOM; foi coberto no navegador (100 × startMatch), medindo memória da GPU, não as coleções internas da interface.</li>
+<li><b>Acessibilidade:</b> medida no renderizador padrão (VFX legado). Os outros renderizadores (novo/quarks) e o pós-processamento não foram exercitados com Sem Flash.</li>
+<li><b>Desempenho de GPU/FPS</b> em máquinas-alvo: só simulação na CPU (Node).</li>
+<li>Penalidade de aresta travada da navegação ainda mora no grafo compartilhado; com os padrões (replanejamento 0,4 s &lt; travamento 0,8 s) ela nunca dispara. Só pesa se alguém subir o slider de replanejamento acima do de travamento.</li>
+</ul>
+</main></body>
+</html>

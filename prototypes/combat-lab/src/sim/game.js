@@ -24,6 +24,7 @@ export class Game {
     // A IA lê o mundo (projéteis e barreiras) e o mapa só por estas funções: elas não entram no estado salvo
     this.brain.getWorld = this.playerBrain.getWorld = () => this.world;
     this.brain.getMapState = this.playerBrain.getMapState = () => this.mapState;
+    this.brain.getFighters = this.playerBrain.getFighters = () => this.fighters;   // F8: contexto das permissões da IA = esta partida (vários Game / load)
     // Movimentos equipados por lutador (ids registrados em moves.js); mantidos entre partidas.
     this.loadouts = [[], []];
     // Passivas: loadout por lutador + identidade de espécie explícita (R15), mantidos entre partidas.

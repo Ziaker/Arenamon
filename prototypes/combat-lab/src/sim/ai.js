@@ -10,6 +10,7 @@ import {emptyCommand} from './entity.js';
 import {vec, add, scale, sub, dot, length, normalize, direction} from './math.js';
 import {tacticalCommand} from './tactics.js';
 import {movesCommand} from './ai-moves.js';
+import {setControllerContext} from './controller/ctrl-update.js';
 
 export const AI_MODES = [
   ['inactive', 'Parado (dummy)'], ['defensive', 'Defensivo (v6)'], ['offensive', 'Ofensivo (v6)'], ['combat', 'Combate (v6)'],
@@ -52,7 +53,10 @@ export class Brain {
   save() {return Object.fromEntries(STATE.map(k => [k, this[k]]));}
   load(s) {Object.assign(this, structuredClone(s));}
   /** Intenção de movimento enviada ao mesmo controlador do jogador, suavizada contra giros instantâneos e zigue-zague. */
-  command(self, target, mode, dt) {return this.smooth(this.decide(self, target, mode, dt), dt, target);}
+  command(self, target, mode, dt) {
+    if (this.getFighters) setControllerContext(this.getFighters(), this.getWorld?.() ?? null);   // F8: permissões da IA leem a partida DESTA Brain (ver ctrl-update.js)
+    return this.smooth(this.decide(self, target, mode, dt), dt, target);
+  }
   smooth(c, dt, target) {
     const A = C.extras.ai, rate = A.moveSmoothing ?? 0;
     if (rate <= 0) return c;

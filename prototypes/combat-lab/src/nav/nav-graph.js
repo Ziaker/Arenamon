@@ -196,7 +196,13 @@ export class NavGraph {
 export function getNavGraph(mapState, overrides = {}) {
   const solids = collectSolids(mapState), p = navParams({blocked: mapState?.navBlocked ?? [], ...overrides}), sig = layoutSignature(solids, p);
   if (cache && cache.signature === sig) return cache;
-  cache = new NavGraph(solids, p);
+  // F8: vários Game no mesmo processo (homologação, avaliação de IA) alternavam layouts e reconstruíam o grafo a cada passo (~10 ms).
+  // Os últimos layouts ficam guardados; o reaproveitado volta com custos base (resetPenalties), idêntico a reconstruir do zero.
+  let g = recent.get(sig);
+  if (g) {recent.delete(sig);g.resetPenalties();} else g = new NavGraph(solids, p);
+  recent.set(sig, g);if (recent.size > 8) recent.delete(/** @type {string} */ (recent.keys().next().value));
+  cache = g;
   return cache;
 }
-export function clearNavCache() {cache = null;}
+/** @type {Map<string, NavGraph>} */ const recent = new Map();
+export function clearNavCache() {cache = null;recent.clear();}

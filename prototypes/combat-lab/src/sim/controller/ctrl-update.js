@@ -18,7 +18,7 @@ import {aimSlam, aimSlamDive, airSkillStep, applyTacklePL, armTechRecovery, canF
 import {bufferedSkill, cancelAim, cancelCharge, pressSkill, stepAim, stepCharge, updateMove} from './ctrl-moves.js';
 
 export function updateFighter(f, cmd, fighters, dt, world = null) {
-  CTX_FIGHTERS = fighters;CTX_WORLD = world;
+  setControllerContext(fighters, world);
   if (C.extras?.toggles?.enableInfiniteStamina) {f.stamina = getFighterMaxStamina(f);f.regenBase = f.stamina;f.exhausted = false;}   // stamina infinita: sempre cheia
   if (f.absent && !(f.action?.kind === 'move' && f.action.travel)) f.absent = false;   // rede de segurança: a ausência só existe durante a viagem do Bullet Punch; se a ação sumir (cancelada, lançamento, queda), o lutador reaparece em vez de ficar invisível e intangível para sempre
   if (cmd.target != null && fighters.find(o => o.id === cmd.target)?.absent) cmd = {...cmd, target: null, locked: false};   // ausente (Bullet Punch) não pode ser selecionado como alvo
@@ -462,3 +462,7 @@ export function advanceAction(f, dt) {
 export let CTX_FIGHTERS = [];
 /** Mundo da partida em curso (definido a cada updateFighter): o apoio real sob o corpo para os Moves que descem do ar (air.js). */
 export let CTX_WORLD = null;
+/** Aponta o contexto (lutadores e mundo) para a partida que vai decidir/simular agora. F8: a IA decide ANTES do passo (Brain.command) e
+ * lê movePermission → CTX_FIGHTERS; sem isto ela via os lutadores do último Game que rodou updateFighter (outro Game, ou os objetos de antes
+ * de um load/reset) e o alvo «sumia» (noTarget), desviando a decisão. @param {any[]} fighters @param {any} [world] */
+export function setControllerContext(fighters, world = null) {CTX_FIGHTERS = fighters;CTX_WORLD = world;}
