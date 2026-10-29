@@ -18,3 +18,11 @@ export function presentationActionCandidates(def, slot = 0, phase = 'action') {
   return unique([p.action, moveSlot, 'tackle', 'idle']);
 }
 
+/**
+ * @param {any} def @param {number} slot @param {string} phase
+ * @param {(key: string) => boolean} available
+ */
+export function firstAvailablePresentationAction(def, slot, phase, available) {
+  return presentationActionCandidates(def, slot, phase).find(available) ?? null;
+}
+

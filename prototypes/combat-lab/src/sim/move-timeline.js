@@ -11,6 +11,7 @@ import {withValues} from './compare.js';
 import {MOVE_GROUP, MELEE_MOVES, SHAKE_GROUPS} from './move-hit-map.js';
 import {MOVE_VFX, VFX_NAMES} from './move-vfx-map.js';
 import {effectiveMovePhases} from './move-phases.js';
+import {presentationActionCandidates} from './move-presentation.js';
 
 export const TICK_RATE = 120;
 const toTick = (/** @type {number} */ s) => Math.round(s * TICK_RATE);
@@ -30,7 +31,7 @@ export function clipFrameAtTick(/** @type {number} */ tick, /** @type {number} *
 /** Clipe tocado pela visão (view/characters.js): na carga `charge_<id>`; ao agir, `move_<slot+1>` (Reflect e Psyshock têm `release_<id>`). */
 function animationCues(/** @type {any} */ def, /** @type {number} */ slot) {
   const own = def.id === 'reflect' || def.id === 'psyshock';
-  const action = own ? 'release_' + def.id : 'move_' + (Math.max(0, Math.min(3, slot)) + 1);
+  const action = own ? 'release_' + def.id : presentationActionCandidates(def, slot, 'action')[0];
   /** @type {TimelineCue[]} */ const cues = [];
   if (def.charge) cues.push({domain: 'animation', clock: 'animation', tick: null, clip: 'charge_' + def.id, label: `animação: durante a carga toca o clipe charge_${def.id} (em laço; não é tick)`});
   cues.push({domain: 'animation', clock: 'animation', tick: 0, clip: action, label: `animação: o clipe ${action} começa com a ação; o progresso dele é normalizado pela duração da ação (não é tick: converta com «Quadros do clipe»)`});

@@ -26,6 +26,8 @@ import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-window
 import {sniffFormat} from './validate.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
+import {getMove} from '../sim/moves.js';
+import {firstAvailablePresentationAction} from '../sim/move-presentation.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
@@ -638,7 +640,9 @@ export class Character {
     const serial = p ? p.serial : mp ? mp.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : (f.hitSerial ?? 0);
     const entry = `${key}#${serial}`;
     if (!this.current || this.current.entry !== entry) {
-      const id = p ? 'preview' : this.actionFor(key);
+      const moveDef = !p && !mp && f.action?.kind === 'move' ? getMove(f.action.move) : null;
+      const moveAction = moveDef ? firstAvailablePresentationAction(moveDef, f.action.slot ?? 0, 'action', candidate => this.variantsOf(candidate).length > 0) : null;
+      const id = p ? 'preview' : moveAction ?? this.actionFor(key);
       if (id) {
         const index = p ? p.index : (mp ? (mp.phase === 'charge' ? mp.chargeIdx : mp.releaseIdx) : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial)));
         this.enter(key, id, index, entry, f, ctx);
