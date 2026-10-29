@@ -54,6 +54,7 @@ export function validateCombatEvent(/** @type {any} */ e) {
   if (e.position !== null && !(e.position && num(e.position.x) && num(e.position.y) && num(e.position.z))) out.push(`position inválida ${JSON.stringify(e.position)}`);
   if (e.normal !== null && !(e.normal && num(e.normal.x) && num(e.normal.z) && (e.normal.y === undefined || num(e.normal.y)))) out.push(`normal inválida ${JSON.stringify(e.normal)}`);
   for (const k of ['rawDamage', 'hpDamage', 'shieldAbsorbed']) if (!num(e[k]) || e[k] < 0) out.push(`${k} inválido ${e[k]}`);
-  if (num(e.damage) && e.hpDamage !== e.damage) out.push(`hpDamage ${e.hpDamage} ≠ damage ${e.damage}`);
+  // F9: alvo que já estava derrotado (ex.: wallSplat com dano > 0) leva damage nominal e hpDamage 0, marcado targetDefeated
+  if (num(e.damage) && e.hpDamage !== e.damage && !(e.targetDefeated === true && e.hpDamage === 0)) out.push(`hpDamage ${e.hpDamage} ≠ damage ${e.damage}`);
   return out;
 }

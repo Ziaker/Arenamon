@@ -177,3 +177,13 @@ test('GemSparkles: tirar a centelha de uma gema não deixa lote vazio', () => {
   assert.equal(emptyIn(parent), 0, 'lote vazio podado');
   sp.dispose();
 });
+
+test('three.quarks travado em 0.17.x: batch-prune.js mexe em internos (batches, systemToBatchIndex) — atualizar a lib exige revisar a poda (F9)', async () => {
+  const {readFileSync} = await import('node:fs');
+  const pkg = JSON.parse(readFileSync(new URL('../../../node_modules/three.quarks/package.json', import.meta.url), 'utf8'));
+  assert.match(pkg.version, /^0\.17\./, `three.quarks ${pkg.version}: revise src/view/quarks/batch-prune.js (internos da 0.17) antes de atualizar`);
+  const Q = await import('three.quarks');
+  const br = new Q.BatchedRenderer();
+  assert.ok(Array.isArray(/** @type {any} */ (br).batches), 'BatchedRenderer.batches (array) existe');
+  assert.ok(/** @type {any} */ (br).systemToBatchIndex instanceof Map, 'BatchedRenderer.systemToBatchIndex (Map) existe');
+});

@@ -552,7 +552,8 @@ export function stepPhysics(fighters, dt, world = null) {
       damage: effectiveDmg,
       ...fields,
       normal: {...w.normal},
-      duration: w.duration
+      duration: w.duration,
+      ...(baseDmg > 0 && !(f.hp > 0) && fields.hpDamage === 0 ? {targetDefeated: true} : {})   // F9: alvo já derrotado — damage nominal (legado) e hpDamage 0 são coerentes
     });
   }
   // Impacto do meteor slam no chão: quem estiver embaixo de quem aterrissou é acertado, mesmo sem avanço no instante do pouso.

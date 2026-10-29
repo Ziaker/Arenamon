@@ -15,7 +15,7 @@ import {defaults} from '../../../../../sand-stone-lab/src/config.ts';
 import {disposeGroup} from '../../../../../sand-stone-lab/src/art.js';
 import {ATELIER_GAME_PARAMS, ATELIER_GAME_VARIANT} from '../../../view/quarks/atelier-game-params.js';
 import {C} from '../../config.js';
-import {sandFrontAt, sandFieldOf, sandPathDistance} from '../../sand.js';
+import {sandFrontAt, sandFieldOf, sandFieldCacheOf, sandPathDistance} from '../../sand.js';
 import {parentPointToLocal, parentDirToLocal} from '../../../view/quarks/coords.js';
 
 export const id = 'sand-wave';
@@ -28,9 +28,24 @@ export const CONTACT_Y = 0.35;
  * de ¼ de célula e para no primeiro ponto inalcançável (Infinity) ou que a frente só alcança contornando (caminho maior que a reta além de
  * `1,5·célula + 9 %·u`, folga da grade octal). Obstáculo AO LADO do eixo não corta (o segmento continua livre, como na física). Sem campo ainda
  * calculado devolve `length`.
+ * F9: o resultado só depende do registro do campo da simulação (troca a cada `replanSteps` ou quando os sólidos mudam) e da geometria da onda
+ * (pos, dir, length): com a regra padrão ele fica em cache por entidade e não é remarchado a cada quadro (nem pausado, nem na dissipação).
  * @param {any} e entidade sandwave @param {(p: {x: number, z: number}) => (number | null)} [pathDist] @returns {number}
  */
-export function freeReachOf(e, pathDist = p => sandPathDistance(e, p)) {
+export function freeReachOf(e, pathDist) {
+  if (pathDist) return marchReach(e, pathDist);
+  const rec = e ? sandFieldCacheOf(e) : null;
+  if (!rec || !e?.pos || !e?.dir) return marchReach(e, p => sandPathDistance(e, p));
+  const k = REACH_CACHE.get(e), len = e.length ?? 4;
+  if (k && k.rec === rec && k.len === len && k.px === e.pos.x && k.pz === e.pos.z && k.dx === e.dir.x && k.dz === e.dir.z) return k.reach;
+  const reach = marchReach(e, p => sandPathDistance(e, p));
+  REACH_CACHE.set(e, {rec, len, px: e.pos.x, pz: e.pos.z, dx: e.dir.x, dz: e.dir.z, reach});
+  return reach;
+}
+/** Cache do alcance livre por entidade (F9): chave = registro do campo + geometria. @type {WeakMap<object, {rec: any, len: number, px: number, pz: number, dx: number, dz: number, reach: number}>} */
+const REACH_CACHE = new WeakMap();
+/** A marcha original (¼ de célula) — mesma regra e mesmo resultado de antes da F9. @param {any} e @param {(p: {x: number, z: number}) => (number | null)} pathDist */
+function marchReach(e, pathDist) {
   const len = e?.length ?? 4, field = e ? sandFieldOf(e) : null;
   if (!field || !e?.pos || !e?.dir) return len;
   const ds = field.cs / 4, tol = (/** @type {number} */ u) => 1.5 * field.cs + .09 * u;

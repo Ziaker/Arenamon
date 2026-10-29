@@ -150,6 +150,19 @@ test('wall splat com dano (wallSplatDamage > 0): ambiental, sem attackerId, indi
   } finally {C.rules.wallSplatDamage = prev;}
 });
 
+test('wall splat em lutador já derrotado (dano nominal, hpDamage 0): marcado targetDefeated e aceito pelo validador (F9)', () => {
+  const g = arena(), b = g.fighters[1];
+  const prev = C.rules.wallSplatDamage;C.rules.wallSplatDamage = 5;
+  try {
+    let once = false;
+    const ev = stepUntil(g, 'wallSplat', () => {if (once) return;once = true;b.hp = 0;b.position = vec(0, 49.6);b.wallSplat = null;b.flight = {y: 3, vy: -5, horizontal: vec(0, 9)};b.state = 'airborne';});
+    assert.ok(ev, 'wallSplat emitido');
+    assert.equal(ev.hpDamage, 0);assert.equal(ev.damage, 5, 'damage nominal (legado)');assert.equal(ev.targetDefeated, true);
+    assert.deepEqual(validateCombatEvent(ev), []);
+    assert.ok(validateCombatEvent({...ev, targetDefeated: undefined}).some(v => /hpDamage/.test(v)), 'sem o marcador a divergência continua acusada');
+  } finally {C.rules.wallSplatDamage = prev;}
+});
+
 test('destructibleSplat: ambiental, indirectAttackerId = indirectAttacker, lastAttacker intocado', () => {
   const g = arena(), f = g.fighters[0];
   g.mapState.destructibles = [{id: 'd', hp: 300, maxHp: 300, pos: {x: 0, y: 0, z: 0}, size: {hx: 1, hz: 1, height: 1.6}, shape: 'box', angle: 0, state: 'solid', respawnTimer: 0, ghostTimer: 0, resistances: {physical: 1, projectile: 1, area: 1, environment: 1}}];

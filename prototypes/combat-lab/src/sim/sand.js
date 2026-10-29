@@ -22,6 +22,8 @@ const SQ2 = Math.SQRT2;
 const FIELDS = new WeakMap();
 /** F5 (só leitura, para o VFX): campo de distâncias em cache da onda ({minX, minZ, nx, nz, cs, dist, blocked}) ou null se ainda não calculado. */
 export const sandFieldOf = (/** @type {any} */ e) => FIELDS.get(e)?.field ?? null;
+/** F9 (só leitura, para o VFX): registro do cache do campo ({at, sig, field, solids}); troca de identidade a cada recálculo (replanSteps ou sólidos mudaram). */
+export const sandFieldCacheOf = (/** @type {any} */ e) => FIELDS.get(e) ?? null;
 /** F5 (só leitura, para o VFX): distância de caminho livre da origem até `p` pela MESMA regra da simulação (reta quando livre; senão a grade),
  * com os sólidos do último cálculo do campo; null se o campo ainda não existe. */
 export function sandPathDistance(/** @type {any} */ e, /** @type {{x: number, z: number}} */ p) {

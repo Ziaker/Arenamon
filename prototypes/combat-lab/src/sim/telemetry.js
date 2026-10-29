@@ -13,15 +13,14 @@ export class Recorder {
   /** Chamado depois de cada passo da simulação. */
   record(game) {
     const tick = game.tick;
-    const perm = actionPermissions;
-    const sample = {tick, hitstop: game.hitstop > 0, f: game.fighters.map(f => ({
+    const sample = {tick, hitstop: game.hitstop > 0, f: game.fighters.map(f => {const p = actionPermissions(f);return {
       state: f.state, hp: f.hp, stamina: f.stamina, speed: length(f.velocity), x: f.position.x, z: f.position.z, alt: (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0),
       action: f.action?.kind || null, invulnerable: isInvulnerable(f), offensive: isOffensive(f), guard: f.guard, perfect: f.perfectLeft > 1e-8,
-      canAct: perm(f).canAttack, canMove: perm(f).canMove, exhausted: f.exhausted, counter: f.counterWindow > 0,
+      canAct: p.canAttack, canMove: p.canMove, exhausted: f.exhausted, counter: f.counterWindow > 0,
       // Locomoção: velocidade, velocidade desejada, aceleração aplicada, direção de entrada, orientação e fase.
       vx: f.velocity.x, vz: f.velocity.z, dvx: f.desiredVelocity?.x ?? 0, dvz: f.desiredVelocity?.z ?? 0, ax: f.appliedAccel?.x ?? 0, az: f.appliedAccel?.z ?? 0,
       ix: f.inputDir?.x ?? 0, iz: f.inputDir?.z ?? 0, facing: f.facing, visualFacing: f.visualFacing, loco: f.locoPhase, sprint: !!f.sprinting,
-    }))};
+    };})};
     this.samples.push(sample);if (this.samples.length > this.capacity) this.samples.shift();
     // Eventos primeiro: o segmento aberto ainda é a ação que causou o contato (antes de virar recuo).
     for (const e of game.lastStepEvents || []) {

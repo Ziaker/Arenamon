@@ -21,7 +21,7 @@ Legenda: **validado em teste** (há teste automático verde); **parcial** (cober
 | F1 contratos | validado em teste | Contratos de eventos, reações, colisões, cobertura | — | — | `docs/CONTRATO_EVENTOS_VFX.md`, `docs/CONTRATO_REACOES_ESTADOS.md`, `docs/MATRIZ_COLISOES_E_KNOCKBACK.md`, `docs/MATRIZ_COBERTURA_NUMERICA.md` (todos com a seção «implementado hoje» da F9) | 6e82475 |
 | F2 correções P0 | validado em teste | EST/VFX/ARC P0 | `ctrl-update.js`, `combat.js`, `world.js`, `vfx/contract.js`, `characters.js`… | `p0-vfx-states.test.mjs` | — | 6e82475, 9ef45ba, 8b476f8, 7eecc57, c0ed032 (main) |
 | F3.1 dano | validado em teste | Autoridade única de dano | `src/sim/resolvers/damage-resolver.js` (`resolveDamage`) | `f3-damage-resolver.test.mjs` (oráculo de 23.040 combinações; conservação de HP em 6 sementes × 3.000 passos) | — | 7e6e914 |
-| F3.2 reação | validado em teste | Autoridade única de reação, `displacementPolicy` | `src/sim/resolvers/reaction-resolver.js` (`applyReaction`) | `f3-reaction-resolver.test.mjs`; `replay-referencia` 7/7 | — | d4e8560 |
+| F3.2 reação | validado em teste (resolvedor) · **parcial** (autoridade única) | Autoridade única de reação **exceto** `applyCounterStagger` e `breakByTackle` (`world.js`) e o stagger de parede do Sand Wave (`sand.js`), que escrevem `f.stagger` direto (anteriores ao overhaul; ver CONTRATO_REACOES_ESTADOS §5); `displacementPolicy` | `src/sim/resolvers/reaction-resolver.js` (`applyReaction`) | `f3-reaction-resolver.test.mjs`; `replay-referencia` 7/7 | — | d4e8560 |
 | F3.3 contactId | validado em teste | `contactId` por instância de `Game` | `combat.js` `clash(…, world)`, `world.contactSeq` | `f3-contact-id.test.mjs` | — | 769f04e, bf2b8de |
 | F3.4 eventos | validado em teste | Evento normalizado, `eventId` único | `src/sim/events/combat-event.js`; `Game.eventIdSeq` | `f3-combat-event.test.mjs` | — | 43354f1, 3e36d48 |
 | F3.5 permissões | validado em teste | `actionPermissions(f)` derivado | `src/sim/entity.js` | `f3-permissions.test.mjs` | — | a7c77dc |
@@ -69,6 +69,11 @@ Regra aplicada (AGENTS.md, primeira seção): só se remove código interno com 
 - **Varredura estática de HP endurecida** (`test/f6-moves-contract-lib.mjs`): agora pega `??=`, `||=`, `&&=`, `%=`, `**=`, `--x.hp`/`++x.hp` (prefixo), troca do objeto `.shield = {…}` e `Object.assign(…hp|shield…)`. A versão nova achou 5 linhas legítimas (escudo inicial montado em `scenarios-map.js`, cenário técnico), que ganharam entrada justificada na lista. A permissão de `combat.js` ficou ancorada em `/const defStageKnockbackMult = /`. Teste novo com 10 formas que devem ser pegas e 6 comparações que devem ser ignoradas. Matriz F6 regenerada.
 - **`C.test.penetrationTolerance`**: `resetConfig` agora apaga o override (o valor volta ao embutido de 0,02 m) sem entrar em `defaults()`. Assim não vira slider, não entra em presets e não muda a matriz F7. RED → GREEN em `f4-solver.test.mjs`.
 - **Tipos de `applyHit`** (`src/sim/world/world-hit.js`): JSDoc nos parâmetros. Isso fez o `typecheck-vfx` voltar a passar; é só comentário, nada muda na execução.
+- **Rodada da revisão final do branch (commit seguinte):**
+  - O alcance livre do Sand Wave (`freeReachOf`) fica em cache por onda, chaveado pelo registro do campo da simulação e pela geometria da onda. Antes, era remarchado a cada quadro, mesmo pausado: ~1,5 ms por chamada num mapa com 13 obstáculos. Agora são ~0,1 µs, com valor idêntico quadro a quadro ao da implementação antiga em 40 casos e 32.640 quadros (`f9-sand-reach-cache.test.mjs`).
+  - Um `wallSplat` em lutador já derrotado ganha o marcador `targetDefeated` e passa no validador.
+  - A telemetria calcula `actionPermissions` uma vez por lutador.
+  - Um teste trava o three.quarks em 0.17.x.
 - **Buraco de array** (`,,`) no gerador da matriz F7 trocado por `''`: saída idêntica.
 - **Descritores velhos**: `scripts/planos/map.json` e `docs/CODIGO_SEM_USO_KNIP.md` não citam mais `getGroundHeightAt`/`insideSolid`.
 - **Docs**: seções «implementado hoje» nos contratos e matrizes, plano de rollback por fase e auditoria EST/VFX/ARC com teste e commit.
@@ -149,7 +154,18 @@ Não rodados na F9: os testes de navegador (`*.browser.mjs`, inclusive `moves-vf
 **(h) Consequências que você pode notar no jogo:**
 - os anéis e as partículas dos eventos de contato de projétil (`groundHit`, `destructibleHit`, `neutralized`, `arenaHit`/`obstacleHit`/`platformHit`/`detonate`) agora saem no ponto real do contato, e não mais no lutador 0 ou na origem. No modo padrão, isso só aparece no anel do `neutralized`;
 - o visual do Seed Bomb continua o original (cor padrão e tremor genérico): a F6 tinha mudado e o commit 01ca8d0 restaurou.
+- Itens no meio da partida buscam posição em 10 anéis (antes 8): um item que antes era recusado pode nascer agora. É uma mudança pequena de gameplay.
+- O `statusTick.heal` passou a levar o HP curado de fato (antes, o nominal). A telemetria mostra `canAct`/`canMove` falsos para lutador ausente (Bullet Punch em voo).
 - Também mudaram (correções, sem número de gameplay): a IA lê os lutadores da própria partida, o projétil rápido não atravessa mais o lutador ao raspar uma quina, e o lutador imprensado escapa para a posição livre mais próxima.
+
+**(j) Limites encontrados na revisão final do branch (não alterados):**
+- três caminhos de reação ainda ficam fora do `applyReaction`: `applyCounterStagger`, `breakByTackle` e o stagger de parede do Sand Wave. O seguimento sugerido é `kind: 'counterStagger'`, com teste de paridade;
+- `getCeilingHeight` e `map/map-collision.js` não foram migrados para `collision/queries.js`;
+- o renascimento de destrutível tenta a cada passo e consome RNG (bug anterior, mantido para não mudar os replays);
+- eventos só com x/z recebem `position.y = 0` no normalizador: o runtime novo, desligado por padrão, desenha esses eventos no nível do chão;
+- `batch-prune.js` mexe em internos do three.quarks 0.17. Agora um teste em `f5-reset.test.mjs` falha se a versão mudar;
+- as listas de campos ignorados das baselines dos pilotos (`F3_FIELDS`/`F5_SAND`/`F5_WATER` em `moves-pilots-baseline`) cresceram. Os campos novos são verificados pelos testes F5 e F6; as baselines devem ser regravadas depois do seu aceite;
+- a expectativa do `collision-multi` mudou de «sem teletransporte» para «escape ≤ 1,15 m» (intencional, Task 8).
 
 **(i) Checkout compartilhado: commits alheios no branch.** O branch foi criado de `feat/wookada-integracao` (`98fbc66` = main `96205a5` + 2 commits do Wookada), não da main. Outras sessões vivas (Wookada, menu, HUD, docs) commitaram no mesmo checkout. Na hora do PR ou do merge, considere esses commits (são seus, mas não são do overhaul). `git log --format='%h %an %s' 96205a5..HEAD`:
 
