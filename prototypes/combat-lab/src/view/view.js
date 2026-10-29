@@ -7,6 +7,7 @@ import {isInvulnerable, isOffensive, nominalDistance, actionDuration} from '../s
 import {direction, length, angleOf} from '../sim/math.js';
 import {wouldVault, cancelWindow} from '../sim/controller.js';
 import {hitShapeOf} from '../sim/combat.js';
+import {getGroundHeight} from '../sim/physics.js';
 import {CameraRig} from './rig.js';
 import {VfxSystem} from './vfx.js';
 import {SolidFx} from './solid-fx.js';
@@ -28,6 +29,7 @@ import {QuarksBridge} from './quarks/bridge.js';
 import {NavDebug} from '../nav/nav-debug.js';
 import {StatusAura} from './status-aura.js';
 import {RiposteFx} from './riposte-fx.js';
+import {WhiffFx} from './whiff-fx.js';
 import {AimMarkers} from './aim-marker-view.js';
 import {ArenaScenery} from './scenery.js';
 // Pós-processamento experimental (Fase 4, pmndrs/postprocessing sem React): criado só com C.vfx.post.enabled = 1.
@@ -159,7 +161,7 @@ export class View {
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, V.renderPixelRatio));
   }
   reset(player) {
-    this.rig.reset(player);this.worldView?.reset?.();this.dispatch.reset();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();
+    this.rig.reset(player);this.worldView?.reset?.();this.dispatch.reset();this.cameraShake = 0;for (const e of this.effects) {this.scene.remove(e.mesh);e.mesh.geometry.dispose();e.mesh.material.dispose();}this.effects = [];this.airborneSeen = [];this.invulnerableFx.clear();this.normals = [];this.vfx.reset();this.whiffFx?.reset();
     if (this.canvas) this.canvas.style.filter = '';
     this.vfxRuntime.reset();
     this.quarks?.reset();this.post?.pulses.reset();
@@ -348,7 +350,8 @@ export class View {
       arrow.material.color.setHex(f.guard ? rgb('arrowGuard') : rgb('arrow'));
       // A prévia de animação continua tocando com a partida pausada; bullet time visual desacelera apresentação.
       const animDt = (paused && !isKoSeq) ? (character?.preview ? realDt : 0) : ((isKoSeq ? (realDt ?? 0.016) : dt) * visualScale);
-      t0 = now();character?.update(f, animDt, alt, fresh, {tick, source: sources[f.id]});tm.anim += now() - t0;
+      if (character) character.extraYaw = this.whiffFx?.yawOf(f.id) ?? 0;   // giro visual de desequilíbrio após golpe no vazio
+      t0 = now();character?.update(f, animDt, alt, fresh, {tick, source: sources[f.id], fighters, ground: (x, z, y) => getGroundHeight({x, z}, world, y)});tm.anim += now() - t0;
       // Ausência física (Bullet Punch): nada do lutador é desenhado enquanto ele "não existe"; as speedlines ficam por conta do AimMarkers.
       // Quick Attack: o corpo também some durante a ida e a volta (só a aparência; a simulação não muda), com linhas de velocidade no lugar.
       const qaP = f.action?.qa, vanished = (f.absent || (qaP && (qaP.phase === 'approach' || qaP.phase === 'return'))) && f.action?.params?.fxHideBody !== 0;
@@ -403,6 +406,8 @@ export class View {
       const m = C.vfx.master ?? {};
       (this.riposteFx ??= new RiposteFx(T, this.scene)).update(fighters, fresh, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});
     } else if (this.riposteFx) {this.riposteFx.dispose();this.riposteFx = null;}
+    // Game feel 5 — golpe no vazio (só apresentação; um único dono do canal «whiff»).
+    {const m = C.vfx.master ?? {};(this.whiffFx ??= new WhiffFx(T, this.scene)).update(fighters, fresh, paused ? 0 : dt, {bodyHeight: X.visual.bodyHeight, halfExtent: C.test.halfExtent, visible: !!X.hud.fxVisible && !!m.enabled, reduceMotion: !!(this._a11y?.reduceMotion || m.reduceMotion), noFlash: !!(this._a11y?.noFlash || m.noFlash)});}
     // Cegueira do Sand Wave: SÓ a câmera do jogador cegado (lutador 0) recebe névoa densa perto do limite de visão e redução da luz ambiente (SW-D17/D36/D39);
     // os outros observadores não mudam. A cena volta ao normal quando o debuff acaba.
     {

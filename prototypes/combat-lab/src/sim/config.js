@@ -76,6 +76,15 @@ function buildDefaults() {
     // Cada janela de combate da animação pode trazer a sua própria forma (contrato.shapes[i] = {forward, radius}; no ajuste: shapeForward / shapeRadius); sem forma própria vale este padrão.
     // 0 = comportamento anterior (só alinhamento + sobreposição de corpos). O padrão (0,60 m / 0,40 m) é um arco frontal de ≈ ±63°.
     hitbox: {enableShapes: 0, shapeForward: .6, shapeRadius: .4},
+    // Game feel 5–9 (docs/GAME_FEEL_5_9.md). SÓ APRESENTAÇÃO, exceto phaseMode (que escolhe a fonte dos tempos e vale 0 = Definição por padrão).
+    // whiff*: feedback de golpe no vazio · ledge*: deslocamento visual da pose na borda · foot*: apoio visual dos pés (IK) · track*: olhar/tronco rumo ao alvo travado.
+    gameFeel: {
+      whiffOn: 1, whiffTrail: 1, whiffDust: 1, whiffOvershoot: 4, whiffMinDistance: .25,
+      ledgeOffsetY: 0, ledgeOffsetZ: 0,
+      footOn: 0, footMaxCorrection: .12, footPelvisMax: .06, footSmooth: .08, footPlantSpeed: .6, footSlope: 60,
+      trackOn: 0, trackHeadYaw: 45, trackHeadPitch: 20, trackTorso: 35, trackSmooth: .12, trackRelease: .12,
+      phaseMode: 0, phaseActive: 0, phaseCancel: 0, phaseInvuln: 0,
+    },
     // Navegação experimental (Fase 3, Yuka): 0 = navegação atual (padrão, nada muda); 1 = a IA consulta um grafo de superfícies
     // (caminhada, salto e queda) planejado com Yuka SOMENTE quando o alvo não está em linha reta caminhável. A física continua do Arenamon.
     // spacing: grade de nós do chão (m) · replan: intervalo de replanejamento (s) · jumpReach: alcance horizontal de um salto (m) ·

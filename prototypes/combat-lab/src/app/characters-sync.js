@@ -3,6 +3,7 @@
 
 import {C} from '../sim/config.js';
 import {Character, compareWindows} from '../view/characters.js';
+import {resolveAllPhases, phaseReports} from '../sim/phase-contract.js';
 import {escape, pathGet} from '../ui/tuning.js';
 import * as Moves from '../sim/moves.js';
 import {length} from '../sim/math.js';
@@ -14,9 +15,13 @@ export const charHooks = {};
 
 /** Associa explicitamente à simulação (Game) as janelas de combate validadas dos personagens carregados. */
 export function syncCharacterCombatWindows() {
+  const G = C.extras.gameFeel;
   for (const id of [0, 1]) {
-    const ch = ui.characters[id];
-    game.setCombatWindows(id, ch ? ch.getAllCombatWindows() : null);
+    const ch = ui.characters[id], raw = ch ? ch.getAllCombatWindows() : null;
+    // Game feel 6: 0 = Definição (como sempre) · 1 = Animação aprovada (fases autorizadas e contrato válido) · 2 = Comparar (só a tabela; o combate não muda).
+    const view = raw ? resolveAllPhases(raw, C, G, {forceAll: G.phaseMode === 2}) : null;
+    phaseReports[id] = view?.reports ?? null;
+    game.setCombatWindows(id, raw && G.phaseMode === 1 ? view.windows : raw);
   }
 }
 

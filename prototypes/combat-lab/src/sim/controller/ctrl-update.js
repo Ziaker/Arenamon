@@ -426,6 +426,9 @@ export function startAction(f, kind, dirs, fighters, desiredHeading, viaCancel, 
   if (viaCancel && kind === 'tackle' && T.enableMeteorSlam && liftStart > C.rules.slamMinHeight) {f.action.slam = true;f.action.fromSlam = true;f.action.plDamage = C.rules.slamDamage;f.action.pl = 2;aimSlam(f, fighters, liftStart);}
   if (viaCancel) f.action.fromCancel = true;
   if (countered) f.counterWindow = 0;
+  // Game feel 6: cancelamento vindo do contrato de animação aprovado (só com phaseMode 1 + fase autorizada + contrato válido; senão vale chainAfter da definição).
+  const pcCancel = combatWindows?.phaseContract?.cancelAfterSeconds;
+  if (pcCancel != null && C.extras.gameFeel?.phaseMode === 1 && C.extras.gameFeel.phaseCancel && f.action.chainAfter === undefined) f.action.chainAfter = pcCancel;
   // O custo de C já gasto continua gasto; X cobra o próprio custo. Technician desconta só esquiva ('dodge').
   f.stamina = Math.max(0, f.stamina - costOf(f, p.cost, kind));f.regenBase = f.stamina;f.regenAge = 0;
   f.exhausted = isDepleted(f.stamina);f.guard = false;f.guardSuppressed = guardHeld;

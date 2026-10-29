@@ -36,6 +36,11 @@ export const NAMES={
   pgEnabled:'HUD de progressão (Banco de Células)',pgScale:'Tamanho do HUD de progressão · jogador',pgScaleEnemy:'Tamanho do HUD de progressão · adversário',pgLayout:'Disposição do HUD de progressão (0 = vertical · 1 = horizontal)',pgSubject:'HUD de progressão: de quem (0 jogador · 1 adversário · 2 ambos)',pgAnimate:'Animação ao ganhar estágio',
   rangeOn:'Círculo de alcance dos Moves de alvo único',flashTime:'Duração da piscada vermelha ao soltar fora do alcance (s)',rangeOpacity:'Opacidade do círculo de alcance',rangeWidth:'Espessura do círculo de alcance (m)',rangeFill:'Preenchimento do círculo de alcance',rangeWall:'Altura da parede baixa do círculo de alcance (m)',
   occEnabled:'Objetos na frente do lutador ficam translúcidos',occOpacity:'Opacidade do objeto que cobre o lutador',occFade:'Velocidade da transição de transparência',
+  whiffOn:'Feedback de golpe no vazio (liga/desliga)',whiffTrail:'Golpe no vazio: rastro de ar (×)',whiffDust:'Golpe no vazio: poeira no chão (×)',whiffOvershoot:'Golpe no vazio: giro de desequilíbrio na recuperação (°)',whiffMinDistance:'Golpe no vazio: distância mínima do rival para valer (m)',
+  ledgeOffsetY:'Borda: ajuste vertical da pose pendurada (m)',ledgeOffsetZ:'Borda: ajuste horizontal da pose, rumo à parede (m)',
+  footOn:'Apoio visual dos pés (IK) ligado',footMaxCorrection:'Pés: correção máxima do tornozelo (m)',footPelvisMax:'Pés: correção máxima da pelve (m)',footSmooth:'Pés: suavização da posição (s)',footPlantSpeed:'Pés: velocidade abaixo da qual o pé fica plantado (m/s)',footSlope:'Pés: alinhamento da sola ao apoio (%)',
+  trackOn:'Olhar para o alvo travado (rastreamento aditivo) ligado',trackHeadYaw:'Olhar: limite horizontal da cabeça (°)',trackHeadPitch:'Olhar: limite vertical da cabeça (°)',trackTorso:'Olhar: contribuição do tronco (%)',trackSmooth:'Olhar: suavização da resposta (s)',trackRelease:'Olhar: tempo para voltar à pose base (s)',
+  phaseMode:'Fases da animação nos tempos do combate (0 = Definição do Move · 1 = Animação aprovada · 2 = Comparar sem aplicar)',phaseActive:'Fases: autorizar janela ativa vinda da animação',phaseCancel:'Fases: autorizar janela de cancelamento vinda da animação',phaseInvuln:'Fases: autorizar invulnerabilidade vinda da animação',
   gemStyle:'Estilo dos consumíveis (0 = clássico · 1 = Gemas Facetadas)',gemScale:'Escala visual dos consumíveis',gemHover:'Altura de flutuação das gemas (m)',gemIndicators:'Indicadores flutuantes dos consumíveis',gemIndicatorSize:'Tamanho do indicador flutuante',gemAnimate:'Animações dos consumíveis (giro, flutuar, brilho)',gemParticles:'Centelhas dos consumíveis (three.quarks)',gemPedestal:'Pedestal hexagonal sob os consumíveis'
   };
 /** F7: rótulo por CAMINHO quando a chave é compartilhada com outro slider que funciona (test.hp/test.speed são legado sem leitura; profiles.*.hp/speed valem). */
@@ -70,6 +75,7 @@ export const SECTIONS=[
   ['Progressão de estágios e escudo','map',['shieldDuration','shieldCapacity','shieldMaxCap','stageAttackBonus','stageDefenseReduction','stageStaminaBonus','stageCooldownReduction','stageSpeedBonus','stagesMax']],
   ['Renderizador e personagens','extras.visual',null],
   ['Efeitos e feedback','extras.fx',null],
+  ['Game feel 5–9: golpe no vazio, borda, pés, olhar e fases','extras.gameFeel',null],
   ['HUD e visualização','extras.hud',null],
   ['Cores: canais RGB individuais','extras.colors',null],
   ['Modos de jogo','extras.gameModes',null],

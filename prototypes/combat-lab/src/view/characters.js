@@ -24,6 +24,7 @@ import {angleOf, angleDelta, length} from '../sim/math.js';
 import {mulberry} from '../sim/ai.js';
 import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-windows.js';
 import {sniffFormat} from './validate.js';
+import {RigLayers} from './rig-layers.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove} from '../sim/moves.js';
@@ -40,6 +41,8 @@ export const STATE_ACTIONS = {
   // Tackle carregado: sem clipe próprio cada nível cai para o clipe do tackle (PL3 → PL2 → tackle); a carga sem clipe usa a pose parada.
   wallSplat: ['wall_splat', 'hit', 'knockback', 'idle'],
   ledge_hang: ['ledge_hang', 'wall_splat', 'fall', 'idle'], ledge_climb: ['ledge_climb', 'jump', 'vault', 'idle'],
+  // Game feel 7: clipes próprios da borda. Sem eles valem as reservas de antes (grab usa o hang antes do wall_splat para nunca piorar quem já tem ledge_hang).
+  ledge_grab: ['ledge_grab', 'ledge_hang', 'wall_splat', 'fall', 'idle'], ledge_drop: ['ledge_drop', 'fall', 'idle'], ledge_blocked: ['ledge_blocked', 'ledge_hang', 'wall_splat', 'fall', 'idle'],
   meteor_prep: ['meteor_prep', 'knockback', 'fall', 'idle'], meteor_dive: ['meteor_dive', 'tackle', 'fall', 'idle'], meteor_ground: ['meteor_ground', 'tackle', 'fall', 'idle'],
   tackle_charge: ['tackle_charge', 'idle'], tackle_pl2: ['tackle_pl2', 'tackle', 'idle'], tackle_pl3: ['tackle_pl3', 'tackle_pl2', 'tackle', 'idle'], brake: ['brake', 'sprint_stop', 'walk_stop', 'idle'],
   dodge_forward: ['dodge_forward', 'dodge_left', 'jump', 'idle'], dodge_back: ['dodge_back', 'dodge_forward', 'idle'], dodge_left: ['dodge_left', 'dodge_forward', 'idle'],
@@ -61,14 +64,14 @@ export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 
   sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint à esquerda', sprint_right: 'Sprint à direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', wallSplat: 'Preso na parede (wall-splat)', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
   dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', airborne_up: 'Lançado para cima', pushed_side: 'Empurrado de lado', stagger_crush: 'Prensado (parede)', recovery_tackle: 'Recuperação do tackle', recovery_dodge: 'Recuperação da esquiva', recovery_move: 'Recuperação do Move',
-  vault: 'Salto sobre o rival', jump: 'Pulo', jump_start: 'Início do pulo', jump_rise: 'Subida do pulo', jump_apex: 'Pico do pulo', jump_fall: 'Queda do pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
+  vault: 'Salto sobre o rival', jump: 'Pulo', jump_start: 'Início do pulo', jump_rise: 'Subida do pulo', jump_apex: 'Pico do pulo', jump_fall: 'Queda do pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado', ledge_grab: 'Borda: agarrar', ledge_hang: 'Borda: pendurado', ledge_climb: 'Borda: subir', ledge_drop: 'Borda: soltar', ledge_blocked: 'Borda: subida bloqueada',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', stagger: 'Atordoado (stagger)', hitstun: 'Atingido (impacto)', actionRecovery: 'Recuperando da ação', __preview: 'Prévia',
   move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4',
   charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
   charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
 export const ACTION_IDS = ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
-  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'perfect_guard', 'hit_light', 'hit_heavy', 'push', 'push_side', 'hit_up', 'hit_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
+  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'ledge_grab', 'ledge_hang', 'ledge_climb', 'ledge_drop', 'ledge_blocked', 'perfect_guard', 'hit_light', 'hit_heavy', 'push', 'push_side', 'hit_up', 'hit_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
   idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar', 'run', 'running', 'correr'],
@@ -87,6 +90,7 @@ const ALIASES = {
   push: ['push', 'pushed', 'empurrado'], push_side: ['push side', 'push_side', 'pushed side'], hit_up: ['hit up', 'hit_up', 'launch up', 'uppercut hit'], hit_crush: ['hit crush', 'hit_crush', 'crushed', 'squeezed', 'prensado'],
   recovery_tackle: ['recovery tackle', 'recovery_tackle', 'tackle recovery', 'tackle end'], recovery_dodge: ['recovery dodge', 'recovery_dodge', 'dodge recovery', 'dodge end'], recovery_move: ['recovery move', 'recovery_move', 'move recovery', 'cast end'],
   jump: ['jump', 'vault', 'salto', 'pulo'], jump_start: ['jump start', 'jump_start', 'jump takeoff', 'takeoff', 'inicio do pulo'], jump_rise: ['jump rise', 'jump_rise', 'jump up', 'rising', 'subida'], jump_apex: ['jump apex', 'jump_apex', 'jump peak', 'apex', 'pico'], jump_fall: ['jump fall', 'jump_fall', 'jump falling', 'jump down'], hit: ['hit', 'hurt', 'damage', 'impact', 'dano'], knockback: ['knockback', 'knock back', 'push', 'launched', 'fly', 'lancado'],
+  ledge_grab: ['ledge grab', 'ledge_grab', 'grab ledge', 'edge grab'], ledge_hang: ['ledge hang', 'ledge_hang', 'edge hang', 'hanging'], ledge_climb: ['ledge climb', 'ledge_climb', 'mantle', 'climb up'], ledge_drop: ['ledge drop', 'ledge_drop', 'let go', 'edge drop'], ledge_blocked: ['ledge blocked', 'ledge_blocked', 'climb blocked', 'cant climb'],
   fall: ['fall', 'falling', 'queda'], land: ['land', 'landing', 'aterrissar'], recover: ['recover', 'get up', 'getup', 'stand up', 'levantar'], downed: ['downed', 'down', 'caido'],
   death: ['death', 'die', 'dying', 'dead', 'ko', 'derrota'],
   move_1: ['move 1', 'golpe 1', 'special 1', 'skill 1'], move_2: ['move 2', 'golpe 2', 'special 2', 'skill 2'], move_3: ['move 3', 'golpe 3', 'special 3', 'skill 3'], move_4: ['move 4', 'golpe 4', 'special 4', 'skill 4'],
@@ -100,7 +104,7 @@ const JUMP_PHASES_LIST = ['jump_start', 'jump_rise', 'jump_apex', 'jump_fall'];
 const TIMED = new Set(['airborne_up', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
-const ONE_SHOT = new Set(['stagger_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'jump_start', 'jump_apex', 'meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
+const ONE_SHOT = new Set(['stagger_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'jump_start', 'jump_apex', 'meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'ledge_grab', 'ledge_drop', 'ledge_blocked', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
 const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
 const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['wallSplat', 'airborne_up', 'pushed_side', 'stagger_crush', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
@@ -156,6 +160,8 @@ export class Character {
     this.root = clone(source.scene);this.mixer = new T.AnimationMixer(this.root);
     this.clips = source.animations.slice();this.clipInfo = this.clips.map(c => ({name: c.name, origin: 'glb', compatible: true, coverage: 1}));
     this.animationProfile = animationProfile(source);this.variants = autoVariants(source);this.speeds = {};this.playback = {};this.clipOffsets = {};this.visualOffset = 0;this.autoGround = true;this.lockRootMotion = true;this.lockToGround = true;
+    // Game feel 7–9: ajuste visual da pose na borda (m) e interruptores por personagem do apoio dos pés e do olhar (valem junto com o interruptor geral em C.extras.gameFeel).
+    this.ledgeOffset = {y: 0, z: 0};this.footEnabled = true;this.trackEnabled = true;this.extraYaw = 0;
     // Tamanho visual por personagem: não muda colisor, sombra nem física (a altura global continua sendo o alvo do fit).
     // O Wookada nasce 2× em altura e largura; o painel permite ajustar de 0,5× a 3×.
     this.heightScale = defaultSizeScale(source);this.widthScale = defaultSizeScale(source);
@@ -341,7 +347,7 @@ export class Character {
     }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
       clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround,
-      sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
+      ledgeOffset: {...this.ledgeOffset}, footEnabled: this.footEnabled, trackEnabled: this.trackEnabled, sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
       animProfile: JSON.parse(JSON.stringify(this.animProfile)),
       animationProfileVersion: this.animationProfile?.version ?? null};
   }
@@ -373,6 +379,8 @@ export class Character {
     Object.assign(this.speeds, data.speeds || {});Object.assign(this.playback, data.playback || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
     if (typeof data.visualOffset === 'number') this.visualOffset = data.visualOffset;if (typeof data.autoGround === 'boolean') this.autoGround = data.autoGround;
+    if (data.ledgeOffset && typeof data.ledgeOffset === 'object') for (const ax of ['y', 'z']) {const v = Number(data.ledgeOffset[ax]);if (Number.isFinite(v)) this.ledgeOffset[ax] = Math.min(.5, Math.max(-.5, v));}
+    if (typeof data.footEnabled === 'boolean') this.footEnabled = data.footEnabled;if (typeof data.trackEnabled === 'boolean') this.trackEnabled = data.trackEnabled;
     if (data.sizeScale && typeof data.sizeScale === 'object') {
       const height = Number(data.sizeScale.height), width = Number(data.sizeScale.width);
       if (Number.isFinite(height)) this.heightScale = Math.min(3, Math.max(.5, height));
@@ -464,12 +472,19 @@ export class Character {
   clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
   /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
   pickVariant(id, seed) {const list = this.variantsOf(id);if (list.length <= 1) return list[0];const [r] = mulberry(seed);return list[Math.floor(r * list.length)];}
-  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb', 'actionRecovery', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'airborne_up', 'pushed_side', 'stagger_crush'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
+  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb', 'ledge_grab', 'ledge_drop', 'ledge_blocked', 'actionRecovery', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'airborne_up', 'pushed_side', 'stagger_crush'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
   // ---------- Estado visual ----------
   stateKey(f) {
     if (f.hp <= 0 && !f.flight) return 'defeated';
-    if (f.ledge) return f.ledge.phase === 'climb' ? 'ledge_climb' : 'ledge_hang';   // Ledge Grab (sem clipe próprio cai para wall_splat/jump)
+    if (f.ledge) {   // Ledge Grab: clipes próprios (grab/hang/climb/blocked) quando existem; sem eles valem as reservas da cadeia (wall_splat/jump), como antes
+      const lg = f.ledge;
+      if (lg.phase === 'climb') return 'ledge_climb';
+      if (lg.phase === 'snap' && this.variantsOf('ledge_grab').length) return 'ledge_grab';
+      if (lg.blocked && this.clock < (this.ledgeBlockedUntil ?? -Infinity)) return 'ledge_blocked';
+      return 'ledge_hang';
+    }
     if (f.flight) {
+      if (f.flight.isEdgeFall && this.clock < (this.ledgeDropUntil ?? -Infinity) && !f.wallSplat) return 'ledge_drop';   // soltar a borda: um clipe curto antes da queda comum
       if (f.wallSplat) return 'wallSplat';
       if (f.flight.isNormalJump) return this.hasJumpPhases() ? this.jumpPhaseKey(f) : 'jump';
       return f.flight.vy > 3 && this.variantsOf('hit_up').length ? 'airborne_up' : 'airborne';
@@ -559,6 +574,7 @@ export class Character {
     }
     if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
     if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / (actionDuration('dodge') * (f.action.durationScale ?? 1)) : 1;
+    if (key === 'ledge_climb') return f.ledge ? Math.min(1, f.ledge.climbT / Math.max(1e-6, C.ledge?.climbTime ?? .5)) : 1;   // acompanha a subida da simulação (a física manda no tempo)
     if (key === 'recoil') return f.action ? f.action.elapsed / R.recoil : 1;
     if (key === 'guardStun') { const max = f.stunMax || R.guardStun || 0.15; return Math.min(1, Math.max(0, 1 - f.stun / Math.max(1e-6, max))); }
     if (key === 'landing') return Math.min(1, Math.max(0, 1 - (f.landingRecovery ?? f.knockRecovery) / Math.max(1e-6, R.landingRecovery)));
@@ -574,6 +590,8 @@ export class Character {
     for (const e of events) if (!this.seenEvents.has(e)) {
       this.seenEvents.add(e);
       if (e.target === f.id && e.result === 'perfect') this.startTransient('guard_hit');
+      if (e.attacker === f.id && e.result === 'ledgeDrop' && this.variantsOf('ledge_drop').length) this.ledgeDropUntil = this.clock + this.clipSeconds('ledge_drop');
+      if (e.attacker === f.id && e.result === 'ledgeBlocked' && this.variantsOf('ledge_blocked').length) this.ledgeBlockedUntil = this.clock + this.clipSeconds('ledge_blocked');
       if (e.attacker === f.id && (e.result === 'chargeRelease' || e.result === 'move') && e.slot != null) {
         const moveId = e.move || (e.slot === 0 ? 'reflect' : 'psyshock');
         this.startTransient('release_' + moveId);
@@ -587,6 +605,8 @@ export class Character {
     this.wasGuard = f.guard;
     if (this.transient && (f.action || (f.guard && !this.transient.key.startsWith('guard_')) || f.flight || f.state === 'guardStun' || f.state === 'landing' || f.hp <= 0 || this.clock >= this.transient.until)) this.transient = null;
   }
+  /** Duração (s) da primeira variante de uma ação, já dividida pela velocidade; 0 sem clipe. */
+  clipSeconds(id) {const i = this.variantsOf(id)[0];return i == null ? 0 : (this.clips[i]?.duration || .4) / this.speedOf(id);}
   startTransient(key) {
     const id = this.actionFor(key);if (!id || (id !== key && id !== STATE_ACTIONS[key]?.[0] && !(key === 'guard_hit' && id === 'guard_impact') && id !== 'tackle')) return;
     const variants = this.variantsOf(id);if (!variants?.length) return;
@@ -688,7 +708,18 @@ export class Character {
     } else if (this.current.key !== key) this.current.key = key;
     this.blend(f, dt, key, p);
     this.place(f, alt, dt);
+    this.applyRigLayers(f, dt, ctx);
   }
+  /** Game feel 8 e 9: apoio visual dos pés e olhar aditivo, DEPOIS da pose base e do posicionamento (só visual; ver rig-layers.js). */
+  applyRigLayers(f, dt, ctx) {
+    const G = C.extras.gameFeel, foot = !!G.footOn && this.footEnabled, track = !!G.trackOn && this.trackEnabled;
+    if (!foot && !track && !this.rigLayers) return;
+    this.rigLayers ??= new RigLayers(T, this.model, this.hips);
+    this.root.updateMatrixWorld(true);
+    this.rigLayers.apply(f, dt, {foot, track, G, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
+  }
+  /** Texto de diagnóstico das camadas de pose (pés e olhar) para o painel do personagem. */
+  rigDiagnostic() {return this.rigLayers ? this.rigLayers.diagnostics() : 'Camadas de pose (pés e olhar) ainda não ativadas: ligue-as em Ajustes › Visual › Game feel 5–9.';}
   /** O sobe/desce deste estado fica livre da trava vertical? (O X/Z nunca é liberado por aqui.) */
   verticalMotionFree(key) {
     return VERTICAL_MOTION_FREE_GROUPS.some(g => this.freeVerticalMotion.includes(g.id) && g.keys.includes(key));
@@ -767,6 +798,8 @@ export class Character {
         }
       } else if (ONE_SHOT.has(this.current.key) || this.current.key.startsWith('release_')) {
         const elapsed = (this.clock - this.current.started) * s;a.time = playback.loop ? elapsed % Math.max(.001, cap) : Math.min(cap, elapsed);
+      } else if (this.current.key === 'ledge_climb' && this.current.id === 'ledge_climb') {   // clipe próprio: sem reinício nem pose estalada, termina junto com a subida
+        a.time = Math.min(cap, Math.max(0, this.progress(f, 'ledge_climb')) * cap);
       } else if (TIMED.has(this.current.key)) {
         const timed = Math.max(0, this.progress(f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
@@ -896,9 +929,13 @@ export class Character {
     this.root.scale.set(wide, scale, wide);
     // Corrige somente o deslocamento causado pela deformação; mantém o amortecimento do apoio original.
     this.root.position.set(f.position.x, alt + this.groundOffset - ground * scale * (this.squash.transverse - 1), f.position.z);
+    if (f.ledge) {   // pose na borda: ajuste visual por personagem + global (só apresentação; o corpo físico segue conduzido por ledge.js)
+      const G = C.extras.gameFeel, n = f.ledge.n ?? {x: 0, z: 0}, oz = this.ledgeOffset.z + G.ledgeOffsetZ;
+      this.root.position.y += this.ledgeOffset.y + G.ledgeOffsetY;this.root.position.x -= n.x * oz;this.root.position.z -= n.z * oz;
+    }
     this.root.rotation.set(0, this.squash.heading, 0);
     this.deformation.scale.set(this.squash.transverse, this.squash.transverse, this.squash.z);
-    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading, 0);
+    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading + (this.extraYaw ?? 0), 0);   // extraYaw: giro visual do golpe no vazio (whiff-fx.js); nunca altera a simulação
   }
   /** Durações das regras derivadas dos clipes (primeira variante ÷ velocidade). Só ações com animação própria. */
   ruleDurations(moves = []) {

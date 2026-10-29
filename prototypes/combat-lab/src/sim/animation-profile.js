@@ -31,6 +31,7 @@ export const ANIMATION_GROUPS = [
   ['dodge', 'Esquivas', ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right']],
   ['jump', 'Salto', ['jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'land']],
   ['wall', 'Parede', ['wall_splat']],
+  ['ledge', 'Borda (Ledge Grab)', ['ledge_grab', 'ledge_hang', 'ledge_climb', 'ledge_drop', 'ledge_blocked']],
   ['moves', 'Moves', ['move_1', 'move_2', 'move_3', 'move_4', 'charge_reflect', 'release_reflect', 'charge_psyshock', 'release_psyshock']],
 ];
 

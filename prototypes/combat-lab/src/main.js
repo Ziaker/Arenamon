@@ -118,6 +118,7 @@ wireOverlays();
 
 export const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();actionsDrawer?.render?.();}});
 syncCharacterCombatWindows();
+{let phaseSig = '';tuning.onChange(() => {const G = C.extras.gameFeel, sig = [G.phaseMode, G.phaseActive, G.phaseCancel, G.phaseInvuln].join();if (sig !== phaseSig) {phaseSig = sig;syncCharacterCombatWindows();}});}   // game feel 6: o contrato de fases acompanha o ajuste
 export const animEditor = createAnimationEditor({ui, $, tuning, ACTION_TABS, STATE_LABELS, ACTION_LABELS, STATE_ACTIONS, ACTION_IDS, loadAnimationFile, onChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 export const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();passivesPanel.render();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);

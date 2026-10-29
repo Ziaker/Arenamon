@@ -4,6 +4,8 @@ import {Character, loadStudioFile, loadAnimationFile, ACTION_IDS, STATE_LABELS, 
 import {escape} from './tuning.js';
 import {validateModel, validateAnimations} from '../view/validate.js';
 import {installNewPanel} from './characters-new.js';
+import {C} from '../sim/config.js';
+import {phaseReports, PHASE_FIELDS} from '../sim/phase-contract.js';
 
 
 const ACTION_CATS = {
@@ -14,6 +16,7 @@ const ACTION_CATS = {
 export const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar para frente', walk_back: 'Andar para trás', walk_left: 'Andar para esquerda', walk_right: 'Andar para direita',
   sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint para esquerda', sprint_right: 'Sprint para direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
   guard_impact: 'Impacto na defesa', blocked: 'Recuo (bloqueado)', tackle: 'Tackle PL1 (X)', tackle_charge: 'Carga do tackle (X segurado)', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio / derrapagem (finta)', wall_splat: 'Preso na parede (wall-splat)', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', dodge_forward: 'Esquiva frontal', dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda',
+  ledge_grab: 'Borda: agarrar (entrada)', ledge_hang: 'Borda: pendurado (laço)', ledge_climb: 'Borda: subir', ledge_drop: 'Borda: soltar', ledge_blocked: 'Borda: subida bloqueada',
   dodge_right: 'Esquiva direita', perfect_guard: 'Defesa perfeita (parry)', hit_light: 'Reação leve (hitstun)', hit_heavy: 'Reação pesada (stagger)', push: 'Empurrão', push_side: 'Empurrão lateral', hit_up: 'Reação ascendente', hit_crush: 'Prensado na parede', recovery_tackle: 'Recuperação do tackle', recovery_dodge: 'Recuperação da esquiva', recovery_move: 'Recuperação do Move', jump: 'Salto', jump_start: 'Início do pulo', jump_rise: 'Subida do pulo', jump_apex: 'Pico do pulo', jump_fall: 'Queda do pulo', hit: 'Dano', knockback: 'Lançado', fall: 'Queda', land: 'Aterrissar', recover: 'Levantar', downed: 'Caído', death: 'Derrota', move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
 
 /** Seção recolhível com botão ▼ (estado lembrado por chave). */
@@ -54,18 +57,47 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
     const v = Math.max(ch.validation?.verdict ?? 0, ...reps.slice(0, 1).map(r => r.verdict));
     return fold('Validação do modelo e das animações', `v${id}`, body, {open: v > 0, count: ['Compatível', 'com ressalvas', 'Incompatível'][v]});
   }
+  /** Game feel 6: modo das fases da animação, autorização por fase, tabela antes/depois e restauração fase a fase. */
+  function phaseHtml(id) {
+    const G = C.extras.gameFeel, rep = phaseReports[id], fmt = w => w ? `${w[0]}–${w[1]} (${(w[0] * (rep?.tackle?.stepSeconds ?? 1 / 120)).toFixed(3)}–${(w[1] * (rep?.tackle?.stepSeconds ?? 1 / 120)).toFixed(3)} s)` : '—';
+    const rows = ['tackle', 'dodge'].flatMap(a => (rep?.[a]?.rows ?? []).map(r => `<tr><td>${a === 'tackle' ? 'Tackle X' : 'Esquiva C'}</td><td>${r.phase}</td><td>${fmt(r.definition)}</td><td>${fmt(r.animation)}</td><td>${escape(r.status)}</td><td>${r.authorized && G.phaseMode === 1 ? `<button type="button" data-restore="${r.key}" title="Volta esta fase para a definição do Move (desautoriza a animação nela)">Restaurar</button>` : ''}</td></tr>`)).join('');
+    const errs = ['tackle', 'dodge'].flatMap(a => rep?.[a]?.errors ?? []).map(e => `<div class="warn">⚠ ${escape(e)}</div>`).join('');
+    return `<h4>Fases da animação nos tempos do combate</h4>
+      <label class="field">Fonte dos tempos <select data-phase-mode>${['Definição do Move (padrão)', 'Animação aprovada', 'Comparar (não aplica)'].map((t, i) => `<option value="${i}" ${G.phaseMode === i ? 'selected' : ''}>${t}</option>`).join('')}</select></label>
+      ${PHASE_FIELDS.map(p => `<label class="check"><input type="checkbox" data-phase-auth="${p.auth}" ${G[p.auth] ? 'checked' : ''}> Autorizar: ${p.label.toLowerCase()} vinda da animação</label>`).join('')}
+      <table class="mini"><tr><th>Ação</th><th>Fase</th><th>Definição (passos)</th><th>Animação (passos)</th><th>Estado</th><th></th></tr>${rows || '<tr><td colspan="6">Sem clipe de tackle/esquiva com marcadores neste personagem.</td></tr>'}</table>${errs}
+      <p class="hint">Os tempos da definição continuam valendo se o contrato for inválido (nunca aplica parte dele). A tabela mostra cada limite em passos e segundos; o contrato resolvido fica salvo no replay.</p>`;
+  }
+  function bindPhases(body, id) {
+    const redraw = () => {const box = body.querySelector('[data-phases]');if (box) {box.innerHTML = phaseHtml(id);bindPhases(body, id);}};
+    const apply = () => {onCharactersChanged();redraw();};
+    const sel = body.querySelector('[data-phase-mode]');if (sel) sel.onchange = () => {C.extras.gameFeel.phaseMode = Number(sel.value);apply();};
+    for (const b of body.querySelectorAll('[data-phase-auth]')) b.onchange = () => {C.extras.gameFeel[b.dataset.phaseAuth] = b.checked ? 1 : 0;apply();};
+    for (const b of body.querySelectorAll('[data-restore]')) b.onclick = () => {const p = PHASE_FIELDS.find(x => x.key === b.dataset.restore);if (p) C.extras.gameFeel[p.auth] = 0;apply();};
+  }
   function heightBox(id, ch) {
     const body = document.createElement('div');
     const scaleRow = (kind, label, value) => `<label class="field">${label} <output data-${kind}-out>${value.toFixed(2)}×</output><input type="range" min="0.5" max="3" step="0.05" value="${value}" data-${kind}-scale></label>`;
     const free = VERTICAL_MOTION_FREE_GROUPS.map(g => `<label class="check"><input type="checkbox" data-free="${g.id}" ${ch.freeVerticalMotion.includes(g.id) ? 'checked' : ''}> ${g.label} fora da trava vertical (sobe/desce)</label>`).join('');
     body.innerHTML = `<div class="row">${scaleRow('height', 'Altura (×)', ch.heightScale)}${scaleRow('width', 'Largura (×)', ch.widthScale)}</div>
       <label class="field">Altura visual do ${id ? 'vermelho' : 'azul'} <output data-out>${ch.visualOffset.toFixed(2)} m</output><input type="range" min="-1" max="1" step="0.01" value="${ch.visualOffset}" data-offset></label>
+      <div class="row">
+        <label class="field">Borda: ajuste vertical da pose <output data-ly-out>${ch.ledgeOffset.y.toFixed(2)} m</output><input type="range" min="-0.5" max="0.5" step="0.01" value="${ch.ledgeOffset.y}" data-ledge="y"></label>
+        <label class="field">Borda: ajuste horizontal (rumo à parede) <output data-lz-out>${ch.ledgeOffset.z.toFixed(2)} m</output><input type="range" min="-0.5" max="0.5" step="0.01" value="${ch.ledgeOffset.z}" data-ledge="z"></label>
+      </div>
+      <label class="check"><input type="checkbox" data-foot ${ch.footEnabled ? 'checked' : ''}> Apoio visual dos pés (IK) neste personagem <small>(vale só com «Apoio visual dos pés» ligado em Ajustes › Visual › Game feel 5–9)</small></label>
+      <label class="check"><input type="checkbox" data-track ${ch.trackEnabled ? 'checked' : ''}> Olhar para o alvo travado neste personagem <small>(vale só com o rastreamento ligado em Ajustes › Visual › Game feel 5–9)</small></label>
+      <p class="hint" data-rigdiag>${ch.rigDiagnostic ? ch.rigDiagnostic() : ''}</p>
+      <div class="phase-box" data-phases>${phaseHtml(id)}</div>
       <label class="check"><input type="checkbox" data-auto ${ch.autoGround ? 'checked' : ''}> Ajuste automático por animação (apoia o ponto mais baixo de cada clipe no chão)</label>
       <label class="check"><input type="checkbox" data-root-lock ${ch.lockRootMotion ? 'checked' : ''}> Travar deslocamento horizontal da animação (mundo X/Z)</label>
       <label class="check"><input type="checkbox" data-ground-lock ${ch.lockToGround ? 'checked' : ''}> Travar no chão (remove o deslocamento vertical gravado na animação)</label>
       <div class="hint">${free}<br>Os grupos marcados ignoram a trava no chão apenas no sobe/desce; o clipe pode subir, mas nunca afunda abaixo do piso. O deslocamento horizontal (X/Z) continua sempre travado.</div>
       <p class="hint" data-ground></p><p class="hint">Escala e altura são só visuais: colisor, sombra, saltos e lançamentos continuam seguindo a física. Compensação extra por clipe: Biblioteca.</p>`;
     const r = body.querySelector('[data-offset]');r.oninput = () => {ch.visualOffset = Number(r.value);body.querySelector('[data-out]').textContent = `${ch.visualOffset.toFixed(2)} m`;};r.onchange = () => ch.save();
+    bindPhases(body, id);
+    for (const ax of ['y', 'z']) {const s = body.querySelector(`[data-ledge="${ax}"]`), o = body.querySelector(`[data-l${ax}-out]`);s.oninput = () => {ch.ledgeOffset[ax] = Number(s.value);o.textContent = `${ch.ledgeOffset[ax].toFixed(2)} m`;};s.onchange = () => ch.save();}
+    for (const [sel, prop] of [['[data-foot]', 'footEnabled'], ['[data-track]', 'trackEnabled']]) {const b = body.querySelector(sel);b.onchange = () => {ch[prop] = b.checked;ch.save();};}
     for (const kind of ['height', 'width']) {
       const input = body.querySelector(`[data-${kind}-scale]`), out = body.querySelector(`[data-${kind}-out]`);
       input.oninput = () => {ch[kind + 'Scale'] = Number(input.value);out.textContent = `${ch[kind + 'Scale'].toFixed(2)}×`;};

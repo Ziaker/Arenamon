@@ -18,7 +18,7 @@
  * · ring = anel do world-view · camera = tremor/feedback de câmera · post = pulsos do pós-processamento · flash = aura de
  * status / clarão do Riposte · anim = transiente de animação do personagem · hud = estatística/aviso · v6 = camada histórica
  * opcional (Visualizar › Efeitos legados, C.vfx.master.legacy; somada por escolha explícita, desligada por padrão). */
-export const CHANNELS = ['particles', 'solid', 'debris', 'move', 'ring', 'camera', 'post', 'flash', 'anim', 'hud', 'v6'];
+export const CHANNELS = ['particles', 'solid', 'debris', 'move', 'ring', 'camera', 'post', 'flash', 'anim', 'hud', 'v6', 'whiff'];
 
 /** Modos medidos pelo teste: renderizador legado ou novo × three.quarks desligado/ligado. Padrão do jogo: o primeiro. */
 export const MODES = [{useNewVfx: false, quarks: false}, {useNewVfx: false, quarks: true}, {useNewVfx: true, quarks: false}, {useNewVfx: true, quarks: true}];
@@ -52,6 +52,7 @@ export const OWNERS = Object.freeze({
   statusApplied: {particles: {new: 'runtime'}},
   chargeRelease: {solid: 'solid', anim: 'characters', camera: ['cinematic'], hud: 'matchStats'},
   move: {anim: 'characters'},
+  feintWhiff: {whiff: 'whiffFx'},   // game feel 5: finta fora da janela de cancelamento; o golpe no vazio comum nasce do estado (view/whiff-fx.js), não de evento
   riposteStrike: {flash: ['riposteFx']},
   sandStagger: {move: 'movesVfx'}, obstacleHit: {move: 'movesVfx'}, platformHit: {move: 'movesVfx'}, arenaHit: {move: 'movesVfx'},
   expire: {move: 'movesVfx'}, blocked: {move: 'movesVfx'}, bulletReturn: {move: 'movesVfx'},
@@ -66,7 +67,7 @@ export const SEM_VISUAL = new Set([
   'stoneNoRock', 'stoneBlast', 'detonate', 'trapTrigger', 'trapLost', 'fieldReplaced', 'fieldLost', 'spawnRejected', 'spawnRefused', 'occluded',
   'itemCollected', 'itemSpawned', 'itemExpired', 'itemDropped', 'dropSpawned', 'expired', 'healedHp', 'healedStamina', 'shieldApplied', 'shieldExpired',
   'passiveEnded', 'passiveCycleSuspect', 'passiveReflect', 'passiveReady', 'passiveHeal', 'passiveBlocked', 'reflectCycle',
-  'ledgeMantle', 'ledgeDrop', 'ledgeClimb', 'ledgeBlocked', 'pinEscape', 'feint', 'feintWhiff', 'riposte', 'chargeStart',
+  'ledgeMantle', 'ledgeDrop', 'ledgeClimb', 'ledgeBlocked', 'pinEscape', 'feint', 'riposte', 'chargeStart',
   'bulletVanish', 'bulletNoTarget', 'arenaBounce', 'chargeCancel', 'chargeInterrupt',
 ]);
 

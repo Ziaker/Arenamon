@@ -297,6 +297,7 @@ export const VISUAL_OR_DEBUG = Object.freeze([
   {match: /^display\./, why: 'apresentação: HUD, sombras, cenário, indicadores'},
   {match: /^camera\.|^extras\.cameraExtra\./, why: 'câmera (view/camera)'},
   {match: /^extras\.(visual|fx|hud|colors)\./, why: 'aparência do lutador, partículas, HUD e cores'},
+  {match: /^extras\.gameFeel\.(whiff|ledge|foot|track)/, why: 'game feel 5/7/8/9: feedback de golpe no vazio, pose na borda, apoio dos pés e olhar (só apresentação; não alteram a simulação)'},
   {match: /^extras\.bindings2?\./, why: 'tecla física (entrada), sem número de gameplay'},
   {match: /^rules\.(feintFx|slamRing|slamFx)/, why: 'efeito visual da finta / do meteor slam'},
   {match: /^extras\.toggles\.(showHitboxes|showAttackVectors|enableCameraFollow|enableCameraRecenter)$/, why: 'depuração visual / câmera'},
@@ -489,6 +490,7 @@ export const SENSITIVITY_PENDING = Object.freeze({
     'extras.toggles.enableAIAttack', 'extras.toggles.enableAIReactive', 'extras.toggles.enablePlayerAI', 'extras.toggles.integerDamage', 'extras.toggles.enableCounterBonus',
     'extras.toggles.enemyManual', 'extras.toggles.enableAnimationCombatWindows', 'extras.toggles.enableFlightSlam', 'extras.toggles.enablePassives', 'actions.sprint.braking',
     'actions.sprint.turnGrip', 'actions.sprint.minStamina', 'extras.hitbox.enableShapes', 'extras.hitbox.shapeRadius',
+    'extras.gameFeel.phaseMode', 'extras.gameFeel.phaseActive', 'extras.gameFeel.phaseCancel', 'extras.gameFeel.phaseInvuln',   // game feel 6: só agem com clipe que traga marcadores aprovados (coberto em game-feel-5-9.test.mjs)
   ]},
   ia: {why: 'decisão da IA tática não mudou nos duelos de 3 e 8 s (probabilidade/limiar não atingido com a semente fixa)', ids: [
     'extras.ai.wallEscape', 'extras.ai.orbitChangePeriod', 'extras.ai.threatDistance', 'extras.ai.defensiveRetreatDistance', 'extras.ai.defensiveRetreatStrength',
@@ -587,7 +589,8 @@ export const TECHNICAL_NO_SLIDER = Object.freeze({
 /** Sliders numéricos cujo formato não mostra unidade (fração/multiplicador mostrado como número puro). Orçamento: não pode crescer. */
 export const UNIT_MISSING_BUDGET = 354;
 /** Orçamentos que só podem DIMINUIR: sliders de gameplay sem A/B observável e, entre eles, os que só têm evidência fraca de consumidor. */
-export const PENDING_BUDGET = 306;   // 304 + 2 do Sand Wave (prisão móvel de 29/10: pushContinuesOutsideArea e pushReleaseDelay não mudam mais os cenários curtos)
+export const PENDING_BUDGET = 310;   // +4 do contrato de fases (game feel 6): sem GLB com marcadores no duelo curto não há cenário A/B
+export const _PENDING_BUDGET_ANTES = 306;   // 304 + 2 do Sand Wave (prisão móvel de 29/10: pushContinuesOutsideArea e pushReleaseDelay não mudam mais os cenários curtos)
 export const WEAK_PENDING_BUDGET = 2;
 export const pendingCount = () => Object.values(SENSITIVITY_PENDING).reduce((n, g) => n + g.ids.length, 0);
 /** Órfãos com significado de jogo: a decisão (ligar com padrão neutro, manter como legado, remover com alias + migração de preset) é do responsável. */

@@ -1,6 +1,6 @@
 // Resolução de contatos ofensivos: lançamento, clash, invulnerabilidade, defesa parcial/perfeita.
 import {C} from './config.js';
-import {isInvulnerable, isOffensive, riposteIntercept, altitudeOf} from './entity.js';
+import {isInvulnerable, isOffensive, riposteIntercept, altitudeOf, windowsOn} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
@@ -22,7 +22,7 @@ export function clashPossible(a, b, normal, relative) {
   const X = C.extras.combat;
   if (slamPrep(a) || slamPrep(b)) return false;
   if (!C.extras.toggles.enableClash || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle' || a.flight || b.flight) return false;
-  if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
+  if (windowsOn('phaseActive') && (!isOffensive(a) || !isOffensive(b))) return false;
   const facing = dot(direction(a.action.heading), normal) > X.clashFacingAlignment && dot(direction(b.action.heading), normal) < -X.clashFacingAlignment && dot(relative, normal) > X.clashClosingSpeed;
   if (!facing) return false;
   // Power Levels diferentes: não há clash. O PL maior vence a disputa (o de baixo é neutralizado e só o dele conecta, pelo fluxo normal de acerto).
@@ -40,7 +40,7 @@ export function mutualTackle(a, b, normal, relative) {
   if (slamPrep(a) || slamPrep(b)) return false;
   if (noClash(a) || noClash(b)) return false;   // sem troca simultânea «de clash»: o PL decide (clashPossible) e o contra-golpe/slam seguem o fluxo normal de acerto
   if (!C.extras.toggles.enableClash || a.flight || b.flight || a.action?.kind !== 'tackle' || b.action?.kind !== 'tackle') return false;
-  if (C.extras.toggles.enableAnimationCombatWindows && (!isOffensive(a) || !isOffensive(b))) return false;
+  if (windowsOn('phaseActive') && (!isOffensive(a) || !isOffensive(b))) return false;
   if (a.action.hits?.has(b.id) || b.action.hits?.has(a.id)) return false;
   return tackleConnects(a, b, normal, relative) && tackleConnects(b, a, scale(normal, -1), scale(relative, -1));
 }
@@ -113,7 +113,7 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   // Verificação de janelas ativas e multi-hit (quando o toggle estiver ativo e a ação tiver janelas marcadas)
   let windowIdx = -1;
   const activeWindows = attacker.action?.combatWindows?.activeWindows;
-  if (T.enableAnimationCombatWindows && Array.isArray(activeWindows) && activeWindows.length > 0) {
+  if (windowsOn('phaseActive') && Array.isArray(activeWindows) && activeWindows.length > 0) {
     const stepSec = C.test?.step || (1 / 120);
     const attackerStep = Math.round((attacker.action.elapsed ?? 0) / stepSec);
     windowIdx = activeWindows.findIndex(([s, e]) => attackerStep >= s && attackerStep < e);

@@ -186,6 +186,15 @@ export function fromGlbEvents(rawEvents = [], options = {}) {
     invulnerabilityWindows.push([startEv.step, finalEnd]);
   }
 
+  // 2b. Janelas de cancelamento (cancel_start / cancel_end): só entram no contrato; o combate as usa apenas com a fase autorizada (sim/phase-contract.js)
+  const cancelWindows = [];
+  for (const startEv of sorted.filter(e => e.type === 'cancel_start')) {
+    const endEv = sorted.find(e => e.type === 'cancel_end' && e.rawTime >= startEv.rawTime && !consumedIds.has(e.id));
+    let endStep = actionDurationSteps;
+    if (endEv) {consumedIds.add(endEv.id);endStep = endEv.step;}
+    cancelWindows.push([startEv.step, Math.max(startEv.step + 1, endStep)]);
+  }
+
   // 3. Marcador de recuperação visual
   const recEv = sorted.find(e => e.type === 'recovery_start');
   const recoveryStart = recEv ? recEv.step : null;
@@ -210,7 +219,7 @@ export function fromGlbEvents(rawEvents = [], options = {}) {
     actionDurationSeconds: actionDurationSec,
     activeWindows,
     invulnerabilityWindows,
-    cancelWindows: [],
+    cancelWindows,
     recoveryStart,
     impactHints,
     volume: options.volume || null,

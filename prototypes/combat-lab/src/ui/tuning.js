@@ -23,7 +23,7 @@ const TABS = [
   ['Atributos', ['Atributos: equilibrado', 'Atributos: ágil', 'Atributos: resistente']],
   ['Movimento', ['Movimento']], ['IA', ['IA: estratégia e decisões', 'IA: personalidade do vermelho', 'IA: personalidade do azul (IA jogador)']], ['Arena', ['Arena e simulação']],
   ['Mapa', ['Ledge Grab (agarre de borda)', 'Arena circular', 'Objetos destrutíveis', 'Obstáculos indestrutíveis', 'Plataformas e salto', 'Footstool (pisar no rival)', 'Consumíveis e drops', 'Progressão de estágios e escudo']],
-  ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'HUD e visualização', 'Cores: canais RGB individuais']],
+  ['Visual', ['Renderizador e personagens', 'Efeitos e feedback', 'Game feel 5–9: golpe no vazio, borda, pés, olhar e fases', 'HUD e visualização', 'Cores: canais RGB individuais']],
   ['Sistemas', ['Ativar ou desativar sistemas', 'Modos de jogo']],
 ];
 const COLOR_NAMES = {player: 'Jogador azul', enemy: 'Adversário vermelho', floor: 'Piso', wall: 'Paredes', background: 'Fundo', gridMajor: 'Grid principal', gridMinor: 'Grid secundário', impact: 'Impacto', clash: 'Clash', landing: 'Poeira ao aterrissar', partial: 'Defesa parcial', perfect: 'Defesa perfeita', invulnerable: 'Invulnerabilidade', shadow: 'Sombra', arrow: 'Seta frontal', arrowGuard: 'Seta defendendo', defeated: 'Derrotado', glowGuard: 'Brilho da defesa', glowInvuln: 'Brilho da invulnerabilidade', glowRecoil: 'Brilho de recuo', glowTackle: 'Brilho de tackle'};
@@ -42,6 +42,24 @@ export const widenCombatRange = (path, r) => COMBAT_PATH.test(path) && !r.kind &
 /** Faixa, passo e formato de cada parâmetro (regras do ajustador v6). */
 function range(key, value, path) {
   const parent = path.split('.').slice(0, -1).join('.');
+  if (parent === 'extras.gameFeel') {
+    const onOff = {min: 0, max: 1, step: 1, fmt: n => n ? 'Ligado' : 'Desligado', kind: 'toggle'}, mult = {min: 0, max: 2, step: .05, fmt: n => n.toFixed(2) + '×'};
+    if (['whiffOn', 'footOn', 'trackOn', 'phaseActive', 'phaseCancel', 'phaseInvuln'].includes(key)) return onOff;
+    if (key === 'whiffTrail' || key === 'whiffDust') return mult;
+    if (key === 'whiffOvershoot') return {min: 0, max: 12, step: .5, fmt: n => n.toFixed(1) + '°'};
+    if (key === 'whiffMinDistance') return {min: 0, max: 1, step: .01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'ledgeOffsetY' || key === 'ledgeOffsetZ') return {min: -.5, max: .5, step: .01, fmt: n => n.toFixed(2) + ' m'};
+    if (key === 'footMaxCorrection') return {min: 0, max: .25, step: .005, fmt: n => n.toFixed(3) + ' m'};
+    if (key === 'footPelvisMax') return {min: 0, max: .15, step: .005, fmt: n => n.toFixed(3) + ' m'};
+    if (key === 'footSmooth') return {min: .02, max: .2, step: .01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'footPlantSpeed') return {min: 0, max: 1.5, step: .05, fmt: n => n.toFixed(2) + ' m/s'};
+    if (key === 'footSlope' || key === 'trackTorso') return {min: 0, max: key === 'trackTorso' ? 70 : 100, step: 1, fmt: n => n + '%'};
+    if (key === 'trackHeadYaw') return {min: 0, max: 65, step: 1, fmt: n => n + '°'};
+    if (key === 'trackHeadPitch') return {min: 0, max: 35, step: 1, fmt: n => n + '°'};
+    if (key === 'trackSmooth') return {min: .03, max: .3, step: .01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'trackRelease') return {min: .03, max: .25, step: .01, fmt: n => n.toFixed(2) + ' s'};
+    if (key === 'phaseMode') return {min: 0, max: 2, step: 1, fmt: n => ['Definição do Move', 'Animação aprovada', 'Comparar (não aplica)'][n] ?? '?'};
+  }
   if (parent === 'extras.bindings') return {min: 0, max: C.extras.keyCodes.length - 1, step: 1, fmt: n => C.extras.keyCodes[n] ?? '?'};
   if (parent === 'extras.colors') return {min: 0, max: 255, step: 1, fmt: n => String(n)};
   if (parent === 'extras.gameModes') return key === 'enemyMode' ? {min: 0, max: AI_MODES.length - 1, step: 1, fmt: n => AI_MODES[n]?.[1] ?? '?'} : {min: 0, max: 2, step: 1, fmt: n => PROFILE_LABEL[n] ?? '?'};
