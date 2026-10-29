@@ -85,8 +85,8 @@ code{background:#1f2630;padding:1px 5px;border-radius:4px}a{color:var(--acc)}
  <figure><img src="apos-100-reinicios.png" alt="Arena depois de 100 reinícios"><figcaption>Depois de 100 reinícios</figcaption></figure>
 </div>
 
-<h2>Falha conhecida fora desta entrega: <code>ai-eval.test.mjs</code></h2>
-<p><b>Não é causada pela Task 16.</b> A guarda «revisão 2 mantém ações negadas controladas» (<code>negadas(rev 2) ≤ negadas(rev 1) + 20</code>, 10 pares, semente 100) <b>passa</b> na main antes do branch (96205a5) e em ad4973b, e <b>falha</b> a partir de db5222e (Task 9, gate da F4): +19 → +23. Investigação completa: <code>.superpowers/sdd/2026-10-28-overhaul-f3-f9/ai-eval-investigation-report.md</code>.</p>
+<h2>Falha conhecida fora desta entrega (RESOLVIDA depois): <code>ai-eval.test.mjs</code></h2>
+<p><b>Não é causada pela Task 16.</b> A guarda «revisão 2 mantém ações negadas controladas» (<code>negadas(rev 2) ≤ negadas(rev 1) + 20</code>, 10 pares, semente 100) <b>passa</b> na main antes do branch (96205a5) e em ad4973b, e <b>falha</b> a partir de db5222e (Task 9, gate da F4): +19 → +23. <b>RESOLVIDO: a guarda de semente única foi substituída por uma guarda estatística de 8 janelas de 10 pares (sementes 100, 110, … 170): média da diferença de negadas ≤ 22,3 por janela (13,4 + 3 × 8,4/√8, ancorada em 91 janelas medidas; medido +13,9) e média da diferença de vitórias ≥ −3,9 (medido −0,1).</b> Investigação completa: <code>.superpowers/sdd/2026-10-28-overhaul-f3-f9/ai-eval-investigation-report.md</code>.</p>
 <table>
 <tr><th>Commit</th><th>negadas rev 2 × rev 1</th><th>diferença</th><th>vitórias rev 2 × rev 1</th></tr>
 <tr><td>96205a5 (main) / ad4973b</td><td>59 × 40</td><td class="ok">+19 (passa)</td><td>13 × 7</td></tr>

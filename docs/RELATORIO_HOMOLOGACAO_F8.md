@@ -27,9 +27,9 @@ Evidência navegável: `prototypes/combat-lab/evidence/homologacao-f8/index.html
 | Jogos alternados ~15× mais lentos | O grafo de navegação tinha cache de um só mapa e era reconstruído a cada troca (~10 ms). | `nav-graph.js` guarda os últimos 8 mapas; o reaproveitado volta com custos base (`resetPenalties`), idêntico a reconstruir. |
 | Pouso em y 2,625 com apoio 2,6875 (semente 3) | Não é pouso falso: a rocha do Emerging Stone sobe depois da física no mesmo passo e carrega o lutador ao topo novo. | A vigia aceita apoio que subiu no passo, só quando o pouso ficou entre o topo antigo e o novo e o lutador terminou no topo novo; contado à parte (1 caso). |
 
-## Falha conhecida fora desta entrega: `ai-eval.test.mjs`
+## Falha conhecida fora desta entrega (RESOLVIDA depois): `ai-eval.test.mjs`
 
-**Não é causada pela Task 16.** A guarda «revisão 2 mantém ações negadas controladas» (`negadas(rev 2) ≤ negadas(rev 1) + 20`, 10 pares, semente 100) **passa** na main antes do branch (96205a5) e em ad4973b, e **falha** a partir de db5222e (Task 9, gate da F4): +19 → +23. Investigação: `.superpowers/sdd/2026-10-28-overhaul-f3-f9/ai-eval-investigation-report.md`.
+**Não é causada pela Task 16.** A guarda «revisão 2 mantém ações negadas controladas» (`negadas(rev 2) ≤ negadas(rev 1) + 20`, 10 pares, semente 100) **passa** na main antes do branch (96205a5) e em ad4973b, e **falha** a partir de db5222e (Task 9, gate da F4): +19 → +23. **RESOLVIDO: a guarda de semente única foi substituída por uma guarda estatística de 8 janelas de 10 pares (sementes 100, 110, … 170): média da diferença de negadas ≤ 22,3 por janela (13,4 + 3 × 8,4/√8, ancorada em 91 janelas medidas; medido +13,9) e média da diferença de vitórias ≥ −3,9 (medido −0,1).** Investigação: `.superpowers/sdd/2026-10-28-overhaul-f3-f9/ai-eval-investigation-report.md`.
 
 | Commit | negadas rev 2 × rev 1 | diferença | vitórias rev 2 × rev 1 |
 |---|---|---|---|

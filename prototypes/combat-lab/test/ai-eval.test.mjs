@@ -131,12 +131,29 @@ ok('Fase 1: ciclo completo de decisão, taxonomia de erros, ranking de piores de
   const scen2 = runDifficultScenarios({candidateRev: 2, baselineRev: 0, loadouts: 'both'});
   assert.equal(scen2.candidateScore, 8, 'revisão 2 passa em 8 de 8 situações difíceis');
 
-  // Estado limpo: os blocos anteriores deixam ajustes alterados em C e, nesse contexto, a contagem da revisão 1 caía de ~57 para ~33 (parecia que a revisão 2
-  // piorava +25). Com a configuração padrão a folga é +9 (66 × 57, seed 100), dentro do guarda original de +20.
+  // Estado limpo: os blocos anteriores deixam ajustes alterados em C e, nesse contexto, a contagem da revisão 1 caía de ~57 para ~33.
   resetConfig(factoryDefaults());
-  const paired = evalPairedSeries({pairs: 10, seed: 100, candidateRev: 2, baselineRev: 1, loadouts: 'both'});
-  assert.ok(paired.candidateStats, 'revisão 2 produz estatísticas válidas');
-  assert.ok(paired.candidateStats.denied <= paired.baselineStats.denied + 20, 'revisão 2 mantém ações negadas controladas');
+  // Guarda ESTATÍSTICA (substitui a guarda de semente única «denied <= baseline + 20», que falhava em ~22 % das sementes só por caos da luta:
+  // ver .superpowers/sdd/2026-10-28-overhaul-f3-f9/ai-eval-investigation-report.md). Mede 8 janelas independentes de 10 pares (sementes 100, 110, … 170)
+  // e compara a MÉDIA por janela da diferença revisão 2 − revisão 1 com um limite ancorado na distribuição medida.
+  // Âncora (91 janelas de 10 pares, sementes 100–190, medidas em ad4973b e db5222e): ações negadas, diferença média +13,4 por janela, desvio-padrão 8,4.
+  //   Erro-padrão da média de 8 janelas = 8,4/√8 = 2,97  →  limite = 13,4 + 3 × 2,97 = 22,3 negadas por janela (falso alarme ≈ 0,13 %).
+  //   Medido nas 8 janelas deste teste: média +13,9 (folga ≈ 8,4 negadas por janela de 10 pares ≈ 0,42 por luta; uma regressão real maior que isso reprova).
+  // Vitórias (diferença rev 2 − rev 1 por janela): média de referência +1 (102 × 92 em 100 pares); desvio por janela ≈ 4,6 (medido), erro-padrão em 8 janelas = 1,63
+  //   →  piso = 1 − 3 × 1,63 = −3,9 vitórias por janela (rev 2 não pode perder mais que isso em média). Medido: −0,1.
+  const WINDOWS = 8, PAIRS = 10, DENIED_LIMIT = 13.4 + 3 * 8.4 / Math.sqrt(WINDOWS), WINS_FLOOR = 1 - 3 * 4.6 / Math.sqrt(WINDOWS);
+  const dDenied = [], dWins = [];
+  for (let w = 0; w < WINDOWS; w++) {
+    const paired = evalPairedSeries({pairs: PAIRS, seed: 100 + 10 * w, candidateRev: 2, baselineRev: 1, loadouts: 'both'});
+    assert.ok(paired.candidateStats && paired.baselineStats, 'revisão 2 produz estatísticas válidas');
+    dDenied.push(paired.candidateStats.denied - paired.baselineStats.denied);
+    dWins.push(paired.candidateStats.wins - paired.baselineStats.wins);
+  }
+  const mean = a => a.reduce((x, y) => x + y, 0) / a.length;
+  const meanDenied = mean(dDenied), meanWins = mean(dWins);
+  console.log(`   negadas rev2 − rev1 por janela de ${PAIRS} pares: [${dDenied.join(' ')}] média ${meanDenied.toFixed(1)} (limite ${DENIED_LIMIT.toFixed(1)}) · vitórias: [${dWins.join(' ')}] média ${meanWins.toFixed(2)} (piso ${WINS_FLOOR.toFixed(1)})`);
+  assert.ok(meanDenied <= DENIED_LIMIT, `revisão 2 mantém ações negadas controladas: média +${meanDenied.toFixed(1)} por janela > limite ${DENIED_LIMIT.toFixed(1)}`);
+  assert.ok(meanWins >= WINS_FLOOR, `revisão 2 não perde vitórias além do ruído: média ${meanWins.toFixed(2)} < piso ${WINS_FLOOR.toFixed(1)}`);
 }
 ok('Fases 2, 3 e 4: Revisão 2 (Previsão & Espacial) validada com avaliação pareada e cenários difíceis');
 
