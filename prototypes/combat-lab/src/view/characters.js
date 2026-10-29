@@ -25,6 +25,7 @@ import {mulberry} from '../sim/ai.js';
 import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-windows.js';
 import {sniffFormat} from './validate.js';
 import {tintColor} from './character-colors.js';
+import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
@@ -46,19 +47,21 @@ export const STATE_ACTIONS = {
   charge_reflect: ['reflect_charge', 'idle'], release_reflect: ['reflect_release', 'move_1', 'tackle'],
   charge_psyshock: ['psyshock_charge', 'idle'], release_psyshock: ['psyshock_release', 'move_2', 'tackle'],
   jump: ['jump', 'vault', 'fall', 'idle'],
+  // Fases do salto (editor de animações): sem clipe próprio em nenhuma delas o jogo segue usando o estado «jump» inteiro.
+  jump_start: ['jump_start', 'jump', 'vault', 'fall', 'idle'], jump_rise: ['jump_rise', 'jump', 'vault', 'fall', 'idle'], jump_apex: ['jump_apex', 'jump_rise', 'jump', 'fall', 'idle'], jump_fall: ['jump_fall', 'fall', 'jump', 'idle'],
   airborne: ['knockback', 'fall', 'hit', 'idle'], landing: ['land', 'recover', 'downed', 'idle'], recover: ['recover', 'land', 'idle'], defeated: ['death', 'downed', 'idle'], pushed: ['hit', 'idle'], stagger: ['hit', 'blocked', 'downed', 'idle'], hitstun: ['hit', 'idle'], actionRecovery: ['idle'],
 };
 export const STATE_LABELS = {neutral: 'Parado', turn: 'Girando no lugar', walk: 'Andando para frente', walk_back: 'Andando para trás', walk_left: 'Andando à esquerda', walk_right: 'Andando à direita',
   sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint à esquerda', sprint_right: 'Sprint à direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint',
   guard_enter: 'Entrando na defesa', guard: 'Defendendo', guard_exit: 'Saindo da defesa', guard_hit: 'Defesa perfeita', guardStun: 'Guard stun', tackle: 'Tackle', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', wallSplat: 'Preso na parede (wall-splat)', tackle_charge: 'Carregando tackle', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio do tackle (finta)', dodge_forward: 'Esquiva frontal',
-  dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', jump: 'Pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
+  dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda', dodge_right: 'Esquiva direita', vault: 'Salto sobre o rival', jump: 'Pulo', jump_start: 'Início do pulo', jump_rise: 'Subida do pulo', jump_apex: 'Pico do pulo', jump_fall: 'Queda do pulo', recoil: 'Recuo (bloqueado)', airborne: 'Lançado',
   landing: 'Aterrissando', recover: 'Recuperando (exausto)', defeated: 'Derrotado', pushed: 'Empurrado', stagger: 'Atordoado (stagger)', hitstun: 'Atingido (impacto)', actionRecovery: 'Recuperando da ação', __preview: 'Prévia',
   move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4',
   charge_reflect: 'Carregando Reflect', release_reflect: 'Disparo do Reflect',
   charge_psyshock: 'Carregando Psyshock', release_psyshock: 'Disparo do Psyshock'};
 /** Blocos de animação listados no painel (cada um serve a um ou mais estados e aceita várias variantes). */
 export const ACTION_IDS = ['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'walk_stop', 'sprint_stop', 'block_start', 'block', 'block_end', 'guard_impact', 'blocked', 'tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wall_splat', 'meteor_prep', 'meteor_dive', 'meteor_ground',
-  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
+  'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall', 'hit', 'knockback', 'fall', 'land', 'recover', 'downed', 'death', 'move_1', 'move_2', 'move_3', 'move_4'];
 // Sinônimos para associar por nome quando o arquivo não traz o mapa do Studio.
 const ALIASES = {
   idle: ['idle', 'parado', 'stand', 'breathing idle', 'breath'], turn: ['turn', 'girar', 'turn in place'], walk: ['walk', 'walking', 'andar', 'caminhar', 'run', 'running', 'correr'],
@@ -73,7 +76,7 @@ const ALIASES = {
   wall_splat: ['wall splat', 'wall_splat', 'pinned', 'wall hit', 'wall stick'],
   tackle_pl3: ['tackle pl3', 'tackle_pl3', 'tackle 3', 'tackle heavy', 'heavy tackle', 'tackle max'], brake: ['brake', 'skid', 'slide stop', 'brake slide', 'stop slide'], dodge_forward: ['dodge forward', 'dodge', 'front', 'roll forward', 'forward roll', 'esquiva'],
   dodge_back: ['dodge back', 'back', 'backstep', 'roll back'], dodge_left: ['dodge left', 'side', 'left', 'roll left'], dodge_right: ['dodge right', 'side', 'right', 'roll right'],
-  jump: ['jump', 'vault', 'salto', 'pulo'], hit: ['hit', 'hurt', 'damage', 'impact', 'dano'], knockback: ['knockback', 'knock back', 'push', 'launched', 'fly', 'lancado'],
+  jump: ['jump', 'vault', 'salto', 'pulo'], jump_start: ['jump start', 'jump_start', 'jump takeoff', 'takeoff', 'inicio do pulo'], jump_rise: ['jump rise', 'jump_rise', 'jump up', 'rising', 'subida'], jump_apex: ['jump apex', 'jump_apex', 'jump peak', 'apex', 'pico'], jump_fall: ['jump fall', 'jump_fall', 'jump falling', 'jump down'], hit: ['hit', 'hurt', 'damage', 'impact', 'dano'], knockback: ['knockback', 'knock back', 'push', 'launched', 'fly', 'lancado'],
   fall: ['fall', 'falling', 'queda'], land: ['land', 'landing', 'aterrissar'], recover: ['recover', 'get up', 'getup', 'stand up', 'levantar'], downed: ['downed', 'down', 'caido'],
   death: ['death', 'die', 'dying', 'dead', 'ko', 'derrota'],
   move_1: ['move 1', 'golpe 1', 'special 1', 'skill 1'], move_2: ['move 2', 'golpe 2', 'special 2', 'skill 2'], move_3: ['move 3', 'golpe 3', 'special 3', 'skill 3'], move_4: ['move 4', 'golpe 4', 'special 4', 'skill 4'],
@@ -83,10 +86,11 @@ const ALIASES = {
   psyshock_release: ['psyshock release', 'psyshock_release', 'psychic release', 'psyshock', 'throw', 'cast release', 'cast_release'],
 };
 const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
+const JUMP_PHASES_LIST = ['jump_start', 'jump_rise', 'jump_apex', 'jump_fall'];
 const TIMED = new Set(['tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
-const ONE_SHOT = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
+const ONE_SHOT = new Set(['jump_start', 'jump_apex', 'meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
 const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
 const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
 const COMBAT_KEYS = new Set(['wallSplat', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
@@ -127,7 +131,7 @@ import {createSquashState, resetSquash, updateSquash} from './squash-stretch.js'
  */
 export const VERTICAL_MOTION_FREE_GROUPS = [
   {id: 'dodge', label: 'Esquivas', keys: ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault']},
-  {id: 'jump', label: 'Pulo', keys: ['jump']},
+  {id: 'jump', label: 'Pulo', keys: ['jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall']},
   {id: 'tackle', label: 'Tackles', keys: ['tackle', 'tackle_charge', 'tackle_pl2', 'tackle_pl3']},
 ];
 /** Grupos liberados por padrão para o Wookada (corpo grande; os clipes de esquiva/pulo/tackle têm sobe/desce próprio). */
@@ -150,6 +154,7 @@ export class Character {
     // Base do apoio vertical do estado livre (altura do clipe no instante em que ele começou): evita pulo de altura
     // na troca e serve de limite inferior — o estado nunca desce abaixo dela, então nunca afunda no chão.
     this.verticalBase = null;this.verticalBaseEntry = null;
+    this.animProfile = emptyProfile();
     this.moveAnims = {
       reflect: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null},
       psyshock: {chargeClip: null, chargeLoopStart: 0, chargeLoopEnd: null, releaseClip: null}
@@ -325,6 +330,7 @@ export class Character {
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
       clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround,
       sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
+      animProfile: JSON.parse(JSON.stringify(this.animProfile)),
       animationProfileVersion: this.animationProfile?.version ?? null};
   }
   save() {
@@ -377,6 +383,7 @@ export class Character {
         };
       }
     }
+    this.animProfile = migrateProfile(data.animProfile);
     this.autoAssignMoveAnims();
   }
   /** Importa clipes para a biblioteca, verificando os ossos referenciados. Devolve o relatório por clipe. */
@@ -418,18 +425,36 @@ export class Character {
     for (const id of STATE_ACTIONS[stateKey] || ['idle']) if (this.variantsOf(id).length) return id;
     return null;
   }
+  /** O modelo tem clipe próprio em alguma fase do salto? Sem nenhum, o salto inteiro segue o clipe «jump» (comportamento anterior). */
+  hasJumpPhases() {return JUMP_PHASES_LIST.some(id => this.variantsOf(id).length > 0);}
+  jumpPhaseKey(f) {
+    const start = this.profileValue('jump_start', 'jumpStartTime') ?? JUMP_PHASE_DEFAULTS.startTime, band = this.profileValue('jump_apex', 'jumpApexBand') ?? JUMP_PHASE_DEFAULTS.apexBand;
+    return jumpPhaseFor({vy: f.flight.vy, sinceLaunch: this.clock - (this.flightStartClock ?? this.clock), startTime: start, apexBand: band});
+  }
+  // ---------- Perfil por ação/variante (editor de animações) ----------
+  /** Valor local do perfil para uma ação (sobrescrita); `undefined` se herdar o global. */
+  profileValue(action, fieldId, clipName = null) {
+    const r = resolveField(this.animProfile, fieldId, action, clipName);
+    return r.overridden ? r.value : undefined;
+  }
+  /** Campos de reprodução sobrescritos para o clipe atual (null = nenhum: caminho original sem custo). */
+  profileFx(layer, action = layer.id) {
+    const name = this.clips[layer.index]?.name, vals = {};let any = false;
+    for (const id of ['trimStart', 'trimEnd', 'loopStart', 'loopEnd']) {const v = this.profileValue(action, id, name);if (v !== undefined) {vals[id] = v;any = true;}}
+    return any ? vals : null;
+  }
   /** Compatibilidade: primeira variante do estado. */
   clipFor(stateKey) {const id = this.actionFor(stateKey);return id ? {id, index: this.variantsOf(id)[0]} : null;}
   /** Sorteio determinístico da variante na entrada do estado (mesmo lutador, estado e passo → mesma escolha). */
   pickVariant(id, seed) {const list = this.variantsOf(id);if (list.length <= 1) return list[0];const [r] = mulberry(seed);return list[Math.floor(r * list.length)];}
-  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb', 'actionRecovery'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
+  missingStates() {return Object.keys(STATE_ACTIONS).filter(k => k !== 'neutral' && !['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle_charge', 'tackle_pl2', 'tackle_pl3', 'brake', 'wallSplat', 'ledge_hang', 'ledge_climb', 'actionRecovery', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall'].includes(k) && !TRANSIENT.has(k) && !['walk_stop', 'sprint_stop'].includes(k) && (this.actionFor(k) ?? 'idle') === 'idle');}
   // ---------- Estado visual ----------
   stateKey(f) {
     if (f.hp <= 0 && !f.flight) return 'defeated';
     if (f.ledge) return f.ledge.phase === 'climb' ? 'ledge_climb' : 'ledge_hang';   // Ledge Grab (sem clipe próprio cai para wall_splat/jump)
     if (f.flight) {
       if (f.wallSplat) return 'wallSplat';
-      if (f.flight.isNormalJump) return 'jump';
+      if (f.flight.isNormalJump) return this.hasJumpPhases() ? this.jumpPhaseKey(f) : 'jump';
       return 'airborne';
     }
     if ((f.state === 'actionRecovery' || f.recoveryFrom) && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
@@ -542,7 +567,8 @@ export class Character {
     this.transient = {key, until: this.clock + (clipDur / speed), serial: ++this.actionSerial};
   }
   // ---------- Prévia (só visual) ----------
-  startPreview(index) {if (!Number.isInteger(index) || !this.clips[index]) return false;this.preview = {index, started: this.clock, serial: ++this.actionSerial};return true;}
+  /** `opts` (editor de animações): {action, loop, paused, seek} — prévia em laço, pausada num instante (s) e com o perfil da ação. */
+  startPreview(index, opts = {}) {if (!Number.isInteger(index) || !this.clips[index]) return false;this.preview = {index, started: this.clock, serial: ++this.actionSerial, action: opts.action ?? null, loop: !!opts.loop, paused: !!opts.paused, seek: Number(opts.seek) || 0};return true;}
   stopPreview() {this.preview = null;}
   /** Ação X/C nova? (o tempo da ação recomeça ou o tipo muda; robusto a replays que clonam o estado). */
   trackAction(f) {
@@ -585,10 +611,10 @@ export class Character {
     this.squashFighter = f;this.squashTick = ctx.tick ?? this.squashTick;
     const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;
     if (this.visualFreeze > 0) {this.visualFreeze = Math.max(0, this.visualFreeze - dt);dt = 0;}
-    if (f.flight && !this.wasFlying) this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;
+    if (f.flight && !this.wasFlying) {this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;this.flightStartClock = this.clock;}
     if (f.flight) this.lastFlight = this.clock;this.wasFlying = !!f.flight;
     this.trackAction(f);this.transients(f, events);
-    let p = this.preview;if (p && this.clock - p.started >= (this.clips[p.index]?.duration || 0) / Math.max(.05, opt.speed)) {this.preview = null;p = null;}
+    let p = this.preview;if (p && !p.loop && !p.paused && this.clock - p.started >= (this.clips[p.index]?.duration || 0) / Math.max(.05, opt.speed)) {this.preview = null;p = null;}
     let mp = this.movePreview;
     if (mp) {
       if (mp.phase === 'charge') {
@@ -648,7 +674,7 @@ export class Character {
     // atual, deixando o modelo sem ação ativa (bind pose/T-pose). A camada obsoleta sai sem parar a ação reutilizada.
     this.layers = this.layers.filter(layer => layer.action !== action);
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
-    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, fade: ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade};
+    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, fade: this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
     this.fade = 0;this.timer = 0;this.transitions++;
     // Telemetria da troca.
     const d = prev ? prev.clip.duration || 1 : 1, played = prev ? prev.action.time : 0, pct = prev ? Math.min(1, played / d) : 0;
@@ -680,8 +706,16 @@ export class Character {
     if (this.current) {
       const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id), playback = this.playbackOf(this.current.id, this.current.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d);
       this.current.weight = Math.max(0, 1 - Math.min(1, old));a.setEffectiveWeight(this.current.weight);
-      if (p) {
-        a.time = Math.min(cap, (this.clock - p.started) * Character.options.speed);
+      const fx = p ? (p.action ? this.profileFx(this.current, p.action) : null) : this.profileFx(this.current);
+      if (p?.paused) {
+        a.time = Math.min(d, Math.max(0, p.seek));
+      } else if (fx) {
+        // Recorte e laço central definidos no editor de animações (só quando o perfil sobrescreve algum deles).
+        const trim = trimOf(fx), lr = loopRange(fx), run = p ? (this.clock - p.started) * Character.options.speed * (this.speeds[p.action] ?? 1) : TIMED.has(this.current.key) ? Math.max(0, this.progress(f, this.current.key)) * (trim[1] - trim[0]) * d : (this.clock - this.current.started) * s;
+        a.time = clipTimeAt({elapsed: run, duration: d, loop: p ? p.loop : playback.loop, trim, loopRange: lr});
+      } else if (p) {
+        const raw = (this.clock - p.started) * Character.options.speed * (p.action ? this.speeds[p.action] ?? 1 : 1);
+        a.time = p.loop ? raw % Math.max(.001, d) : Math.min(cap, raw);
       } else if (this.current.key.startsWith('charge_')) {
         const moveId = this.current.key.slice(7);
         const conf = this.moveAnims?.[moveId];

@@ -12,7 +12,9 @@ import {SCENARIOS, runScenario} from './sim/scenarios.js';
 
 
 import {View} from './view/view.js';
-import {loadStudioFile, studioWindows} from './view/characters.js';
+import {loadStudioFile, studioWindows, loadAnimationFile, STATE_ACTIONS, STATE_LABELS, ACTION_IDS} from './view/characters.js';
+import {createAnimationEditor} from './ui/animation-editor.js';
+import {ACTION_LABELS} from './ui/characters-panel.js';
 import {createCharacterPanel} from './ui/characters-panel.js';
 import {createVisualPanel} from './ui/visual-panel.js';
 import {HudProposals} from './ui/hud-proposals.js';
@@ -115,6 +117,7 @@ wireOverlays();
 
 export const charPanel = createCharacterPanel({ui, view, $, hooks: charHooks, onCharactersChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();movesPanel?.render?.();actionsDrawer?.render?.();}});
 syncCharacterCombatWindows();
+export const animEditor = createAnimationEditor({ui, $, STATE_LABELS, ACTION_LABELS, STATE_ACTIONS, ACTION_IDS, loadAnimationFile, onChanged: () => {syncCharacterCombatWindows();syncRuleDurations();dock.invalidate();}});
 export const renderCharacters = () => {charPanel.render();renderStudioEvents();renderRuleDurations();passivesPanel.render();};
 const setCharacter = (id, source) => charPanel.setCharacter(id, source);
 export const renderCharacterLive = () => charPanel.live();

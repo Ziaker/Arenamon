@@ -14,7 +14,7 @@ const ACTION_CATS = {
 export const ACTION_LABELS = {idle: 'Parado', turn: 'Girar no lugar', walk: 'Andar para frente', walk_back: 'Andar para trás', walk_left: 'Andar para esquerda', walk_right: 'Andar para direita',
   sprint: 'Sprint para frente', sprint_back: 'Sprint para trás', sprint_left: 'Sprint para esquerda', sprint_right: 'Sprint para direita', walk_stop: 'Freio da caminhada', sprint_stop: 'Freio do sprint', block_start: 'Entrar na defesa', block: 'Defesa', block_end: 'Sair da defesa',
   guard_impact: 'Impacto na defesa', blocked: 'Recuo (bloqueado)', tackle: 'Tackle PL1 (X)', tackle_charge: 'Carga do tackle (X segurado)', tackle_pl2: 'Tackle PL2', tackle_pl3: 'Tackle PL3', brake: 'Freio / derrapagem (finta)', wall_splat: 'Preso na parede (wall-splat)', meteor_prep: 'Meteor: preparação no ar', meteor_dive: 'Meteor: mergulho', meteor_ground: 'Meteor: no chão', dodge_forward: 'Esquiva frontal', dodge_back: 'Esquiva traseira', dodge_left: 'Esquiva esquerda',
-  dodge_right: 'Esquiva direita', jump: 'Salto', hit: 'Dano', knockback: 'Lançado', fall: 'Queda', land: 'Aterrissar', recover: 'Levantar', downed: 'Caído', death: 'Derrota', move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
+  dodge_right: 'Esquiva direita', jump: 'Salto', jump_start: 'Início do pulo', jump_rise: 'Subida do pulo', jump_apex: 'Pico do pulo', jump_fall: 'Queda do pulo', hit: 'Dano', knockback: 'Lançado', fall: 'Queda', land: 'Aterrissar', recover: 'Levantar', downed: 'Caído', death: 'Derrota', move_1: 'Movimento 1', move_2: 'Movimento 2', move_3: 'Movimento 3', move_4: 'Movimento 4'};
 
 /** Seção recolhível com botão ▼ (estado lembrado por chave). */
 const openState = new Map();
