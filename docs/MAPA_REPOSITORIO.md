@@ -126,4 +126,5 @@ Para garantir **estabilidade absoluta** e não quebrar o trabalho paralelo dos o
 | **HUD de Vida, Stamina & Moves (propostas)** | `prototypes/hud-moves/dist/hud-moves-laboratorio.html` | `prototypes/hud-moves/src/` | `docs/HUD_VIDA_STAMINA_MOVES_LAB.md` |
 | **HUD de Progressão & Consumíveis (propostas)** | `prototypes/hud-consumiveis/dist/hud-consumiveis-laboratorio.html` | `prototypes/hud-consumiveis/src/` | `docs/HUD_CONSUMIVEIS_LAB.md` |
 | **Câmera Cinemática (ZZZ)** | Botão 🎬 em `arenamon-combate-laboratorio.html` | `prototypes/combat-lab/src/view/cinematic-camera.js` | `docs/CAMERA_CINEMATICA_ZZZ.md` |
+| **Game Feel 5–9 (briefing em inglês)** | `ABRIR_ARENAMON.html` → Documentação | `prototypes/combat-lab/src/view/` e `src/sim/` | `docs/ARENAMON_GAME_FEEL_IMPROVEMENTS_5_9_EN.docx` |
 | **Matriz de Testes** | `TESTES_ARENAMON.html` | `test*.mjs` em cada pasta | `docs/CENTRAL_DE_TESTES.md` |
