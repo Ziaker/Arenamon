@@ -91,6 +91,11 @@ export function tryStartEpilogue(ch, f, raw, dt, ctx) {
   const cap = capOf(ch, cur), s = ch.speedOf(cur.id);
   if (cap - cur.action.time <= (ch.lastDt || dt || C.test.step) * s) return false;   // já concluída (ou a 1 quadro do fim)
   ch.epilogue = {key: cur.key, id: cur.id, entry: cur.entry, started: ch.clock, cap, baseElapsed: undefined};
+  // Camadas de fade pendentes encerram na hora (ex.: o blend de ENTRADA da própria ação ainda em curso numa
+  // liberação mecânica mais curta que o fade): com o epílogo o clipe corrente é o dono da pose — peso pleno
+  // desde o 1º quadro, sem residual fantasma misturando a pose neutra/locomotora durante a conclusão visual.
+  for (const l of ch.layers) l.action.stop();
+  ch.layers = [];
   markEpilogue(ch, f);
   const d = cur.clip.duration || 1;
   pushLog(ch, {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: cur.key, to: cur.key, clipFrom: ch.clips[cur.index]?.name, clipTo: ch.clips[cur.index]?.name,
@@ -114,6 +119,7 @@ export function stepEpilogue(ch, f, raw, ctx) {
     pushLog(ch, {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: cur.key, to: raw, clipFrom: ch.clips[cur.index]?.name, clipTo: null,
       playedSeconds: +cur.action.time.toFixed(3), playedPct: 100, reason: 'conclusão natural', epilogueEnd: true, interrupted: false, source: ctx.source || 'sistema'});
     ch.epilogue = null;
+    ch.epilogueNaturalEnd = true;   // Loop avançado: a transição DESTE quadro usa o conclusionBlend do clipe que concluiu
     clearEpilogueMark(f);
     return 'ended';
   }
