@@ -181,3 +181,9 @@ node prototypes/combat-lab/test/water-pulse-mechanics.test.mjs
 node prototypes/combat-lab/test/with-registry.test.mjs
 node prototypes/combat-lab/test/wookada.test.mjs
 node prototypes/combat-lab/test/animation-runtime.test.mjs
+node prototypes/combat-lab/test/animation-epilogue.test.mjs
+node prototypes/combat-lab/test/animation-epilogue-contract.test.mjs
+node prototypes/combat-lab/test/animation-epilogue-persist.test.mjs
+node prototypes/combat-lab/test/animation-loop-controls.test.mjs
+node prototypes/combat-lab/test/animation-editor-preview.test.mjs
+node prototypes/combat-lab/test/animation-variants.test.mjs

@@ -122,5 +122,19 @@ function tackleIntoEpilogue(extra = {}) {
   ok('duas execuções consecutivas do mesmo Move: o clipe recomeça do zero na segunda (epílogo antigo não controla a execução nova)');
 }
 
+// ---- controle do Editor «Conclusão visual»: desligado por ação, o clipe acompanha o estado mecânico (sem epílogo) ----
+{
+  const {setField} = await import('../src/sim/animation-profile.js');
+  const m = makeMatch({cfg: shortTackle});
+  m.chars[0].animProfile = setField(m.chars[0].animProfile, 'tackle', 'visualCompletion', false);
+  m.run(10);
+  m.step(cmd({tackle: true, move: vec(0, 1), ...lock}));
+  let sawEpilogue = false;
+  for (let i = 0; i < 80; i++) {m.step();if (m.chars[0].epilogue) sawEpilogue = true;}
+  assert.ok(!sawEpilogue, 'com «Conclusão visual» desligada para o tackle o epílogo nunca começa');
+  const on = tackleIntoEpilogue();
+  assert.ok(on.chars[0].epilogue, 'ligada (padrão) o epílogo começa');
+  ok('Editor › Conclusão visual: o interruptor por ação liga/desliga o epílogo no jogo');
+}
 console.log(`\n${n} verificações do epílogo de conclusão visual aprovadas.`);
 process.exit(0);

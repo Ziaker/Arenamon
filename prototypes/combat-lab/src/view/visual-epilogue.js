@@ -85,6 +85,7 @@ function pushLog(ch, ev) {ch.log.push(ev);if (ch.log.length > 400) ch.log.shift(
 export function tryStartEpilogue(ch, f, raw, dt, ctx) {
   const cur = ch.current;
   if (!cur || !epilogueKey(cur.key)) return false;
+  if (ch.profileValue(cur.id, 'visualCompletion', ch.clips[cur.index]?.name) === false) return false;   // Editor › Conclusão visual: desligada para esta ação/variante
   if (ch.playbackOf(cur.id, cur.key).loop) return false;   // laços autorais sem condição de término ficam de fora por ora
   if (ch.preview || ch.movePreview || ch.transient || epilogueAuthority(f)) return false;
   if (SUCCESSORS.has(raw)) return false;   // recovery_tackle/dodge/move: o clipe dedicado assume com fade normal
