@@ -252,7 +252,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-elemental.test.mjs` · 
 
 ## Documentos de `docs/` sem nenhuma citação (nem no portal, nem em outro documento)
 
-- `docs/MATRIZ_ANIMACOES_RUNTIME.md`
+(nenhum)
 
 ## Como usar
 

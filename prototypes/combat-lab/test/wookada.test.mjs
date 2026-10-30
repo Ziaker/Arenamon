@@ -71,7 +71,7 @@ test('Wookada: carregamento, manifesto de ações e variantes', async () => {
   assert.equal(byIdx(variants.move_4[0]), 'status move');
 });
 
-test('Wookada: mapa antigo salvo é migrado uma vez e “run” não volta', async () => {
+test('Wookada: mapa antigo salvo é PRESERVADO na migração (só ações sem associação salva recebem o perfil) e “run” não volta', async () => {
   const buf = readFileSync('chars/wookada/wookada.glb');
   const source = await loadStudioFile(new File([buf], 'wookada.glb'));
   source.assetId = 'wookada-migracao';
@@ -83,9 +83,10 @@ test('Wookada: mapa antigo salvo é migrado uma vez e “run” não volta', asy
     };
     const ch = new Character(source);
     assert.equal(ch.variants.run, undefined, 'Estado run descartado');
-    assert.equal(ch.clips[ch.variants.blocked[0]].name, 'dash back', 'Recuo migrado para dash back');
-    assert.equal(ch.clips[ch.variants.guard_impact[0]].name, 'block start', 'Impacto na defesa migrado');
-    assert.equal(ch.clips[ch.variants.meteor_prep[0]].name, 'Mutant Jumping', 'Preparação do meteoro migrada');
+    assert.equal(ch.clips[ch.variants.blocked[0]].name, 'post fall wall crash', 'Associação salva do usuário NÃO é trocada pela migração (pedido: não substituir associações personalizadas)');
+    assert.equal(ch.clips[ch.variants.guard_impact[0]].name, 'get hit 2', 'Impacto na defesa salvo preservado');
+    assert.equal(ch.clips[ch.variants.meteor_prep[0]].name, 'charge move start', 'Preparação do meteoro salva preservada');
+    assert.ok(ch.variants.jump?.length, 'ação sem associação salva recebe o perfil curado');
     assert.equal(ch.speeds.walk, 1.2, 'Ajustes do usuário preservados na migração');
     // Depois da migração, o painel manda: um estado salvo com a versão nova não é sobrescrito de novo.
     Character.stateStore = {get: () => ({animationProfileVersion: 2, variants: {blocked: ['get hit']}}), set: () => {}};

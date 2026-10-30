@@ -25,8 +25,11 @@ const AUTHORITY_STATES = new Set(['hitstun', 'stagger', 'pushed', 'wallSplat', '
 const epilogueKey = key => ONE_SHOT.has(key) || TIMED.has(key) || key.startsWith('release_');
 
 /** Estado mecânico autoritativo ativo? Enquanto houver autoridade, o epílogo não entra e o ativo o encerra. */
-export function epilogueAuthority(f) {
-  return !!(f.action || f.hp <= 0 || f.flight || f.ledge || f.guard || f.charge || f.tackleCharge
+export function epilogueAuthority(f, cur = null) {
+  // Fase «apex» de um salto normal: o voo em si NÃO é autoridade (a fase seguinte, jump_fall, é a sucessora natural); pousar ou qualquer outra autoridade encerra.
+  const apexFlight = cur?.key === 'jump_apex' && !!f.flight?.isNormalJump;
+  if (cur?.key === 'jump_apex' && !f.flight) return true;
+  return !!(f.action || f.hp <= 0 || (f.flight && !apexFlight) || f.ledge || f.guard || f.charge || f.tackleCharge
     || (f.knockRecovery ?? 0) > 0 || AUTHORITY_STATES.has(f.state));
 }
 
@@ -87,7 +90,7 @@ export function tryStartEpilogue(ch, f, raw, dt, ctx) {
   if (!cur || !epilogueKey(cur.key)) return false;
   if (ch.profileValue(cur.id, 'visualCompletion', ch.clips[cur.index]?.name) === false) return false;   // Editor › Conclusão visual: desligada para esta ação/variante
   if (ch.playbackOf(cur.id, cur.key).loop) return false;   // laços autorais sem condição de término ficam de fora por ora
-  if (ch.preview || ch.movePreview || ch.transient || epilogueAuthority(f)) return false;
+  if (ch.preview || ch.movePreview || ch.transient || epilogueAuthority(f, cur)) return false;
   if (SUCCESSORS.has(raw)) return false;   // recovery_tackle/dodge/move: o clipe dedicado assume com fade normal
   const cap = capOf(ch, cur), s = ch.speedOf(cur.id);
   if (cap - cur.action.time <= (ch.lastDt || dt || C.test.step) * s) return false;   // já concluída (ou a 1 quadro do fim)
@@ -124,7 +127,7 @@ export function stepEpilogue(ch, f, raw, ctx) {
     clearEpilogueMark(f);
     return 'ended';
   }
-  if (SUCCESSORS.has(raw) || epilogueAuthority(f)) {
+  if (SUCCESSORS.has(raw) || epilogueAuthority(f, cur)) {
     // Interrupção por autoridade (reação, ação nova, defesa, voo…): a transição normal deste quadro assume;
     // o logTransition marca o evento com epilogueEnd: true para os testes distinguirem.
     ch.epilogue = null;
@@ -201,7 +204,8 @@ export function logTransition(ch, prev, key, id, index, f, ctx) {
   // Fim natural de ação não conta como interrupção (a última amostra pode cair um quadro antes do fim).
   const interrupted = prev && (TIMED.has(prev.key) || ONE_SHOT.has(prev.key)) && pct < .95 && reason !== 'ação concluída';
   const ev = {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: prev?.key ?? null, to: key, clipFrom: prev ? ch.clips[prev.index]?.name : null, clipTo: ch.clips[index].name,
-    variant: ch.variantsOf(id).indexOf(index) + 1, variants: ch.variantsOf(id).length, playedSeconds: +played.toFixed(3), playedPct: +(pct * 100).toFixed(1), reason, interrupted: !!interrupted, source};
+    variant: ch.variantsOf(id).indexOf(index) + 1, variants: ch.variantsOf(id).length, playedSeconds: +played.toFixed(3), playedPct: +(pct * 100).toFixed(1), reason, interrupted: !!interrupted, source,
+    execFrom: prev?.entry ?? null, weightFrom: prev ? +prev.weight.toFixed(3) : null};   // identidade da execução que saiu (serial da ação) e o peso visual dela na saída
   if (ch.epilogueInterrupt) {ev.epilogueEnd = true;ch.epilogueInterrupt = false;}   // a transição normal encerra um epílogo interrompido por autoridade
   pushLog(ch, ev);
 }

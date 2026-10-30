@@ -137,4 +137,22 @@ function tackleIntoEpilogue(extra = {}) {
   ok('Editor › Conclusão visual: o interruptor por ação liga/desliga o epílogo no jogo');
 }
 console.log(`\n${n} verificações do epílogo de conclusão visual aprovadas.`);
+// ---- a conclusão visual é SÓ visual: a simulação autoritativa é idêntica com ela ligada ou desligada ----
+{
+  const {setField} = await import('../src/sim/animation-profile.js');
+  const trace = off => {
+    const m = makeMatch({cfg: shortTackle});
+    if (off) m.chars[0].animProfile = setField(m.chars[0].animProfile, 'tackle', 'visualCompletion', false);
+    m.run(10);m.step(cmd({tackle: true, move: vec(0, 1), ...lock}));
+    const out = [];
+    for (let i = 0; i < 120; i++) {
+      m.step(i > 12 ? cmd({move: vec(1, 0)}) : cmd());
+      out.push(JSON.stringify(m.g.fighters.map(x => [x.position.x, x.position.z, x.hp, x.stamina, x.state, x.action?.elapsed ?? null, x.stun, x.invulnerable ?? null].map(v => typeof v === 'number' ? +v.toFixed(9) : v))));
+    }
+    return out;
+  };
+  assert.deepEqual(trace(false), trace(true), 'posição, vida, stamina, estado, ação, stun e invulnerabilidade idênticos com a conclusão visual ligada ou desligada');
+  ok('neutralidade: 120 passos da simulação (posição, vida, stamina, estado, ação, stun) idênticos com a conclusão visual ligada e desligada');
+}
+console.log(`\n${n} verificações do epílogo de conclusão visual aprovadas (final).`);
 process.exit(0);

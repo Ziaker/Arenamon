@@ -1171,3 +1171,4 @@ body.modo-moves #editor-open-actions{display:none!important}
 .ae-pmode button{border:0;border-radius:0;background:transparent;padding:2px 8px;color:#8fa6bb}
 .ae-pmode button[aria-pressed="true"]{background:#1b3144;color:#fff}
 .ae-vp-fallback{align-self:center;margin:auto;color:#ffd27d;background:#0b1520ee;border:1px solid #6b571f;border-radius:10px;padding:10px 14px;max-width:420px}
+.ae-vstatus{color:#8fa6bb;font-size:11px;padding:2px 8px;white-space:normal}

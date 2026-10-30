@@ -88,7 +88,7 @@ export function applyReaction(target, intent) {
     }
     case 'stagger': {   // stagger real por stun (footstool): interrompe ação, empurrão e movimento, derruba a guarda; sem launch/push
       const d = i.duration;
-      f.stun = Math.max(f.stun ?? 0, d);f.stunMax = d;f.state = 'stagger';
+      f.stun = Math.max(f.stun ?? 0, d);f.stunMax = d;f.state = 'stagger';f.staggerStun = true;   // marcador visual: a locomoção reescreve o estado para 'guardStun' enquanto houver stun; o Character usa isto para tocar o clipe de stagger
       f.action = null;f.push = null;f.blend = null;f.velocity = vec();f.locomotionVelocity = vec();
       f.vaultHeight = 0;f.counterWindow = 0;f.landingSlide = null;f.guard = false;f.guardSuppressed = true;
       return {policy: 'none', duration: d};
@@ -101,7 +101,7 @@ export function applyReaction(target, intent) {
       return {policy: 'none', duration: i.duration};
     }
     case 'guardBreak': {   // derruba a guarda comum e aplica o guard stun próprio (sem empurrão)
-      f.guard = false;f.guardSuppressed = true;f.state = 'stagger';
+      f.guard = false;f.guardSuppressed = true;f.state = 'stagger';f.staggerStun = true;
       f.stun = Math.max(f.stun, i.duration);f.stunMax = f.stun;
       return {policy: 'none', duration: f.stun};
     }

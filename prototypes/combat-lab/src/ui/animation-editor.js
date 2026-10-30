@@ -165,7 +165,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
   // ---------- Painel de propriedades ----------
   function fieldRow(c, f) {
     const v = valueOf(c, f), shown = v.value;
-    const badge = `<small class="ae-src ${v.overridden ? 'ovr' : ''}" title="Origem do valor: ${v.from}">${v.overridden ? 'sobrescrito (' + v.from + ')' : v.from}${f.applied ? '' : ' · registrado'}</small>`;
+    const badge = `<small class="ae-src ${v.overridden ? 'ovr' : ''}" title="Origem do valor: ${v.from}">${v.overridden ? 'sobrescrito (' + v.from + ')' : v.from}${f.applied ? '' : ' · SEM EFEITO NO JOGO (só anotação)'}</small>`;
     const reset = v.overridden ? `<button type="button" class="ae-reset" data-reset="${f.id}" title="Restaurar o padrão/global">↺</button>` : '';
     if (f.type === 'bool') {
       const on = shown === null || shown === undefined ? true : !!shown;
@@ -468,6 +468,11 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     if (lab && !lab.textContent.includes('→')) lab.textContent = `${t.toFixed(3)} s · ${(t / dur * 100).toFixed(0)} % · quadro ${Math.round(t * 30)}`;
     const play = root.querySelector('[data-play]');if (play) play.textContent = playing ? '⏸ Pausar' : '▶ Tocar';
     // Régua de seek e relógio da viewport 3D.
+    const vs = root.querySelector('[data-vstatus]');
+    if (vs) {   // leitura ao vivo da conclusão visual (lutador da arena): fim mecânico × fim visual
+      const cur = c.current, last = c.log.at(-1), rest = cur ? Math.max(0, (cur.clip.duration || 0) - cur.action.time) : 0;
+      vs.textContent = cur ? `arena: «${cur.key}» (${c.clips[cur.index]?.name}) · ${c.epilogue ? 'CONCLUSÃO VISUAL em curso' : 'normal'} · restam ${rest.toFixed(2)} s de clipe · última troca: ${last ? `${last.from ?? '—'} → ${last.to} (${last.reason}${last.interrupted ? ', interrompida' : ''})` : '—'}` : '';
+    }
     const seek = root.querySelector('[data-vpseek]'), clock = root.querySelector('[data-vptime]');
     if (vpOn() && seek && document.activeElement !== seek) {seek.max = String(dur);seek.value = String(Math.min(dur, Math.max(0, t)));}
     if (vpOn() && clock) clock.textContent = `${t.toFixed(3)} / ${dur.toFixed(3)} s · quadro ${Math.round(t * 30)}`;
@@ -483,6 +488,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
       <div class="ae-body"><div class="ae-left"><div class="ae-search"><input type="search" data-search placeholder="Buscar animação…" title="Filtra a lista pelo nome"><label class="check"><input type="checkbox" data-missing title="Mostra só as animações sem clipe próprio"> só ausentes</label></div><div class="ae-count" data-count></div><div class="ae-listbox" data-list></div></div>
       <div class="ae-div v" data-div="left" role="separator" aria-orientation="vertical" tabindex="0" title="Arraste para redimensionar · clique para recolher/abrir"></div>
       <div class="ae-center"><div class="ae-stage" data-stage><div class="ae-transport" data-transport><button type="button" data-play title="Toca ou pausa a animação na prévia">▶ Tocar</button><button type="button" data-stop title="Para a prévia">⏹</button><button type="button" data-step="-1" title="Quadro anterior (1/30 s)">⏮</button><button type="button" data-step="1" title="Próximo quadro (1/30 s)">⏭</button><label class="check" title="Repete a prévia em laço (não muda o jogo)"><input type="checkbox" data-loop checked> laço</label><span class="ae-pmode" role="group" title="Onde a prévia toca: na viewport 3D desta janela (padrão) ou no lutador da arena (fallback)"><button type="button" data-pmode="viewport" aria-pressed="true">🖥 Viewport</button><button type="button" data-pmode="arena" aria-pressed="false">🏟 Arena</button></span><span class="ae-vptime" data-vptime title="Tempo atual / total do clipe na viewport"></span></div>
+      <div class="ae-vstatus" data-vstatus title="Estado ao vivo da conclusão visual do lutador da arena: clipe tocando, estado físico, tempo visual restante e o motivo da última troca"></div>
       <div class="ae-viewport" data-viewport><div class="ae-viewport-mount" data-vp-mount title="Prévia 3D independente: mesmo modelo, armature, pipeline de tempo e controles do jogo — o lutador da arena não é tocado"></div>
       <input type="range" class="ae-vpseek" data-vpseek min="0" max="1" step="${1 / 30}" value="0" title="Percorrer o clipe (arrastar busca; pausa na posição)">
       <div class="ae-vp-fallback" data-vp-fallback hidden>⚠ WebGL indisponível neste navegador: a viewport 3D não pode abrir. <button type="button" data-vp-arena>Usar prévia na arena (modo antigo)</button></div>

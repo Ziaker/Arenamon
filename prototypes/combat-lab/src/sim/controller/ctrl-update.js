@@ -377,6 +377,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       f.velocity = {x: f.blend.from.x * (1 - amount) + f.velocity.x * amount, z: f.blend.from.z * (1 - amount) + f.velocity.z * amount};
       f.blend.elapsed += dt;if (f.blend.elapsed >= R.blend - 1e-8) f.blend = null;
     }
+    if (!(f.stun > 1e-8) && f.staggerStun) f.staggerStun = false;
     f.state = f.stun > 1e-8 ? 'guardStun' : f.guard ? 'guard' : (f.push || f.sandPush) ? 'pushed' : length(move) ? 'moving' : 'neutral';
   }
   f.visualFacing += clamp(angleDelta(f.visualFacing, f.facing), -C.locomotion.visualTurnRate * dt, C.locomotion.visualTurnRate * dt);

@@ -28,6 +28,7 @@ import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
 import {firstAvailablePresentationAction} from '../sim/move-presentation.js';
+import {clipKeyOf, clipIndexOfKey, profileVariants} from './clip-keys.js';
 import {tryStartEpilogue, stepEpilogue, synthesizeLanding, progressOf, logTransition, resumeEpilogue, markEpilogue, clearEpilogueMark, epilogueAuthority} from './visual-epilogue.js';
 import {scheduleClipTime, loopScheduleOf} from './clip-scheduler.js';
 import {applyLoopSeam} from './loop-seam.js';
@@ -344,7 +345,7 @@ export class Character {
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
   /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
   stateData() {
-    const byName = i => this.clips[i]?.name;
+    const byName = i => clipKeyOf(this.clips, i);   // nome do clipe; o 2º clipe com o mesmo nome sai como «nome@@dup2» (sem isto duas variantes distintas colapsavam numa)
     const moveAnimsData = {};
     for (const [m, conf] of Object.entries(this.moveAnims || {})) {
       moveAnimsData[m] = {
@@ -372,7 +373,7 @@ export class Character {
     if (Character.stateStore && this.source.assetId) data = Character.stateStore.get(this);
     else try {data = JSON.parse(localStorage.getItem(this.storeKey()) || 'null');} catch {data = null;}
     if (!data) return;
-    const idx = name => this.clips.findIndex(c => c.name === name);
+    const idx = key => clipIndexOfKey(this.clips, key);
     this.missingAssociations = [];
     for (const [id, names] of Object.entries(data.variants || {})) {
       const list = names.map(n => {const i = idx(n);if (i < 0) this.missingAssociations.push(`${id}: ${n}`);return i;}).filter(i => i >= 0);
@@ -381,9 +382,11 @@ export class Character {
     // “run” deixou de existir como estado: dados antigos não podem ressuscitá-lo.
     for (const id of LEGACY_RUN_KEYS) delete this.variants[id];
     // Perfil curado novo (Wookada): uma única migração descarta o mapa antigo; depois o painel continua mandando.
+    // Associações que o usuário JÁ salvou nunca são trocadas pela migração: o perfil curado só preenche as ações sem associação salva.
     if (this.animationProfile && data.animationProfileVersion !== this.animationProfile.version) {
-      for (const id of ACTION_IDS) delete this.variants[id];
-      Object.assign(this.variants, profileVariants(this.clips, this.animationProfile));
+      const saved = id => (data.variants?.[id]?.length ?? 0) > 0;
+      for (const id of ACTION_IDS) if (!saved(id)) delete this.variants[id];
+      for (const [id, list] of Object.entries(profileVariants(this.clips, this.animationProfile))) if (!saved(id)) this.variants[id] = list;
     }
     Object.assign(this.speeds, data.speeds || {});Object.assign(this.playback, data.playback || {});
     for (const [n, v] of Object.entries(data.clipOffsets || {})) {const i = idx(n);if (i >= 0) this.clipOffsets[i] = v;}
@@ -551,7 +554,7 @@ export class Character {
       return this.dodgeKey;
     }
     if (f.action?.kind === 'recoil') return 'recoil';
-    if (f.state === 'guardStun') return 'guardStun';
+    if (f.state === 'guardStun') return f.staggerStun && this.variantsOf('hit_heavy').length ? 'stagger' : 'guardStun';   // stun de footstool/guard break = stagger (hit_heavy), não guard_impact
     // Recuperação de Move (charge.recovery: sem Tackle nem novos Moves depois de soltar/disparar), com clipe «recovery_move» próprio. Aparece
     // também ANDANDO (o gate de velocidade era o problema A2: a recuperação sumia com o lutador em movimento).
     if ((f.moveRecovery ?? 0) > 1e-8 && !f.action && !f.guard && this.variantsOf('recovery_move').length) return 'recovery_move';
@@ -889,6 +892,13 @@ export class Character {
       } else {
         const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar
       }
+      // Editor › Congelamento: ao passar de «Congelamento em» (% do clipe) a pose fica parada por «duração» (hit-stop visual, uma vez por execução; só visual).
+      const fAt = !p && !reversed ? this.profileValue(this.current.id, 'freezeAt', this.current.clip.name) : undefined, fFor = fAt == null ? 0 : this.profileValue(this.current.id, 'freezeFor', this.current.clip.name);
+      if (fAt != null && fFor > 0) {
+        const cur = this.current, at = Math.min(cap, fAt / 100 * d);
+        if (!cur.freeze && a.time >= at - 1e-6) cur.freeze = {until: this.clock + fFor};
+        if (cur.freeze && this.clock < cur.freeze.until) a.time = at;
+      }
       if (reversed) a.time = Math.max(0, cap - a.time);   // Editor › Reverso: o clipe toca de trás para a frente
     }
     if (sch?.res) applyLoopSeam(this, this.current, sch.cfg, sch.res);
@@ -897,6 +907,11 @@ export class Character {
     // rotacionado transformam Y local em deslocamento horizontal — caso real do Mushroom; o vertical continua para o apoio no chão neutralizá-lo). Root motion por animação (editor): sobrescreve o global e libera X/Z.
     const ownRoot = this.current ? this.profileValue(this.current.id, 'rootMotion', this.clips[this.current.index]?.name) : undefined;
     const allowX = !!(this.current && this.profileValue(this.current.id, 'rootAllowX', this.clips[this.current.index]?.name)), allowZ = !!(this.current && this.profileValue(this.current.id, 'rootAllowZ', this.clips[this.current.index]?.name));
+    const mScale = this.current ? this.profileValue(this.current.id, 'motionScale', this.clips[this.current.index]?.name) : undefined;
+    if (mScale !== undefined && mScale !== 1 && !(ownRoot !== undefined ? !ownRoot : this.lockRootMotion)) {   // Editor › Escala do deslocamento: escala só o root motion HORIZONTAL permitido (visual)
+      for (const {node, rest} of this.rootMotionNodes) {node.position.x = rest.x + (node.position.x - rest.x) * mScale;node.position.z = rest.z + (node.position.z - rest.z) * mScale;node.updateMatrix();}
+      this.model.updateMatrixWorld(true);
+    }
     if (ownRoot !== undefined ? !ownRoot : this.lockRootMotion) {
       this.model.updateMatrixWorld(true);
       for (const {node, rest} of this.rootMotionNodes) {
@@ -1097,16 +1112,6 @@ export const WOOKADA_PROFILE = {
 /** Estados antigos de corrida: não existem mais (correr = andar). Removidos de estados persistidos. */
 const LEGACY_RUN_KEYS = ['run', 'run_back', 'run_left', 'run_right'];
 const animationProfile = source => /wookada/i.test(source?.name || '') ? WOOKADA_PROFILE : null;
-/** Converte o perfil (nomes de clipe) em variantes por índice, ignorando clipes que o arquivo não tem. */
-function profileVariants(clips, profile) {
-  const byName = new Map(clips.map((c, i) => [c.name, i])), out = {};
-  for (const [id, names] of Object.entries(profile.clips)) {
-    const list = [...new Set(names.map(n => byName.get(n)).filter(i => i != null))];
-    if (list.length) out[id] = list;
-  }
-  return out;
-}
-
 /** Variantes iniciais: perfil curado (Wookada), manifesto do Studio, nomes exatos e palavras contidas no nome. */
 export function autoVariants(source) {
   const map = autoMapping(source);

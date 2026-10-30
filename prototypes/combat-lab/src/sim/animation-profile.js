@@ -43,7 +43,7 @@ export const GROUP_OF = Object.fromEntries(ANIMATION_GROUPS.flatMap(([g, , ids])
  * `store`: campo cujo valor global já existe em outro lugar (velocidade etc.) — o editor lê e grava lá, sem duplicar.
  */
 export const FIELDS = [
-  {id: 'enabled', group: 'Reprodução', label: 'Habilitada', type: 'bool', def: true, applied: false, tip: 'Desligada, o estado ignora este clipe e usa a reserva.'},
+  {id: 'enabled', group: 'Reprodução', label: 'Habilitada', type: 'bool', def: true, applied: true, tip: 'Desligada, o estado ignora este clipe e usa a reserva.'},
   {id: 'speed', group: 'Reprodução', label: 'Velocidade', unit: '×', min: .1, max: 4, step: .05, def: 1, applied: true, store: 'speeds', tip: 'Multiplica a velocidade do clipe. Em ações com duração definida pela simulação (tackle, esquiva…) o clipe é esticado para a duração da ação.'},
   {id: 'loop', group: 'Reprodução', label: 'Em laço', type: 'bool', def: null, applied: true, store: 'playback', tip: 'Repete o clipe sem parar. Desligado, segura a última pose.'},
   {id: 'maxDuration', group: 'Reprodução', label: 'Duração máxima', unit: 's', min: 0, max: 10, step: .01, def: 0, applied: true, store: 'playback', tip: '0 = o clipe inteiro. Corta o clipe nesse tempo (em segundos de jogo).'},
@@ -78,8 +78,8 @@ export const FIELDS = [
   {id: 'cancelStart', group: 'Combate', label: 'Janela de cancelamento', unit: '%', min: 0, max: 100, step: 1, def: null, applied: true, tip: 'A partir daqui a ação pode ser cancelada em outra. Vale no combate só com «Fases da animação» em Animação aprovada e com esta fase autorizada (Personagens).'},
   {id: 'invulnStart', group: 'Combate', label: 'Invencível: início', unit: '%', min: 0, max: 100, step: 1, def: null, applied: true, tip: 'Início da janela de invencibilidade. Vale no combate só com «Fases da animação» em Animação aprovada e com esta fase autorizada (Personagens).'},
   {id: 'invulnEnd', group: 'Combate', label: 'Invencível: fim', unit: '%', min: 0, max: 100, step: 1, def: null, applied: true, tip: 'Fim da janela de invencibilidade. Vale no combate só com «Fases da animação» em Animação aprovada e com esta fase autorizada (Personagens).'},
-  {id: 'freezeAt', group: 'Combate', label: 'Congelamento em', unit: '%', min: 0, max: 100, step: 1, def: null, applied: false, tip: 'Ponto do clipe em que o quadro congela (hit-stop visual).'},
-  {id: 'freezeFor', group: 'Combate', label: 'Congelamento: duração', unit: 's', min: 0, max: .5, step: .01, def: 0, applied: false, tip: 'Quanto tempo o quadro fica congelado.'},
+  {id: 'freezeAt', group: 'Combate', label: 'Congelamento em', unit: '%', min: 0, max: 100, step: 1, def: null, applied: true, tip: 'Ponto do clipe em que o quadro congela (hit-stop visual, uma vez por execução).'},
+  {id: 'freezeFor', group: 'Combate', label: 'Congelamento: duração', unit: 's', min: 0, max: .5, step: .01, def: 0, applied: true, tip: 'Quanto tempo o quadro fica congelado.'},
   {id: 'rootMotion', group: 'Movimento', label: 'Root motion habilitado', type: 'bool', def: null, applied: true, tip: 'Ligado, esta animação pode deslocar a raiz horizontalmente (vale por animação; o global do personagem fica na aba Movimento). Desligado, a posição vem só da física.'},
   {id: 'lockToGround', group: 'Movimento', label: 'Trava ao chão', type: 'bool', def: null, applied: true, tip: 'Mantém os pés apoiados no solo, ignorando o sobe/desce do clipe. Vale só para esta animação; o global fica na aba Movimento.'},
   {id: 'verticalOffset', group: 'Movimento', label: 'Compensação vertical', unit: 'm', min: -2, max: 2, step: .01, def: 0, applied: true, store: 'clipOffsets', tip: 'Sobe ou desce o personagem enquanto este clipe toca.'},
@@ -96,7 +96,7 @@ export const FIELDS = [
   {id: 'combatPriority', group: 'Combate', label: 'Prioridade de combate', unit: '', min: 0, max: 10, step: 1, def: 0, applied: false, tip: 'Maior prioridade vence um empate entre ações (registrado).'},
   {id: 'rootAllowX', group: 'Movimento', label: 'Liberar root motion em X', type: 'bool', def: false, applied: true, tip: 'Com o root motion desta animação ligado, deixa o clipe deslocar o corpo lateralmente.'},
   {id: 'rootAllowZ', group: 'Movimento', label: 'Liberar root motion em Z', type: 'bool', def: false, applied: true, tip: 'Com o root motion desta animação ligado, deixa o clipe deslocar o corpo para frente/trás.'},
-  {id: 'motionScale', group: 'Movimento', label: 'Escala do deslocamento', unit: '×', min: 0, max: 3, step: .05, def: 1, applied: false, tip: 'Multiplica o deslocamento do root motion (registrado).'},
+  {id: 'motionScale', group: 'Movimento', label: 'Escala do deslocamento', unit: '×', min: 0, max: 3, step: .05, def: 1, applied: true, tip: 'Multiplica o root motion horizontal quando ele está liberado para esta animação (visual; a física decide o movimento real).'},
   {id: 'displacement', group: 'Movimento', label: 'Deslocamento total', unit: 'm', min: 0, max: 10, step: .05, def: 0, applied: false, tip: 'Distância total desejada ao longo da animação (registrado; a física decide o movimento real).'},
   {id: 'verticalSpeed', group: 'Movimento', label: 'Velocidade vertical', unit: 'm/s', min: -20, max: 20, step: .1, def: 0, applied: false, tip: 'Velocidade vertical associada à animação (registrado; salto físico em Parâmetros do jogo).'},
   {id: 'minTime', group: 'Transições', label: 'Tempo mínimo no estado', unit: 's', min: 0, max: 2, step: .01, def: 0, applied: false, tip: 'Tempo mínimo antes de poder sair desta animação (registrado).'},

@@ -77,9 +77,20 @@ for (const [src, real] of runs) {
   ok('Peso da camada do Editor limita o peso do clipe no mixer, medido em jogo');
 }
 {
+  const run = setup => {const m = makeMatch();setup(m.chars[0]);m.run(90);return m.rec.frames.filter(f => f.who === 0 && f.id === 'idle');};
+  const fr = run(ch => {ch.animProfile = setField(setField(ch.animProfile, 'idle', 'freezeAt', 20), 'idle', 'freezeFor', .3);});
+  let best = 0, cur = 1;for (let i = 1; i < fr.length; i++) {cur = Math.abs(fr[i].time - fr[i - 1].time) < 1e-9 ? cur + 1 : 1;best = Math.max(best, cur);}
+  assert.ok(Math.abs(best * C.test.step - .3) < .06, `Congelamento: a pose fica parada ~0,3 s (${best} quadros iguais seguidos)`);
+  ok('Congelamento do Editor (20 %, 0,3 s) segura a pose por ~0,3 s, medido em jogo');
+}
+{
   const {FIELDS} = await import('../src/sim/animation-profile.js');
   const flag = id => (Array.isArray(FIELDS) ? FIELDS : Object.values(FIELDS)).find(x => x.id === id)?.applied;
   assert.deepEqual(['blendOut', 'layerWeight', 'reverse'].filter(id => flag(id) !== true), [], 'blendOut/layerWeight/reverse marcados como aplicados');
+  const semEfeito = (Array.isArray(FIELDS) ? FIELDS : Object.values(FIELDS)).filter(x => x.applied !== true).map(x => x.id).sort();
+  const esperado = ['armor', 'autoNext', 'bufferWindow', 'combatPriority', 'displacement', 'exitCondition', 'hitstopMult', 'interruptible', 'minTime', 'priority', 'repeats', 'startup', 'verticalSpeed'].sort();
+  assert.deepEqual(semEfeito.filter(x => !esperado.includes(x)), [], 'nenhum campo NOVO pode ficar sem efeito (catraca: a lista só encolhe)');
+  console.log('  campos do Editor ainda SEM efeito no jogo (rotulados assim na interface):', semEfeito.join(', '));
   ok('blendOut, layerWeight e reverse estão marcados como aplicados no perfil (reverse e layerWeight provados acima)');
 }
 

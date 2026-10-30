@@ -50,13 +50,13 @@ const L = {
   },
   hitstunFlinch(target, dur) {target.action = null;target.hitstun = Math.max(target.hitstun ?? 0, dur);target.hitstunMax = Math.max(target.hitstunMax ?? 0, dur);target.knockRecovery = Math.max(target.knockRecovery, dur);target.recoveryKind = 'hitstun';target.state = 'hitstun';target.hitSerial = (target.hitSerial ?? 0) + 1;},
   footstool(defender, stagger) {
-    defender.stun = Math.max(defender.stun ?? 0, stagger);defender.stunMax = stagger;defender.state = 'stagger';
+    defender.stun = Math.max(defender.stun ?? 0, stagger);defender.stunMax = stagger;defender.state = 'stagger';defender.staggerStun = true;
     defender.action = null;defender.push = null;defender.blend = null;
     defender.velocity = vec();defender.locomotionVelocity = vec();
     defender.vaultHeight = 0;defender.counterWindow = 0;defender.landingSlide = null;
     defender.guard = false;defender.guardSuppressed = true;
   },
-  guardBreak(defender, gbStun) {defender.guard = false;defender.guardSuppressed = true;defender.state = 'stagger';defender.stun = Math.max(defender.stun, gbStun);defender.stunMax = defender.stun;},
+  guardBreak(defender, gbStun) {defender.guard = false;defender.guardSuppressed = true;defender.state = 'stagger';defender.staggerStun = true;defender.stun = Math.max(defender.stun, gbStun);defender.stunMax = defender.stun;},
   guardStunResolveHit(defender, d) {if (defender.stun <= 1e-8) {defender.stun = d;defender.stunMax = d;}},
   guardStunApplyHit(target, d) {if (target.stun <= 1e-8) {target.stun = d;target.state = 'guardStun';}},
   perfectResolveHit(defender, cw) {defender.perfectSucceeded = true;defender.stun = 0;if (C.extras.toggles.enableCounterBonus) defender.counterWindow = Math.max(defender.counterWindow, cw);},
