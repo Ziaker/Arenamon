@@ -18,7 +18,7 @@ Moves registrados: **19**. Em ficha única (um arquivo): 16. Veja `docs/COMO_CRI
 | `sand-wave` | `sandWave` | 14 | 4 | 38 | 20 |
 | `bullet-punch` | `bulletPunch` | 12 | 3 | 30 | 18 |
 | `emerging-stone` | `emergingStone` | 9 | 2 | 18 | 15 |
-| `feint` | `feint` | 15 | 7 | 15 | 20 |
+| `feint` | `feint` | 16 | 7 | 15 | 20 |
 | `riposte` | `riposte` | 19 | 6 | 24 | 35 |
 | `quick-attack` | `quickAttack` | 8 | 3 | 24 | 13 |
 | `water-pulse` | `waterPulse` | 9 | 11 | 29 | 16 |
@@ -170,7 +170,7 @@ Testes executáveis: `node prototypes/combat-lab/test/ai-new-moves.test.mjs` · 
 
 **Ficha:** Burst · Trick · SEM PL · proposto ✓ · aprovado ✗ · implementado ✓ · homologado ✗
 
-- **sim (regras):** `prototypes/combat-lab/src/sim/ai-eval/eval-match.js`, `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/controller/ctrl-moves.js`, `prototypes/combat-lab/src/sim/controller/ctrl-tackle.js`, `prototypes/combat-lab/src/sim/controller/ctrl-update.js`, `prototypes/combat-lab/src/sim/move-vfx-map.js`, `prototypes/combat-lab/src/sim/moves.js`, `prototypes/combat-lab/src/sim/moves/air-slash.js`, `prototypes/combat-lab/src/sim/moves/feint.js`, `prototypes/combat-lab/src/sim/moves/feint.params.js`, `prototypes/combat-lab/src/sim/moves/move-mechanics-audit.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params-registry.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/scenarios-tackle.js`
+- **sim (regras):** `prototypes/combat-lab/src/sim/ai-eval/eval-match.js`, `prototypes/combat-lab/src/sim/ai-new-moves.js`, `prototypes/combat-lab/src/sim/controller/ctrl-moves.js`, `prototypes/combat-lab/src/sim/controller/ctrl-tackle.js`, `prototypes/combat-lab/src/sim/controller/ctrl-update.js`, `prototypes/combat-lab/src/sim/move-vfx-map.js`, `prototypes/combat-lab/src/sim/moves.js`, `prototypes/combat-lab/src/sim/moves/air-slash.js`, `prototypes/combat-lab/src/sim/moves/feint.js`, `prototypes/combat-lab/src/sim/moves/feint.params.js`, `prototypes/combat-lab/src/sim/moves/move-data.js`, `prototypes/combat-lab/src/sim/moves/move-mechanics-audit.js`, `prototypes/combat-lab/src/sim/moves/new-moves.js`, `prototypes/combat-lab/src/sim/moves/params-registry.js`, `prototypes/combat-lab/src/sim/moves/params.generated.js`, `prototypes/combat-lab/src/sim/scenarios-tackle.js`
 - **ui (painéis):** `prototypes/combat-lab/src/ui/menu-styles-model.js`, `prototypes/combat-lab/src/ui/moves-panel.js`, `prototypes/combat-lab/src/ui/organize.js`
 - **view (desenho):** `prototypes/combat-lab/src/view/solid-fx.js`, `prototypes/combat-lab/src/view/vfx.js`, `prototypes/combat-lab/src/view/vfx/dispatch.js`, `prototypes/combat-lab/src/view/whiff-fx.js`
 - **testes:** `prototypes/combat-lab/test/ai-new-moves-eval.mjs`, `prototypes/combat-lab/test/ai-new-moves.test.mjs`, `prototypes/combat-lab/test/ai-profile.test.mjs`, `prototypes/combat-lab/test/f6-moves-contract-lib.mjs`, `prototypes/combat-lab/test/f7-sliders-coverage-lib.mjs`, `prototypes/combat-lab/test/moves-ab-sensitivity.test.mjs`, `prototypes/combat-lab/test/moves-air.test.mjs`, `prototypes/combat-lab/test/moves-feint.test.mjs`, `prototypes/combat-lab/test/moves-fichas.test.mjs`, `prototypes/combat-lab/test/moves-new.browser.mjs`, `prototypes/combat-lab/test/moves-revisao.test.mjs`, `prototypes/combat-lab/test/moves-ui.browser.mjs`, `prototypes/combat-lab/test/prejogo.test.mjs`, `prototypes/combat-lab/test/sequence-planner.test.mjs`, `prototypes/combat-lab/test/tackle-feint.test.mjs`

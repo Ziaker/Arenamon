@@ -31,7 +31,7 @@ try {
   ok('segurança: outra origem e pedido sem origem recusados; “..”, absolutos, subpastas demais e extensões fora da lista recusados');
   const events = [];const ctl = new AbortController();
   const sse = fetch(base + '/__dev/events', {signal: ctl.signal}).then(async res => {const rd = res.body.getReader();for (;;) {const {value, done} = await rd.read();if (done) break;events.push(new TextDecoder().decode(value));}}).catch(() => {});
-  await new Promise(r => setTimeout(r, 150));const rb = await (await fetch(base + '/__dev/rebuild', {method: 'POST'})).json();assert.equal(rb.error, null);
+  await new Promise(r => setTimeout(r, 150));const semOrigem = await fetch(base + '/__dev/rebuild', {method: 'POST'}), outraOrigem = await fetch(base + '/__dev/rebuild', {method: 'POST', headers: {origin: 'http://evil.example'}});assert.equal(semOrigem.status, 403);assert.equal(outraOrigem.status, 403);const rb = await (await fetch(base + '/__dev/rebuild', {method: 'POST', headers: {origin: base}})).json();assert.equal(rb.error, null);
   await new Promise(r => setTimeout(r, 200));ctl.abort();await sse;
   assert.ok(events.join('').includes(`data: ${rb.version}`), 'a página aberta recebe o aviso de recompilação');
   ok('recompila e avisa a página aberta (recarregamento ao modificar o código)');

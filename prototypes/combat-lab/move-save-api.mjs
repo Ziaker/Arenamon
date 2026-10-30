@@ -53,7 +53,7 @@ export function createMoveSaveApi({movesDir, approvedDir}) {
   /** Valida o documento conforme o tipo; devolve null se válido ou a mensagem de erro. */
   function validate(kind, id, doc) {
     if (kind === 'moves') {
-      const bad = validateMoveData(doc);
+      const bad = validateMoveData(doc);   // inclui as regras mecânicas do motor (validateMoveMechanics): nada que o registro recusaria é gravado
       if (bad.length) return 'move.json inválido: ' + bad.slice(0, 5).join('; ');
       if (doc.def.id !== id) return `def.id (${doc.def.id}) diferente do arquivo (${id})`;
       return null;
@@ -66,8 +66,23 @@ export function createMoveSaveApi({movesDir, approvedDir}) {
       return null;
     } catch (e) {return 'visual inválido: ' + /** @type {Error} */ (e).message;}
   }
+  /** Exclusão mútua por arquivo: duas gravações do mesmo arquivo nunca se intercalam (nem dividem o mesmo .tmp); a segunda confere o hash DEPOIS da primeira. */
+  const filas = new Map();
+  let tmpSeq = 0;
+  async function comFila(/** @type {string} */ chave, /** @type {() => Promise<any>} */ fn) {
+    const anterior = filas.get(chave) ?? Promise.resolve();
+    const minha = anterior.catch(() => {}).then(fn);
+    const fim = minha.catch(() => {});filas.set(chave, fim);
+    try {return await minha;} finally {if (filas.get(chave) === fim) filas.delete(chave);}
+  }
   /** Grava o documento (com `confirm: true` e o hash lido). */
   async function write(kind, id, body) {
+    if (!body || body.confirm !== true) return {status: 400, error: 'falta a confirmação (confirm: true)'};
+    const loc0 = await locate(kind, id);
+    if (loc0.error) return loc0;
+    return comFila(loc0.file, () => gravar(kind, id, body));
+  }
+  async function gravar(kind, id, body) {
     if (!body || body.confirm !== true) return {status: 400, error: 'falta a confirmação (confirm: true)'};
     const loc = await locate(kind, id);
     if (loc.error) return loc;
@@ -77,7 +92,7 @@ export function createMoveSaveApi({movesDir, approvedDir}) {
     if (typeof body.expectHash !== 'string' || body.expectHash !== sha(current)) return {status: 409, error: 'o arquivo mudou no disco desde que o editor o leu: recarregue antes de gravar', currentHash: sha(current)};
     const next = JSON.stringify(body.doc, null, 2) + '\n';
     if (next === current) return {status: 200, body: {ok: true, changed: false, hash: sha(current), bytes: 0}};
-    const tmp = loc.file + '.tmp';
+    const tmp = `${loc.file}.${process.pid}.${++tmpSeq}.tmp`;   // nome próprio por gravação
     await writeFile(tmp, next);await rename(tmp, loc.file);
     return {status: 200, body: {ok: true, changed: true, hash: sha(next), bytes: Buffer.byteLength(next)}};
   }

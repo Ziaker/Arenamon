@@ -21,6 +21,8 @@ import {pushAccelNow, pushDurationModeOf, pushWindowState} from './moves/sand-wa
 const SQ2 = Math.SQRT2;
 /** @type {WeakMap<object, {at: number, sig: string, field: any, solids: any[]}>} */
 const FIELDS = new WeakMap();
+/** Assinatura do conjunto de sólidos que invalida o campo em cache: posição, forma, TODAS as dimensões (hx, hz, raio), orientação e alturas — não só posição e hx. */
+export const solidsSignature = (/** @type {any[]} */ solids) => solids.map(s => [s.shape ?? '', s.pos.x.toFixed(2), s.pos.z.toFixed(2), s.hx ?? '', s.hz ?? '', s.radius ?? s.r ?? '', (s.angle ?? 0).toFixed(3), s.base ?? '', s.top ?? s.height ?? ''].join(',')).join('|');
 /** F5 (só leitura, para o VFX): campo de distâncias em cache da onda ({minX, minZ, nx, nz, cs, dist, blocked}) ou null se ainda não calculado. */
 export const sandFieldOf = (/** @type {any} */ e) => FIELDS.get(e)?.field ?? null;
 /** F9 (só leitura, para o VFX): registro do cache do campo ({at, sig, field, solids}); troca de identidade a cada recálculo (replanSteps ou sólidos mudaram). */
@@ -101,7 +103,7 @@ export function stepSand(/** @type {any} */ game, /** @type {any} */ e, /** @typ
   // Depois de `active` a hitbox acabou, mas um empurrão já iniciado pode continuar (política por alvo). Só encerra cedo
   // quando não há nenhum empurrão em curso, preservando o custo zero da dissipação visual.
   if (!hitWindow && e.pushed.length === 0) return;
-  const sig = solids.map(s => `${s.pos.x.toFixed(2)},${s.pos.z.toFixed(2)},${s.hx ?? s.radius}`).join('|');
+  const sig = solidsSignature(solids);
   const stepNo = Math.round(e.age / dt);
   let cache = FIELDS.get(e);   // o campo de distâncias é só um cache derivado (fora do estado salvo): depois de carregar um save ele é recalculado
   if (!cache || stepNo - cache.at >= e.replanSteps || cache.sig !== sig) {cache = {at: stepNo, sig, field: distanceField(e, solids), solids};FIELDS.set(e, cache);}

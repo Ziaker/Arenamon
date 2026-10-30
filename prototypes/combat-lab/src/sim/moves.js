@@ -35,12 +35,17 @@ export const defaultRegistry = new MoveRegistry();
 let REGISTRY = defaultRegistry;
 /** Registro ativo (o padrão, salvo dentro de withRegistry). */
 export const activeRegistry = () => REGISTRY;
+/** Escopos de withRegistry em andamento (pilha): cada um se remove ao terminar e o registro ativo volta a ser o do topo que sobrou, nunca um «anterior» capturado
+ * (dois escopos assíncronos que terminam fora de ordem deixavam o registro errado ativo para sempre). Limite conhecido: enquanto um escopo assíncrono espera,
+ * o registro ativo é o do escopo iniciado por último; evite sobrepor escopos assíncronos para registros diferentes. */
+const SCOPES = [];
 /** Executa fn com outro registro ativo e restaura o anterior ao terminar (também se fn lançar ou for assíncrona). */
 export function withRegistry(/** @type {MoveRegistry} */ reg, /** @type {() => any} */ fn) {
-  const prev = REGISTRY;REGISTRY = reg;
-  let out;try {out = fn();} catch (e) {REGISTRY = prev;throw e;}
-  if (out && typeof out.then === 'function') return out.finally(() => {REGISTRY = prev;});
-  REGISTRY = prev;return out;
+  const scope = {reg};SCOPES.push(scope);REGISTRY = reg;
+  const done = () => {const i = SCOPES.indexOf(scope);if (i >= 0) SCOPES.splice(i, 1);REGISTRY = SCOPES.length ? SCOPES[SCOPES.length - 1].reg : defaultRegistry;};
+  let out;try {out = fn();} catch (e) {done();throw e;}
+  if (out && typeof out.then === 'function') return out.finally(done);
+  done();return out;
 }
 /** Preparações de Moves que viram AÇÃO DE TACKLE (`def.tackle` = nome): (f, action, P, ctx) ajusta duração, distância, dano, knockback e janelas da ação. */
 const TACKLE_SETUPS = new Map();

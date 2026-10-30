@@ -183,11 +183,13 @@ export class Game {
   save() {
     return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, eventIdSeq: this.eventIdSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
+      mode: this.mode, seed: this.seed, profile: this.profile, enemyProfile: this.enemyProfile,   // contexto da partida (A-09): o save carrega modo, semente e perfis, não só o estado dos lutadores
       combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
   load(state) {
     const s = structuredClone(state);
     this.prevPose = null;
+    if (s.mode !== undefined) this.mode = s.mode;if (s.seed !== undefined) this.seed = s.seed;if (s.profile !== undefined) this.profile = s.profile;if (s.enemyProfile !== undefined) this.enemyProfile = s.enemyProfile;   // save antigo (sem esses campos): mantém o que a instância já tinha
     this.fighters = s.fighters;this.tick = s.tick;this.events = s.events;this.winner = s.winner;this.hitstop = s.hitstop;this.phase = s.phase;
     this.brain.load(s.brain);this.playerBrain.load(s.playerBrain);this.lastStepEvents = s.lastStepEvents || [];
     this.eventSeq = s.eventSeq ?? this.eventSeq;this.passiveProcessed.clear();

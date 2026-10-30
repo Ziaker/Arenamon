@@ -64,7 +64,7 @@ export async function startDevServer({port = 5173, quiet = false, watchFiles = t
       if (url.pathname === '/relatorios' || url.pathname === '/relatorios.html') return send(200, inject(reports), 'text/html; charset=utf-8');
       if (url.pathname === '/favicon.ico') {res.writeHead(204);return res.end();}
       if (url.pathname === '/__dev/events') {res.writeHead(200, {'content-type': 'text/event-stream', 'cache-control': 'no-store', connection: 'keep-alive'});res.write(': ok\n\n');clients.add(res);req.on('close', () => clients.delete(res));return;}
-      if (url.pathname === '/__dev/rebuild' && req.method === 'POST') {await rebuild('pedido');return send(200, {version, error: lastError});}
+      if (url.pathname === '/__dev/rebuild' && req.method === 'POST') {if (!req.headers.origin || new URL(req.headers.origin).host !== req.headers.host) return send(403, {error: 'origem não autorizada'});await rebuild('pedido');return send(200, {version, error: lastError});}
       const saved = await saveApi.handle({method: req.method, pathname: url.pathname, origin: req.headers.origin, host: req.headers.host, readBody: async () => {const chunks = [];let size = 0;for await (const c of req) {size += c.length;if (size > MAX_BODY) throw new Error('grande');chunks.push(c);}return Buffer.concat(chunks).toString('utf8');}});
       if (saved) return saved.error ? send(saved.status, {error: saved.error, ...(saved.currentHash ? {currentHash: saved.currentHash} : {})}) : send(saved.status, saved.body);
       if (url.pathname === '/api/health') return send(200, {ok: true, version, error: lastError, areas: Object.fromEntries(Object.entries(AREAS).map(([k, a]) => [k, {label: a.label, ext: a.ext, dir: relative(repo, a.dir).replaceAll(sep, '/')}]))});
