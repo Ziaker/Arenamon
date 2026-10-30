@@ -3,8 +3,8 @@
 Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Character` + `AnimationMixer`, Editor fechado). A prova de cada ação vem do que o Character **tocou** durante 106 cenários de partida, nunca de chamar `stateKey()` direto nem de associar clipe genérico. Teste: `prototypes/combat-lab/test/animation-runtime.test.mjs`.
 
 - **Sintético** (um clipe distinto por ação): 90 OK · 0 FALHA · 0 reserva · 0 sem clipe configurado.
-- **wookada.glb** (importado): 38 OK · 0 FALHA · 2 reserva · 50 sem clipe configurado.
-- **Cogumelo.glb** (importado): 16 OK · 0 FALHA · 1 reserva · 73 sem clipe configurado.
+- **wookada.glb** (importado): 40 OK · 0 FALHA · 2 reserva · 48 sem clipe configurado.
+- **Cogumelo.glb** (importado): 33 OK · 0 FALHA · 1 reserva · 56 sem clipe configurado.
 - «reserva»: ação que só toca quando o clipe primário do estado não está configurado (hit, fall, downed, move_1, move_2, move_3, move_4); provada no sintético por cenários em que o primário é removido. «sem clipe configurado»: o modelo não tem clipe para a ação (o jogo usa a cadeia de reserva documentada em `STATE_ACTIONS`).
 
 ## Sintético (todas as ações)
@@ -104,7 +104,7 @@ Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Cha
 ## wookada.glb
 | personagem | ação | gatilho real | clipe configurado | clipe executado | frames | parâmetros aplicados | fallback | resultado |
 |---|---|---|---|---|---|---|---|---|
-| wookada.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | Mutant Idle | Mutant Idle | 23858 | tempo 0.01–7.35 s · peso 1.00 | não | OK |
+| wookada.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | Mutant Idle | Mutant Idle | 23788 | tempo 0.01–7.35 s · peso 1.00 | não | OK |
 | wookada.glb | `turn` | reação: acerto contra a parede (wall-splat e prensado) | turn | turn | 52 | tempo 0.01–0.38 s · peso 1.00 | não | OK |
 | wookada.glb | `walk` | locomoção: parado, girar, andar nas 4 direções | Mutant Walking | Mutant Walking | 1196 | tempo 0.00–1.02 s · peso 1.00 | não | OK |
 | wookada.glb | `walk_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Mutant Walking | Mutant Walking | 138 | tempo 0.00–1.02 s · peso 1.00 | não | OK |
@@ -119,7 +119,7 @@ Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Cha
 | wookada.glb | `block_start` | defesa: entra, segura, sai | block start | block start | 230 | tempo 0.00–0.88 s · peso 1.00 | não | OK |
 | wookada.glb | `block` | defesa: entra, segura, sai | bloking still | bloking still | 374 | tempo 0.00–0.34 s · peso 1.00 | não | OK |
 | wookada.glb | `block_end` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| wookada.glb | `guard_impact` | defesa: bloqueia um tackle (guard stun no defensor, recuo no atacante) | block start | block start | 180 | tempo 0.01–0.88 s · peso 1.00 | não | OK |
+| wookada.glb | `guard_impact` | defesa: bloqueia um tackle (guard stun no defensor, recuo no atacante) | block start | block start | 180 | tempo 0.00–0.87 s · peso 1.00 | não | OK |
 | wookada.glb | `perfect_guard` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `blocked` | espelho: o azul ataca um defensor (recuo do atacante, guard stun do rival) | dash back | dash back | 74 | tempo 0.00–1.06 s · peso 1.00 | não | OK |
 | wookada.glb | `hit` | reação: contato sem lançamento (enableLaunch desligado) → hitstun | get hit | get hit 3 | 643 | tempo 0.00–1.44 s · peso 1.00 | não | OK |
@@ -140,31 +140,31 @@ Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Cha
 | wookada.glb | `tackle` | tackle X e recuperação | tackle 1 | tackle 1 | 1914 | tempo 0.01–2.00 s · peso 1.00 | não | OK |
 | wookada.glb | `tackle_charge` | tackle carregado PL2/PL3 | charge move start | charge move start | 664 | tempo 0.01–1.18 s · peso 1.00 | não | OK |
 | wookada.glb | `tackle_pl2` | tackle carregado 75 passos (PL2/PL3) | tackle 2 | tackle 2 | 414 | tempo 0.02–2.48 s · peso 1.00 | não | OK |
-| wookada.glb | `tackle_pl3` | tackle carregado PL2/PL3 | tackle 5 | tackle 5 | 138 | tempo 0.01–1.17 s · peso 1.00 | não | OK |
+| wookada.glb | `tackle_pl3` | tackle carregado PL2/PL3 | tackle 2 | tackle 2 | 138 | tempo 0.02–2.48 s · peso 1.00 | não | OK |
 | wookada.glb | `brake` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| wookada.glb | `meteor_prep` | meteor slam: C → X a partir do vault | Mutant Jumping | Mutant Jumping | 59 | tempo 0.20–0.75 s · peso 1.00 | não | OK |
+| wookada.glb | `meteor_prep` | meteor slam: C → X a partir do vault | jump falling | jump falling | 59 | tempo 0.00–0.05 s · peso 1.00 | não | OK |
 | wookada.glb | `meteor_dive` | meteor slam: C → X a partir do vault | Mutant Jump Attack | Mutant Jump Attack | 14 | tempo 0.00–0.19 s · peso 1.00 | não | OK |
-| wookada.glb | `meteor_ground` | meteor slam: C → X a partir do vault | ground crash | ground crash | 54 | tempo 0.00–0.77 s · peso 1.00 | não | OK |
-| wookada.glb | `dodge_forward` | locomoção: sprint nas 4 direções e freios | dodge foward | dodge foward | 268 | tempo 0.01–1.14 s · peso 1.00 | não | OK |
-| wookada.glb | `dodge_back` | locomoção: sprint nas 4 direções e freios | dash back | dash back | 585 | tempo 0.01–1.07 s · peso 1.00 | não | OK |
+| wookada.glb | `meteor_ground` | meteor slam: C → X a partir do vault | bloking still | bloking still | 54 | tempo 0.00–0.35 s · peso 1.00 | não | OK |
+| wookada.glb | `dodge_forward` | locomoção: sprint nas 4 direções e freios | land to run | land to run | 268 | tempo 0.01–0.92 s · peso 1.00 | não | OK |
+| wookada.glb | `dodge_back` | locomoção: sprint nas 4 direções e freios | dodge foward | dodge foward | 585 | tempo 0.01–1.15 s · peso 1.00 | não | OK |
 | wookada.glb | `dodge_left` | locomoção: sprint nas 4 direções e freios | dodge left | dodge left | 190 | tempo 0.01–1.07 s · peso 1.00 | não | OK |
 | wookada.glb | `dodge_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | dodge right | dodge right | 119 | tempo 0.01–1.08 s · peso 1.00 | não | OK |
-| wookada.glb | `jump` | esquiva C nas 4 direções + vault sobre o rival | Mutant Jumping | Mutant Jumping | 788 | tempo 0.00–0.75 s · peso 1.00 | não | OK |
+| wookada.glb | `jump` | esquiva C nas 4 direções + vault sobre o rival | jump falling | jump falling | 734 | tempo 0.00–0.05 s · peso 1.00 | não | OK |
 | wookada.glb | `jump_start` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `jump_rise` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `jump_apex` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `jump_fall` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `land` | salto normal: fases e pouso | jump land | fall_hitground | 564 | tempo 0.00–1.30 s · peso 1.00 | não | OK |
-| wookada.glb | `wall_splat` | reação: acerto contra a parede (wall-splat e prensado) | Wall Crash | post fall wall crash | 368 | tempo 0.00–0.57 s · peso 1.00 | não | OK |
+| wookada.glb | `wall_splat` | reação: acerto contra a parede (wall-splat e prensado) | Wall Crash | post fall wall crash | 85 | tempo 0.00–0.57 s · peso 1.00 | não | OK |
 | wookada.glb | `ledge_grab` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| wookada.glb | `ledge_hang` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| wookada.glb | `ledge_climb` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
+| wookada.glb | `ledge_hang` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | ledge idle (freeze frame) | ledge idle (freeze frame) | 283 | tempo 0.00–0.08 s · peso 1.00 | não | OK |
+| wookada.glb | `ledge_climb` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | ledge up | ledge up | 54 | tempo 0.00–1.41 s · peso 1.00 | não | OK |
 | wookada.glb | `ledge_drop` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `ledge_blocked` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| wookada.glb | `move_1` | contra-ataque: Riposte (atordoamento do atacante) | move 1 | moveblast 6 | 1154 | tempo 0.00–1.31 s · peso 1.00 | não | OK |
-| wookada.glb | `move_2` | reserva: Move no slot 2 sem identidade → clipe do slot (move_2) | Stabbing | Stabbing | 29 | tempo 0.00–0.41 s · peso 1.00 | não | OK |
-| wookada.glb | `move_3` | reserva: Move no slot 3 sem identidade → clipe do slot (move_3) | buff 2 | buff 2 | 29 | tempo 0.00–0.41 s · peso 1.00 | não | OK |
-| wookada.glb | `move_4` | reserva: Move no slot 4 sem identidade → clipe do slot (move_4) | status move | status move | 29 | tempo 0.00–0.41 s · peso 1.00 | não | OK |
+| wookada.glb | `move_1` | contra-ataque: Riposte (atordoamento do atacante) | move blast 2 | moveblast 6 | 1154 | tempo 0.00–1.31 s · peso 1.00 | não | OK |
+| wookada.glb | `move_2` | reserva: Move no slot 2 sem identidade → clipe do slot (move_2) | move blast | move blast | 29 | tempo 0.00–0.41 s · peso 1.00 | não | OK |
+| wookada.glb | `move_3` | reserva: Move no slot 3 sem identidade → clipe do slot (move_3) | moveblast 4 | moveblast 4 | 29 | tempo 0.00–0.41 s · peso 1.00 | não | OK |
+| wookada.glb | `move_4` | reserva: Move no slot 4 sem identidade → clipe do slot (move_4) | moveblast 3 | moveblast 3 | 29 | tempo 0.00–0.41 s · peso 1.00 | não | OK |
 | wookada.glb | `charge_reflect` | move reflect: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Idle | 1327 | tempo 0.00–4.67 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `release_reflect` | move reflect: carga segurada 160 passos e solta | move 1 | move 1 | 837 | tempo 0.00–2.60 s · peso 1.00 | não | OK |
 | wookada.glb | `charge_psyshock` | move psyshock: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Idle | 925 | tempo 0.00–4.67 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
@@ -189,66 +189,66 @@ Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Cha
 | wookada.glb | `move_air-slash` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `move_seed-bomb` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `charge_guard-break` | move guard-break: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Idle | 885 | tempo 0.00–4.67 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
-| wookada.glb | `release_guard-break` | move guard-break: uso real (toque, carga e soltura, confirmação de mira) | — | Stabbing | 415 | tempo 0.01–0.68 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
+| wookada.glb | `release_guard-break` | move guard-break: uso real (toque, carga e soltura, confirmação de mira) | — | move blast | 415 | tempo 0.01–0.80 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `charge_bounce` | move bounce: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Idle | 925 | tempo 0.00–4.67 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `release_bounce` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | wookada.glb | `charge_water-pulse` | move water-pulse: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Idle | 925 | tempo 0.00–4.67 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
-| wookada.glb | `release_water-pulse` | move water-pulse: uso real (toque, carga e soltura, confirmação de mira) | — | Stabbing | 385 | tempo 0.00–1.11 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
+| wookada.glb | `release_water-pulse` | move water-pulse: uso real (toque, carga e soltura, confirmação de mira) | — | move blast | 455 | tempo 0.00–1.31 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 
 ## Cogumelo.glb
 | personagem | ação | gatilho real | clipe configurado | clipe executado | frames | parâmetros aplicados | fallback | resultado |
 |---|---|---|---|---|---|---|---|---|
-| Cogumelo.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | idle | idle | 23948 | tempo 0.00–3.69 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `turn` | reação: acerto contra a parede (wall-splat e prensado) | Injured Run Backwards Right Turn | Injured Run Backwards Right Turn | 52 | tempo 0.01–0.38 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `walk` | locomoção: parado, girar, andar nas 4 direções | Zombie Walk | Zombie Walk | 1590 | tempo 0.01–1.25 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `walk_back` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `walk_left` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Left Strafe | Left Strafe | 145 | tempo 0.00–0.69 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `walk_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Standing Run Right | Standing Run Right | 182 | tempo 0.00–0.79 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `sprint` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
+| Cogumelo.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | idle | idle | 23548 | tempo 0.00–3.69 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `turn` | reação: acerto contra a parede (wall-splat e prensado) | alt idle | alt idle | 52 | tempo 0.01–0.38 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `walk` | locomoção: parado, girar, andar nas 4 direções | Standing Run Right | Standing Run Right | 1064 | tempo 0.00–0.79 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `walk_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Run Backwards (1) | Run Backwards (1) | 106 | tempo 0.01–0.73 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `walk_left` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Left Strafe | Left Strafe | 106 | tempo 0.00–0.69 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `walk_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Standing Run Right | Standing Run Right | 106 | tempo 0.00–0.79 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `sprint` | locomoção: sprint nas 4 direções e freios | Mutant Run | Mutant Run | 226 | tempo 0.01–0.79 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `sprint_back` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `sprint_left` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `sprint_right` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `walk_stop` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `sprint_stop` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `block_start` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `block` | defesa: entra, segura, sai | Standing Block Idle | Standing Block Idle | 783 | tempo 0.01–1.87 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `walk_stop` | locomoção: parado, girar, andar nas 4 direções | Standing Block React Large | Standing Block React Large | 305 | tempo 0.00–0.52 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `sprint_stop` | locomoção: sprint nas 4 direções e freios | Zombie Reaction Hit | Zombie Reaction Hit | 48 | tempo 0.00–0.10 s · peso 0.31 | não | OK |
+| Cogumelo.glb | `block_start` | defesa: entra, segura, sai | Big Hit To Head | Big Hit To Head | 328 | tempo 0.00–1.59 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `block` | defesa: bloqueia um tackle (guard stun no defensor, recuo no atacante) | Standing Block Idle | Standing Block Idle | 284 | tempo 0.01–1.65 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `block_end` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `guard_impact` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
+| Cogumelo.glb | `guard_impact` | defesa: bloqueia um tackle (guard stun no defensor, recuo no atacante) | Standing Block React Large | Standing Block React Large | 184 | tempo 0.00–0.93 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `perfect_guard` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `blocked` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `hit` | reação: acerto contra a parede (wall-splat e prensado) | Big Hit To Head | Big Hit To Head | 803 | tempo 0.00–1.60 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `blocked` | espelho: o azul ataca um defensor (recuo do atacante, guard stun do rival) | Hit Reaction | Hit Reaction | 74 | tempo 0.00–2.09 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `hit` | reação: acerto contra a parede (wall-splat e prensado) | Big Hit To Head | Big Hit To Head | 728 | tempo 0.00–1.59 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `hit_light` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `hit_heavy` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `push` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `push_side` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `hit_up` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `hit_crush` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `knockback` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `fall` | meteor slam: C → X a partir do vault | Falling | Falling | 1363 | tempo 0.00–0.37 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `recover` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
+| Cogumelo.glb | `knockback` | reação: tackle do rival acerta o lutador livre (hitstun, empurrão, recuperação) | Falling | Falling | 1021 | tempo 0.01–0.37 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `fall` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | Falling | Falling | 283 | tempo 0.00–0.36 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `recover` | exaustão: o custo zera a stamina (recover) | recovery | recovery | 38 | tempo 0.00–1.67 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `downed` | — | Falling Down | — | 0 | — | não | reserva (primário presente) |
 | Cogumelo.glb | `death` | derrota: o último golpe derruba o lutador (KO) | Dying Backwards | Dying Backwards | 510 | tempo 0.01–1.73 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `recovery_tackle` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `recovery_dodge` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `recovery_move` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `tackle` | tackle X e recuperação | charge | charge | 2659 | tempo 0.00–2.37 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `tackle_charge` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `tackle_pl2` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `tackle_pl3` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `brake` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `meteor_prep` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
+| Cogumelo.glb | `tackle` | tackle X e recuperação | Mutant Swiping | Mutant Swiping | 2015 | tempo 0.00–1.90 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `tackle_charge` | tackle carregado PL2/PL3 | charge | charge | 664 | tempo 0.01–2.19 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `tackle_pl2` | tackle carregado 75 passos (PL2/PL3) | Standing Melee Attack 360 Low | Standing Melee Attack 360 Low | 414 | tempo 0.01–1.60 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `tackle_pl3` | tackle carregado PL2/PL3 | Flying Kick | Flying Kick | 138 | tempo 0.01–1.13 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `brake` | finta (brake): tackle cancelado pela esquiva | Jump | Jump | 126 | tempo 0.02–0.97 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `meteor_prep` | meteor slam: C → X a partir do vault | Mutant Jumping | Mutant Jumping | 59 | tempo 0.00–0.63 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `meteor_dive` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `meteor_ground` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `dodge_forward` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `dodge_back` | locomoção: sprint nas 4 direções e freios | Falling Back Death | Falling Back Death | 585 | tempo 0.02–1.87 s · peso 1.00 | não | OK |
-| Cogumelo.glb | `dodge_left` | locomoção: sprint nas 4 direções e freios | Hit On Side Of Head | Hit On Side Of Head | 577 | tempo 0.03–2.43 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `meteor_ground` | meteor slam: C → X a partir do vault | Standing Up | Standing Up | 54 | tempo 0.00–0.77 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `dodge_forward` | locomoção: sprint nas 4 direções e freios | Jump Over | Jump Over | 268 | tempo 0.02–1.35 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `dodge_back` | locomoção: sprint nas 4 direções e freios | Fall A Land To Run Forward | Fall A Land To Run Forward | 522 | tempo 0.01–0.97 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `dodge_left` | locomoção: sprint nas 4 direções e freios | Hit On Side Of Head | Hit On Side Of Head | 246 | tempo 0.03–2.41 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `dodge_right` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `jump` | esquiva C nas 4 direções + vault sobre o rival | Jump | Jump | 788 | tempo 0.00–0.97 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `jump` | esquiva C nas 4 direções + vault sobre o rival | Jump | Jump Over | 788 | tempo 0.00–1.37 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `jump_start` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `jump_rise` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `jump_apex` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `jump_fall` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `land` | salto normal: fases e pouso | Fall A Land To Run Forward | Fall A Land To Run Forward | 564 | tempo 0.00–0.97 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `land` | salto normal: fases e pouso | Fall A Land To Standing Idle 02 | Fall A Land To Standing Idle 02 | 564 | tempo 0.00–1.10 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `wall_splat` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `ledge_grab` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `ledge_hang` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
@@ -262,7 +262,7 @@ Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Cha
 | Cogumelo.glb | `charge_reflect` | move reflect: uso real (toque, carga e soltura, confirmação de mira) | — | idle | 1327 | tempo 0.00–3.69 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `release_reflect` | move reflect: carga segurada 160 passos e solta | move 1 | move 1 | 595 | tempo 0.00–1.72 s · peso 1.00 | não | OK |
 | Cogumelo.glb | `charge_psyshock` | move psyshock: uso real (toque, carga e soltura, confirmação de mira) | — | idle | 925 | tempo 0.00–3.69 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `release_psyshock` | move psyshock: uso real (toque, carga e soltura, confirmação de mira) | — | charge | 815 | tempo 0.00–2.36 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
+| Cogumelo.glb | `release_psyshock` | move psyshock: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Swiping | 655 | tempo 0.00–1.90 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `move_reflect` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `move_psyshock` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `move_harden` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
@@ -283,8 +283,8 @@ Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Cha
 | Cogumelo.glb | `move_air-slash` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `move_seed-bomb` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `charge_guard-break` | move guard-break: uso real (toque, carga e soltura, confirmação de mira) | — | idle | 885 | tempo 0.00–3.69 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `release_guard-break` | move guard-break: uso real (toque, carga e soltura, confirmação de mira) | — | charge | 415 | tempo 0.02–1.43 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
+| Cogumelo.glb | `release_guard-break` | move guard-break: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Swiping | 415 | tempo 0.01–1.15 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `charge_bounce` | move bounce: uso real (toque, carga e soltura, confirmação de mira) | — | idle | 925 | tempo 0.00–3.69 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `release_bounce` | — | — | — | 0 | — | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `charge_water-pulse` | move water-pulse: uso real (toque, carga e soltura, confirmação de mira) | — | idle | 925 | tempo 0.00–3.69 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `release_water-pulse` | move water-pulse: uso real (toque, carga e soltura, confirmação de mira) | — | charge | 815 | tempo 0.00–2.36 s · peso 1.00 | não | sem clipe configurado (nada a provar) |
+| Cogumelo.glb | `charge_water-pulse` | move water-pulse: uso real (toque, carga e soltura, confirmação de mira) | move 1 | move 1 | 925 | tempo 0.00–1.72 s · peso 1.00 | não | OK |
+| Cogumelo.glb | `release_water-pulse` | move water-pulse: uso real (toque, carga e soltura, confirmação de mira) | — | Mutant Swiping | 655 | tempo 0.00–1.90 s · peso 1.00 | não | sem clipe configurado (nada a provar) |

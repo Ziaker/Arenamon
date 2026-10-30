@@ -4,6 +4,7 @@
 // vale é o que o Character TOCA durante o jogo (current.key/id/clip, tempo e peso do mixer) a cada passo, nos dois lutadores.
 import * as T from 'three';
 import {readFileSync} from 'node:fs';
+import {fileURLToPath} from 'node:url';
 const {syntheticRig} = await import('data:text/javascript,' + encodeURIComponent(readFileSync(new URL('../../studio/test/fixture.js', import.meta.url), 'utf8')));
 import {Character, ACTION_IDS} from '../src/view/characters.js';
 Character.prototype.warmGround = () => {};   // o pré-cálculo de apoio ao chão agenda timers longos e não faz parte da seleção/reprodução de animação
@@ -43,6 +44,24 @@ export async function loadRealSource(file, name) {
   return {name, scene: gltf.scene, animations: gltf.animations, manifest, eventsByClip: gltf.animations.map(c => c.userData?.arenamon?.events || [])};
 }
 
+/**
+ * Configuração REAL do usuário: o workspace inicial (inicial/workspace-inicial.zip = o que o jogo importa na primeira abertura) guarda por modelo as associações de clipe,
+ * velocidades, reprodução, escala e Moves (models[sha].state). Sem isto a matriz provaria só os padrões automáticos, não o que o jogador realmente tem configurado.
+ */
+import {unzipSync, strFromU8} from 'fflate';
+export function loadWorkspaceStates() {
+  const zip = unzipSync(new Uint8Array(readFileSync(fileURLToPath(new URL('../inicial/workspace-inicial.zip', import.meta.url))))), ws = JSON.parse(strFromU8(zip['workspace.json']));
+  const byName = {};for (const [sha, m] of Object.entries(ws.models)) byName[m.name] = {sha, state: m.state};
+  return {byName, anim: ws.animOptions, tuning: ws.tuning};
+}
+/** Carrega um GLB importado COM a configuração salva do workspace (assetId + stateStore), como o jogo faz ao abrir. */
+export async function loadConfiguredSource(file, name) {
+  const src = await loadRealSource(file, name), {byName} = loadWorkspaceStates(), saved = byName[name];
+  if (saved) {src.assetId = saved.sha;(Character.stateStore ??= {get: c => stores[c.source.assetId] ? structuredClone(stores[c.source.assetId]) : null, set() {}});stores[saved.sha] = saved.state;}
+  return src;
+}
+const stores = {};
+
 export function setupRegistry() {
   resetConfig(defaults());clearMoves();clearEffects();registerStandardMoves();
   C.extras.toggles.enableEnemyAI = 0;
@@ -73,7 +92,7 @@ export function makeMatch({equip = [[], []], positions = [vec(0, -3), vec(0, 3)]
   g.mapState.platforms = [];g.mapState.obstacles = [];g.mapState.destructibles = [];g.mapState.items = [];g.mapState.regularSpawnTimer = 1e9;
   g.fighters[0].facing = 0;g.fighters[1].facing = Math.PI;
   equip.forEach((ids, i) => {if (ids.length) g.setLoadout(i, ids);});
-  const actions = configurableActions(), chars = sources ? sources.map(src => new Character(src, {persist: false})) : [makeCharacter(actions, 'azul.glb', omit), makeCharacter(actions, 'vermelho.glb', omit)];
+  const actions = configurableActions(), chars = sources ? sources.map(src => new Character(src, {persist: !!src.assetId})) : [makeCharacter(actions, 'azul.glb', omit), makeCharacter(actions, 'vermelho.glb', omit)];
   for (const ch of chars) ch.autoGround = false;
   const rec = {frames: [], reached: new Map()};
   const m = {g, chars, rec, actions, scenario: 'cenario',

@@ -6,7 +6,7 @@
 import assert from 'node:assert/strict';
 import {fileURLToPath} from 'node:url';
 import {runAll, rowsFor, RESERVA} from './animation-runtime-matrix.mjs';
-import {loadRealSource, makeCharacter, makeMatch, configurableActions, setupRegistry, cmd, vec, C, listMoves, EDITOR_IDS} from './animation-runtime-harness.mjs';
+import {loadConfiguredSource, makeCharacter, makeMatch, configurableActions, setupRegistry, cmd, vec, C, listMoves, EDITOR_IDS} from './animation-runtime-harness.mjs';
 import {SCENARIOS} from './animation-runtime-scenarios.mjs';
 import {Character} from '../src/view/characters.js';
 import {setField} from '../src/sim/animation-profile.js';
@@ -26,12 +26,12 @@ const syn = runAll(null), synCh = makeCharacter(actions, 'azul.glb'), synRows = 
 assert.deepEqual(synRows.filter(r => r.resultado !== 'OK').map(r => `${r.acao}: ${r.resultado}`), [], 'toda ação configurada com clipe válido toca no gameplay real com o clipe exato');
 ok(`sintético: ${synRows.length} de ${synRows.length} ações tocaram com o clipe exato configurado (nenhuma reserva, nenhuma substituição)`);
 
-// ---- (2) GLBs importados de verdade ----
-const w = await loadRealSource(chars('wookada/wookada.glb'), 'wookada.glb'), c = await loadRealSource(chars('mosh/Cogumelo.glb'), 'Cogumelo.glb');
+// ---- (2) GLBs importados de verdade, COM a configuração salva do usuário (inicial/workspace-inicial.zip) ----
+const w = await loadConfiguredSource(chars('wookada/wookada.glb'), 'wookada.glb'), c = await loadConfiguredSource(chars('mosh/Cogumelo.glb'), 'Cogumelo.glb');
 // cada modelo importado é o lutador AZUL (o que age em todos os cenários) numa rodada própria; o outro serve de rival
 const runs = [[w, runAll([w, c])], [c, runAll([c, w])]];
 for (const [src, real] of runs) {
-  const who = 0, ch = new Character(src, {persist: false}), rows = rowsFor(src.name, ch, real, false, who);
+  const who = 0, ch = new Character(src, {persist: true}), rows = rowsFor(src.name, ch, real, false, who);
   const configured = rows.filter(r => r.configurado !== '—');
   assert.deepEqual(rows.filter(r => r.resultado.startsWith('FALHA')).map(r => `${r.acao}: ${r.resultado}`), [], `${src.name}: toda ação com clipe configurado toca no gameplay real (ou é reserva documentada)`);
   ok(`${src.name} (importado): ${configured.length} ações configuradas, ${rows.filter(r => r.resultado === 'OK').length} tocadas com o clipe exato, ${rows.filter(r => r.resultado.startsWith('reserva')).length} reservas, ${rows.length - configured.length} sem clipe configurado`);
@@ -54,15 +54,34 @@ for (const [src, real] of runs) {
   ok('laço central do Editor (30–50%) prende o mixer no trecho, medido em jogo');
 }
 
+// ---- (3b) campos do Editor que antes eram salvos sem efeito: Reverso, Peso da camada, Blend de saída ----
+{
+  const run = setup => {const m = makeMatch();setup(m.chars[0]);m.run(90);return m.rec.frames.filter(f => f.who === 0 && f.id === 'idle');};
+  const rev = run(ch => {ch.animProfile = setField(ch.animProfile, 'idle', 'reverse', true);});
+  const dts = rev.slice(10).map((f, i, a) => i ? f.time - a[i - 1].time : 0).slice(1).filter(d => Math.abs(d) < .5);
+  assert.ok(dts.length > 20 && dts.filter(d => d < 0).length > dts.length * .8, 'Reverso: o tempo do clipe anda para trás de forma contínua (não oscila)');
+  ok('Reverso do Editor toca o clipe de trás para a frente, medido em jogo');
+  const lw = run(ch => {ch.animProfile = setField(ch.animProfile, 'idle', 'layerWeight', .5);});
+  assert.ok(lw.length > 20 && lw.slice(15).every(f => f.weight <= .5 + 1e-6), 'Peso da camada 0,5 limita o peso do clipe');
+  ok('Peso da camada do Editor limita o peso do clipe no mixer, medido em jogo');
+}
+{
+  const {FIELDS} = await import('../src/sim/animation-profile.js');
+  const flag = id => (Array.isArray(FIELDS) ? FIELDS : Object.values(FIELDS)).find(x => x.id === id)?.applied;
+  assert.deepEqual(['blendOut', 'layerWeight', 'reverse'].filter(id => flag(id) !== true), [], 'blendOut/layerWeight/reverse marcados como aplicados');
+  ok('blendOut, layerWeight e reverse estão marcados como aplicados no perfil (reverse e layerWeight provados acima)');
+}
+
 // ---- (4) salvar → recarregar mantém as associações e os parâmetros ----
 {
+  const keepStore = Character.stateStore;Character.stateStore = null;   // este passo prova o caminho de gravação do navegador (localStorage), não o workspace carregado
   const store = new Map();globalThis.localStorage = {getItem: k => store.get(k) ?? null, setItem: (k, v) => store.set(k, String(v)), removeItem: k => store.delete(k)};
   const a = new Character(w, {persist: true});
   a.speeds.walk = 1.5;a.animProfile = setField(a.animProfile, 'idle', 'trimEnd', 80);a.phaseOff = {tackle: {active: true}};a.save();
   const b = new Character(w, {persist: true});
   assert.equal(b.speeds.walk, 1.5);assert.equal(b.animProfile.entries.idle.trimEnd, 80);assert.deepEqual(b.phaseOff, {tackle: {active: true}});
   assert.deepEqual(b.variants, a.variants, 'as associações de clipe voltam idênticas');
-  delete globalThis.localStorage;
+  delete globalThis.localStorage;Character.stateStore = keepStore;
   ok('salvar e recarregar: associações, velocidade, recorte e fases voltam idênticos');
 }
 

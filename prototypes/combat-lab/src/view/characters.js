@@ -497,7 +497,12 @@ export class Character {
       if (f.flight.bounce && !f.wallSplat) {const bd = getMove('bounce');if (bd && this.specificRelease(bd)) return 'release_bounce';}
       if (f.flight.isEdgeFall && this.clock < (this.ledgeDropUntil ?? -Infinity) && !f.wallSplat) return 'ledge_drop';   // soltar a borda: um clipe curto antes da queda comum
       if (f.wallSplat) return 'wallSplat';
-      if (f.flight.isNormalJump) return this.hasJumpPhases() ? this.jumpPhaseKey(f) : 'jump';
+      if (f.flight.isNormalJump) {
+        if (!this.hasJumpPhases()) return 'jump';
+        // Fases PARCIAIS não mascaram as outras: só a fase com clipe próprio (apex cai no jump_rise) usa a chave de fase; as demais seguem o clipe «jump» no tempo do voo.
+        const k = this.jumpPhaseKey(f), own = [k, k === 'jump_apex' ? 'jump_rise' : null].find(x => x && this.variants[x]?.length && this.animProfile?.entries[x]?.enabled !== false);
+        return own ?? 'jump';
+      }
       return f.flight.vy > 3 && this.variantsOf('hit_up').length ? 'airborne_up' : 'airborne';
     }
     // Exaustão (stamina zerada pela ação): com clipe «Recuperando (exausto)» próprio ele toca em vez de segurar a pose do tackle/esquiva; sem ele, segue como sempre.
@@ -505,9 +510,11 @@ export class Character {
     const inRecovery = f.state === 'actionRecovery' || f.recoveryFrom;
     if (inRecovery) {
       const cur = this.current?.key;
-      if (cur && ACTION_KEYS.has(cur)) this.recoveryOrigin = cur.startsWith('dodge') || cur === 'vault' ? 'dodge' : MOVE_KEYS.includes(cur) ? 'move' : 'tackle';
+      if (cur && ACTION_KEYS.has(cur)) this.recoveryOrigin = cur.startsWith('dodge') || cur === 'vault' ? 'dodge' : MOVE_KEYS.includes(cur) || this.lastActionMove ? 'move' : 'tackle';
       // Recuperação própria do ataque (desaceleração e retomada de equilíbrio); sem clipe, mantém o clipe do ataque como antes.
       if (this.recoveryOrigin && this.variantsOf('recovery_' + this.recoveryOrigin).length) return 'recovery_' + this.recoveryOrigin;
+      // Move que virou ação de tackle/esquiva sem recovery_move próprio: usa a recuperação da ação de base (recovery_tackle/recovery_dodge) em vez de segurar a pose
+      if (this.recoveryOrigin === 'move' && this.lastActionKind && this.lastActionKind !== 'move' && this.variantsOf('recovery_' + this.lastActionKind).length) return 'recovery_' + this.lastActionKind;
     } else this.recoveryOrigin = null;
     if (inRecovery && this.current && ACTION_KEYS.has(this.current.key)) return this.current.key;
     if (f.state === 'actionRecovery' || f.recoveryFrom === 'tackle') return 'tackle';
@@ -656,6 +663,7 @@ export class Character {
     if (a && (!p || p.kind !== a.kind || a.elapsed < p.elapsed - 1e-9 || (a.fromCancel && !p.fromCancel))) this.actionSerial++;
     this.prevAction = a ? {kind: a.kind, elapsed: a.elapsed, fromCancel: !!a.fromCancel} : null;
     if (a && (a.kind === 'tackle' || a.kind === 'dodge')) this.lastActionSeen = {kind: a.kind, elapsed: a.elapsed};
+    if (a) {this.lastActionMove = a.move ?? null;this.lastActionKind = a.kind;}   // Move real da última ação (Lunge/Quick Attack viram ação de tackle: a animação anterior diz «tackle», a ação diz o Move)
   }
   /** Extrai e valida o contrato AnimationCombatWindows para a ação a partir dos eventos do clipe. */
   getCombatWindows(actionId, {withProfile = false, actionSeconds = null} = {}) {
@@ -790,9 +798,14 @@ export class Character {
     if (prev && prev.index === index) {
       // Mesmo clipe servindo a outro estado (locomoção, ação renascida com outro serial, transição curta): continua de
       // onde está, sem reiniciar e sem criar camada — o tempo das ações temporais é imposto pela simulação em blend().
-      prev.entry = entry;prev.key = key;prev.id = id;this.restartsAvoided++;return;
+      // Exceção: estado de uma execução (ONE_SHOT: hitstun, stagger, release_*, ledge_grab…) que REENTRA (novo golpe/nova execução) ou vem de outra chave com o mesmo clipe
+      // recomeça do zero; antes ele «continuava» e mostrava a pose final do clipe da execução anterior.
+      const rerun = ONE_SHOT.has(key) && (prev.key !== key || prev.entry !== entry);
+      if (rerun) {prev.started = this.clock;prev.action.time = 0;this.timer = 0;this.fade = 0;this.restartsReused = (this.restartsReused ?? 0) + 1;}
+      else this.restartsAvoided++;
+      prev.entry = entry;prev.key = key;prev.id = id;return;
     }
-    if (prev) {prev.fadeStart = this.clock;prev.fadeFrom = prev.weight;this.layers.push(prev);}
+    if (prev) {prev.fadeStart = this.clock;prev.fadeFrom = prev.weight;prev.fadeOut = this.profileValue(prev.id, 'blendOut', prev.clip.name);this.layers.push(prev);}   // Editor › Blend de saída: duração do fade de quem sai (vazio = o blend de entrada do próximo)
     // Sem clone: o mixer cacheia a ação por (clipe, raiz) e o tempo é por ação. Clonar copiava todos os keyframes de
     // todas as tracks a cada troca de estado e fazia o cache interno do mixer crescer sem limite (uma entrada por troca).
     const clip = this.clips[index], action = this.mixer.clipAction(clip);
@@ -823,7 +836,7 @@ export class Character {
     const fadeOf = layer => Math.max(.02, layer?.fade ?? Character.options.fade);
     let old = 0;
     for (const layer of this.layers) {
-      const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / fadeOf(this.current)));layer.weight = layer.fadeFrom * (1 - easeCurve(this.current?.curve, k));
+      const k = Math.max(0, Math.min(1, (this.clock - layer.fadeStart) / Math.max(.02, layer.fadeOut ?? fadeOf(this.current))));layer.weight = layer.fadeFrom * (1 - easeCurve(this.current?.curve, k));
       if (layer.weight <= 1e-4) {layer.action.stop();layer.dead = true;continue;}
       const a = layer.action, d = layer.clip.duration || 1, s = this.speedOf(layer.id), playback = this.playbackOf(layer.id, layer.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d), next = a.time + dt * s;
       a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);
@@ -833,8 +846,11 @@ export class Character {
     this.fade += dt;this.timer += dt;
     if (this.current) {
       const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id), playback = this.playbackOf(this.current.id, this.current.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d);
-      this.current.weight = Math.max(0, 1 - Math.min(1, old));a.setEffectiveWeight(this.current.weight);
+      this.current.weight = Math.max(0, 1 - Math.min(1, old));
+      const lw = this.profileValue(this.current.id, 'layerWeight', this.current.clip.name);   // Editor › Peso da camada: teto do peso do clipe na mistura
+      a.setEffectiveWeight(lw === undefined ? this.current.weight : this.current.weight * Math.max(0, Math.min(1, lw)));
       const fx = p ? (p.action ? this.profileFx(this.current, p.action) : null) : this.profileFx(this.current);
+      const reversed = !p && !!this.profileValue(this.current.id, 'reverse', this.current.clip.name);
       if (p?.paused) {
         a.time = Math.min(d, Math.max(0, p.seek));
       } else if (fx) {
@@ -863,8 +879,9 @@ export class Character {
       } else if (TIMED.has(this.current.key)) {
         const timed = Math.max(0, this.progress(f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
-        const next = a.time + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);
+        const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar
       }
+      if (reversed) a.time = Math.max(0, cap - a.time);   // Editor › Reverso: o clipe toca de trás para a frente
     }
     this.mixer.update(0);
     // Sem root motion horizontal: projeta a posição no espaço mundial e remove X/Z ali. Não basta zerar X/Z local,

@@ -1,4 +1,4 @@
-// Perfil de animação por ação e por variante (editor de animações). Camada ADITIVA sobre o que já existe:
+﻿// Perfil de animação por ação e por variante (editor de animações). Camada ADITIVA sobre o que já existe:
 //   • valores globais (velocidade, laço e duração máxima por ação, root motion, trava ao chão) continuam sendo o padrão;
 //   • cada campo do perfil herda o global ou tem uma sobrescrita local (nunca apaga o global);
 //   • faixas da timeline ficam em FRAÇÃO do clipe (0–1): a conversão para segundos é determinística e acompanha
@@ -50,8 +50,8 @@ export const FIELDS = [
   {id: 'trimStart', group: 'Reprodução', label: 'Início do recorte', unit: '%', min: 0, max: 99, step: 1, def: 0, applied: true, tip: 'Começa o clipe neste ponto (porcentagem da duração original).'},
   {id: 'trimEnd', group: 'Reprodução', label: 'Fim do recorte', unit: '%', min: 1, max: 100, step: 1, def: 100, applied: true, tip: 'Termina o clipe neste ponto (porcentagem da duração original).'},
   {id: 'blendIn', group: 'Mistura', label: 'Blend de entrada', unit: 's', min: 0, max: 1, step: .01, def: null, applied: true, tip: 'Fade ao entrar neste clipe. Vazio = o fade global (Personagens › avançado).'},
-  {id: 'blendOut', group: 'Mistura', label: 'Blend de saída', unit: 's', min: 0, max: 1, step: .01, def: null, applied: false, tip: 'Fade ao sair do clipe (registrado; o jogo usa o blend de entrada do próximo).'},
-  {id: 'layerWeight', group: 'Mistura', label: 'Peso da camada', unit: '', min: 0, max: 1, step: .05, def: 1, applied: false, tip: 'Peso máximo do clipe na mistura.'},
+  {id: 'blendOut', group: 'Mistura', label: 'Blend de saída', unit: 's', min: 0, max: 1, step: .01, def: null, applied: true, tip: 'Duração do fade de quem sai do clipe (vazio = usa o blend de entrada do próximo).'},
+  {id: 'layerWeight', group: 'Mistura', label: 'Peso da camada', unit: '', min: 0, max: 1, step: .05, def: 1, applied: true, tip: 'Peso máximo do clipe na mistura.'},
   {id: 'loopStart', group: 'Loop', label: 'Início do laço central', unit: '%', min: 0, max: 99, step: 1, def: 0, applied: true, tip: 'Com laço ligado, ao chegar no fim o clipe volta para este ponto (trecho inicial toca uma vez).'},
   {id: 'loopEnd', group: 'Loop', label: 'Fim do laço central', unit: '%', min: 1, max: 100, step: 1, def: 100, applied: true, tip: 'Com laço ligado, o laço central termina aqui e volta ao início do laço.'},
   {id: 'startup', group: 'Combate', label: 'Startup', unit: '%', min: 0, max: 100, step: 1, def: null, applied: false, tip: 'Fim da antecipação (antes do trecho ativo).'},
@@ -65,7 +65,7 @@ export const FIELDS = [
   {id: 'rootMotion', group: 'Movimento', label: 'Root motion habilitado', type: 'bool', def: null, applied: true, tip: 'Ligado, esta animação pode deslocar a raiz horizontalmente (vale por animação; o global do personagem fica na aba Movimento). Desligado, a posição vem só da física.'},
   {id: 'lockToGround', group: 'Movimento', label: 'Trava ao chão', type: 'bool', def: null, applied: true, tip: 'Mantém os pés apoiados no solo, ignorando o sobe/desce do clipe. Vale só para esta animação; o global fica na aba Movimento.'},
   {id: 'verticalOffset', group: 'Movimento', label: 'Compensação vertical', unit: 'm', min: -2, max: 2, step: .01, def: 0, applied: true, store: 'clipOffsets', tip: 'Sobe ou desce o personagem enquanto este clipe toca.'},
-  {id: 'reverse', group: 'Reprodução', label: 'Direção (invertida)', type: 'bool', def: false, applied: false, tip: 'Toca o clipe de trás para frente (registrado).'},
+  {id: 'reverse', group: 'Reprodução', label: 'Direção (invertida)', type: 'bool', def: false, applied: true, tip: 'Toca o clipe de trás para frente (aplicado no jogo).'},
   {id: 'blendCurve', group: 'Mistura', label: 'Curva do blend', type: 'select', options: ['linear', 'ease-in', 'ease-out', 'ease-in-out'], def: 'linear', applied: true, tip: 'Forma do fade ao entrar neste clipe (slow in / slow out): linear, começa devagar, termina devagar ou os dois.'},
   {id: 'priority', group: 'Mistura', label: 'Prioridade da camada', unit: '', min: 0, max: 10, step: 1, def: 0, applied: false, tip: 'Maior prioridade vence quando dois clipes disputam a mesma camada (registrado).'},
   {id: 'repeats', group: 'Loop', label: 'Repetições do laço', unit: '×', min: 0, max: 20, step: 1, def: 0, applied: false, tip: '0 = repete até o estado terminar. Outro valor limita as voltas do laço central (registrado).'},

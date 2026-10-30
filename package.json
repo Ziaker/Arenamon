@@ -1,7 +1,7 @@
-{
+﻿{
   "name": "arenamon",
-  "version": "1.49.7",
-  "description": "Laboratórios offline do projeto Arenamon",
+  "version": "1.49.8",
+  "description": "LaboratÃ³rios offline do projeto Arenamon",
   "scripts": {
     "morto": "npx --yes knip@5 --no-progress --reporter compact",
     "vigia": "node scripts/vigia.mjs",

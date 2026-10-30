@@ -3,15 +3,15 @@
 import {writeFileSync} from 'node:fs';
 import {fileURLToPath} from 'node:url';
 import {runAll, rowsFor, toMarkdown, RESERVA} from '../prototypes/combat-lab/test/animation-runtime-matrix.mjs';
-import {loadRealSource, makeCharacter, configurableActions, setupRegistry} from '../prototypes/combat-lab/test/animation-runtime-harness.mjs';
+import {loadConfiguredSource, makeCharacter, configurableActions, setupRegistry} from '../prototypes/combat-lab/test/animation-runtime-harness.mjs';
 import {Character} from '../prototypes/combat-lab/src/view/characters.js';
 
 setupRegistry();
 const p = f => fileURLToPath(new URL('../chars/' + f, import.meta.url));
 const actions = configurableActions();
 const syn = runAll(null), sRows = rowsFor('sintético', makeCharacter(actions, 'azul.glb'), syn, true);
-const w = await loadRealSource(p('wookada/wookada.glb'), 'wookada.glb'), c = await loadRealSource(p('mosh/Cogumelo.glb'), 'Cogumelo.glb'), real = runAll([w, c]), realC = runAll([c, w]);   // cada importado é o lutador AZUL (age em todos os cenários) numa rodada própria
-const wRows = rowsFor('wookada.glb', new Character(w, {persist: false}), real, false, 0), cRows = rowsFor('Cogumelo.glb', new Character(c, {persist: false}), realC, false, 0);
+const w = await loadConfiguredSource(p('wookada/wookada.glb'), 'wookada.glb'), c = await loadConfiguredSource(p('mosh/Cogumelo.glb'), 'Cogumelo.glb'), real = runAll([w, c]), realC = runAll([c, w]);   // cada importado é o lutador AZUL (age em todos os cenários) numa rodada própria
+const wRows = rowsFor('wookada.glb', new Character(w, {persist: true}), real, false, 0), cRows = rowsFor('Cogumelo.glb', new Character(c, {persist: true}), realC, false, 0);
 const cnt = rows => `${rows.filter(r => r.resultado === 'OK').length} OK · ${rows.filter(r => r.resultado.startsWith('FALHA')).length} FALHA · ${rows.filter(r => r.resultado.startsWith('reserva')).length} reserva · ${rows.filter(r => r.resultado.startsWith('sem clipe')).length} sem clipe configurado`;
 const md = `# Matriz de animações no runtime
 
