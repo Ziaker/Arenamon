@@ -121,3 +121,38 @@ A preparação usa cache por hash do conteúdo: rodar de novo sem mudança reapr
 - Banco refeito (41.790 clipes, 0 falhas, ~22 min), normas recopiadas para `tools/za-referencias/` e previsões dos lotes 01, 02 e 03 refeitas.
 - **Placar do sistema contra os 19 clipes dos gabaritos aceitos (lotes 02 e 03), antes → depois:** apoio/impulso 11/12 → 14/14 certos; executores: inconclusivos corretos 7 → 9 e falsos positivos 10 → 8; antecipação 0,89 e parte some/aparece 1,00 (iguais). O campo iniciador continua 0 porque o gabarito é inconclusivo por desenho (as regiões começam juntas).
 - **Ainda errado em executores:** cauda incluída no ataque do Lucario e no Pyroar (carga com cauda balançando), Swalot (final de ataque), Sylveon e Wigglytuff (gabarito inconclusivo) e os braços na caminhada do Aurorus. Não mexi: cada um pede decisão própria.
+
+## Executores corrigidos pelo gabarito (30/10/2026, Claude)
+
+Os erros de executor que sobraram nos gabaritos aceitos dos lotes 02 e 03 viraram regras em `regras_papeis.json` (cada uma com teste que falhou antes):
+
+- **Cauda acompanha membro** (`cauda_secundaria`): fora da locomoção, se um braço, perna ou asa é executor, a cauda que acelera junto vira acompanhante, mesmo sendo mais rápida. Cauda sozinha continua executora. Caso: Lucario `attack01`.
+- **Dominância mínima** (`dominancia_executor`): o candidato mais forte precisa ter pelo menos 50% do maior movimento do corpo (menos olho, auxiliar, raiz e outro). Senão, nenhum membro domina a ação e o executor fica INCONCLUSIVO. O apoio/impulso continua sendo medido na janela do candidato mais forte. Casos: Swalot `attack03_end`; de quebra, Sylveon `attack01` e Wigglytuff `rangeattack01`.
+- **A cauda não desfaz a pose parada** (`pose_parada.familias_membros` sem `cauda`). Caso: Pyroar `charge01_loop`.
+- **Patas dianteiras são pernas** (`patas_no_chao_sao_pernas`): em quadrúpedes, o braço cuja ponta toca o chão em repouso sai como perna do mesmo lado, em todos os papéis. Caso: Aurorus `walk01_loop`.
+
+**Placar contra os 19 clipes dos gabaritos aceitos, antes → depois:**
+
+| Campo | Antes | Depois |
+|---|---|---|
+| Executores iguais ao gabarito | 11/19 | **17/19** |
+| Executores, inconclusivos corretos | 9 | 13 |
+| Executores, falsos positivos | 8 | 2 |
+| Apoio/impulso | 14/14 | 14/14 |
+| Antecipação (precisão) | 0,89 | 0,89 |
+| Parte some/aparece | 1,00 | 1,00 |
+
+**Ainda errado:** os dois do Sawk. No rugido falta a cabeça, que chega a 52% do pico dos braços contra um limiar de 60%. No ataque do lote 03 falta o braço esquerdo. Nos dois casos falta um executor; nenhum é falso positivo.
+
+**Efeito no banco** (41.790 clipes, 0 falhas; ataques e ataques à distância sem fase, 1.541 clipes):
+
+| Medida | Antes | Depois |
+|---|---|---|
+| Executor INCONCLUSIVO | 18 | 205 (13%) |
+| Cauda como executora | 402 | 204 |
+| Cauda junto com um membro | 178 | 0 |
+| Quadrúpedes andando/correndo com "braço" como executor | 256 | 27 |
+
+Os 27 restantes têm patas que não tocam o chão em repouso. As evidências estão em `dumper test/za-referencias/evidencia/executores_antes_2026-10-30.txt` e `regen_executores_2026-10-30.log`. 225 testes OK.
+
+**Não verificado:** se os 187 ataques que passaram a INCONCLUSIVO pela regra de dominância estão certos. O limiar de 50% foi tirado de 4 clipes com gabarito.
