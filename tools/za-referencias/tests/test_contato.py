@@ -122,9 +122,18 @@ class TestApoioImpulso(unittest.TestCase):
         esq, c = S.soco_com_apoio(graus_perna=3.0)
         self.assertEqual(self._p(esq, c)["apoio_impulso"], [])
 
-    def test_locomocao_nao_tem_apoio_separado(self):
+    def test_locomocao_tem_as_pernas_como_apoio_e_impulso(self):
+        # decisão do revisor (30/10/2026, gabarito aceito dos lotes 02/03): em caminhada/corrida as pernas
+        # que ciclam são executoras E apoio/impulso. Antes (25/10) a locomoção não tinha apoio separado.
         esq, c = S.andar()
-        self.assertEqual(self._p(esq, c, "walk")["apoio_impulso"], [])
+        r = self._p(esq, c, "walk")
+        self.assertEqual(sorted(a["regiao"] for a in r["apoio_impulso"]), ["perna_D", "perna_E"])
+        self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["perna_D", "perna_E"])
+
+    def test_locomocao_nao_poe_braco_balancando_como_apoio(self):
+        esq, c = S.andar_com_bracos()
+        r = self._p(esq, c, "walk")
+        self.assertEqual(sorted(a["regiao"] for a in r["apoio_impulso"]), ["perna_D", "perna_E"])
 
     def test_medir_expoe_apoio_impulso(self):
         import metricas
@@ -206,3 +215,31 @@ class TestNoBanco(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
+
+
+class TestReacoes(unittest.TestCase):
+    """damage/land: o corpo todo reage; nenhum membro executa (gabarito aceito dos lotes 02/03, 30/10/2026)."""
+
+    def _p(self, esq, c, cat):
+        regs = ontologia.regioes(esq)
+        return ontologia.papeis(c, esq, regs, cat, ontologia.anatomia(esq, regs))
+
+    def test_dano_nao_tem_executor(self):
+        esq, c = S.soco_com_apoio()
+        r = self._p(esq, c, "damage")
+        self.assertEqual(r["executores"], [])
+        self.assertEqual(r["status"], "NAO_SE_APLICA")
+
+    def test_aterrissagem_nao_tem_executor_mas_mantem_as_pernas_como_apoio(self):
+        esq, c = S.soco_com_apoio()
+        r = self._p(esq, c, "land")
+        self.assertEqual(r["executores"], [])
+        self.assertEqual(r["status"], "NAO_SE_APLICA")
+        self.assertIn("perna_E", [a["regiao"] for a in r["apoio_impulso"]])
+
+    def test_categorias_de_reacao_ficam_na_regra_editavel(self):
+        self.assertEqual(sorted(ontologia.carregar_regras()["reacoes"]["categorias"]), ["damage", "land"])
+
+    def test_ataque_continua_com_executor(self):
+        esq, c = S.soco_com_apoio()
+        self.assertEqual([e["regiao"] for e in self._p(esq, c, "attack")["executores"]], ["braco_D"])

@@ -31,8 +31,12 @@
     "familias_pes": ["perna"],
     "familias_membros": ["braco", "perna", "asa", "cauda", "cabeca", "pescoco"]
   },
+  "reacoes": {
+    "_sobre": "Reação do corpo todo (dano) e aterrissagem: nenhum membro executa; fica sem executor (NAO_SE_APLICA) e sem iniciador. As pernas que dobram no clipe ficam como apoio. Decisão do revisor, 30/10/2026, pelo gabarito aceito dos lotes 02 e 03 (Lairon em damage01, Blastoise em land02).",
+    "categorias": ["damage", "land"]
+  },
   "apoio_impulso": {
-    "_sobre": "Fora da locomoção: perna que NÃO golpeia mas dobra (sustenta o peso ou empurra) da preparação até o golpe. Campo separado dos executores; executor é só quem golpeia.",
+    "_sobre": "Fora da locomoção: perna que NÃO golpeia mas dobra (sustenta o peso ou empurra) da preparação até o golpe. Campo separado dos executores; executor é só quem golpeia. Em locomoção (walk, run...) as pernas que ciclam são executoras E apoio/impulso (decisão do revisor, 30/10/2026, gabarito aceito dos lotes 02 e 03); braços que balançam não são apoio. Em reação (damage, land) vale a flexão no clipe inteiro.",
     "familias": ["perna"],
     "flexao_minima_graus": 10
   },

@@ -231,6 +231,20 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
                     parada["excursao_raiz_H"], parada["excursao_pes_H"], parada["pico_membros_H_s"]),
                 "regra_aplicada": "pose parada: loop com raiz <= %.2f H, pés <= %.2f H e membros <= %.1f H/s fica sem executor" % (
                     P["raiz_max_H"], P["pes_max_H"], P["membros_max_H_s"])}
+    if categoria in R.get("reacoes", {}).get("categorias", []):
+        ap = R.get("apoio_impulso", {})
+        apoio = []
+        for r in sorted(set(vels)):
+            if _familia(r) not in ap.get("familias", []):
+                continue
+            g = _flexao_regiao(clipe, esq, regs, r, 0, clipe.quadros - 1)
+            if g >= ap["flexao_minima_graus"]:
+                apoio.append({"regiao": r, "status": "CANDIDATO",
+                              "evidencia": {"flexao_graus": round(g, 1), "janela": [0, clipe.quadros - 1]}})
+        return {"executores": [], "apoio_impulso": apoio, "iniciadores": [], "acompanhantes": [],
+                "maior_percurso": _percursos(clipe, esq, regs, ocultos), "status": "NAO_SE_APLICA",
+                "motivo": "reação (%s): o corpo todo responde, nenhum membro executa" % categoria,
+                "regra_aplicada": "reação: %s fica sem executor; pernas que dobram ficam como apoio" % categoria}
     fam_cand = R["candidatas"].get(categoria, R["candidatas"]["_padrao"])
     nunca = set(R["nunca_executa"])
     presentes = set(vels)
@@ -309,10 +323,16 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
     exec_regs = {e["regiao"] for e in executores}
     t_exec = min((e["evidencia"]["quadro_pico"] for e in executores), default=None)
     # apoio/impulso: pernas que não golpeiam mas dobram (sustentam o peso ou empurram) da preparação até o golpe.
-    # Em locomoção não se aplica: lá todo membro que cicla já é executor.
+    # Em locomoção as pernas que ciclam são executoras e também apoio (ver abaixo).
     apoio = []
     ap = R.get("apoio_impulso", {})
-    if executores and categoria not in loco.get("categorias", []):
+    if categoria in loco.get("categorias", []):
+        # locomoção: a perna que cicla sustenta e empurra; é executora e também apoio/impulso
+        for e in executores:
+            if _familia(e["regiao"]) in ap.get("familias", []):
+                apoio.append({"regiao": e["regiao"], "status": "CANDIDATO",
+                              "evidencia": {"locomocao": True, "pico_H_s": e["evidencia"]["pico_H_s"]}})
+    elif executores:
         b_jan = min(clipe.quadros - 1, t_ref + R["janela_executor_q"])
         for r in sorted(presentes):
             if _familia(r) not in ap.get("familias", []) or r in exec_regs:
