@@ -61,6 +61,10 @@ Todo código-fonte, documentação, recurso permitido, teste e entrega final dev
 4. **Publicação Segura de Compilados no GitHub:**
    Arquivos HTML compilados (`dist/`) podem permanecer ignorados pelo Git quando forem regeneráveis, mas devem existir na pasta local oficial ao serem entregues. Quando for necessário disponibilizar um HTML compilado externamente pelo GitHub, utilize mecanismos apropriados de publicação (como GitHub Releases ou artefatos de GitHub Actions), sem inflar o histórico de commits do repositório Git com arquivos gerados desnecessários.
 
+## Proibido rodar benchmarks e baterias pesadas sem pedido explícito (regra obrigatória)
+
+**Benchmarks, medições de desempenho/FPS, testes de estresse, baterias longas (`rapido:tudo`, `test:combat-lab:unit` inteiro, `test:combat-lab:browser` inteiro, `verify`, simulações de dezenas de milhares de passos) e qualquer coisa que trave o computador do usuário só podem rodar quando o usuário pedir expressamente, naquele pedido.** Não crie benchmark novo nem o ligue em testes por conta própria; não "meça de novo para confirmar". Para entregar uma mudança comum use só o fluxo rápido (`npm run rapido:build`, no máximo `npm run rapido`) e rode **apenas o teste da área tocada**. O que ficar sem medir vai na resposta como «não verificado», sem rodar a bateria para tirar essa dúvida. A CI do GitHub é quem roda a bateria completa.
+
 ## Limite de tamanho de arquivo (regra obrigatória, verificada na CI)
 
 **Nenhum arquivo-fonte de código passa de 2.000 linhas** (`.js .mjs .ts .py .css .bat…`); **1.200 linhas é o alerta** para avaliar a modularização. Meta para módulos novos: 200–600 linhas, sem fragmentação artificial.
