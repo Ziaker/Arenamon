@@ -107,3 +107,9 @@ A preparação usa cache por hash do conteúdo: rodar de novo sem mudança reapr
 - **Confronto com as propostas da IA do lote 03** (nenhum campo estruturado foi alterado): concorda em Sawk (executor de braço não assegurado; participação de tronco e pernas), Sylveon (executor incerto entre pata e fita), Pupitar e Spewpa (close, sem ação), Fletchinder e Swalot (só o final do ataque), Overqwil (flutua, sem patas), Pyroar (só a cauda se move), Drampa, Diggersby e Blastoise.
 - **Divergências a conferir:** Wigglytuff — a auditoria não vê boca nem projétil e descreve só um gesto de esticar o corpo no q35–43; a proposta de executor `mandibula` é hipótese fraca (nível C). Lairon — a auditoria diz que a cabeça desce e contrai no q0–6; o texto de evento da proposta diz que sobe e gira (só texto, não campo). A proposta só leu a vista D; a auditoria leu D e E.
 - Não é gabarito: continua dependendo da sua rotulagem e revisão.
+
+## Gabarito aceito do lote 03 (30/10/2026)
+
+- O responsável aprovou as propostas da IA e a auditoria externa do lote 03. Arquivo: `dumper test/za-referencias/avaliacao/gabarito_lote_03_aceito.json`, origem `ACEITO_PELO_USUARIO`, 15 clipes, só os campos pontuáveis (executores, iniciador, antecipação, apoio/impulso, parte some/aparece).
+- **Ajuste único sobre a proposta:** Wigglytuff, executores `mandibula` → `INCONCLUSIVO` (a auditoria não vê boca nem projétil).
+- Revisor único (sem kappa); muitos campos ficam INCONCLUSIVO por desenho. Não alterei o lote humano (hash `a83c78d9fc71`).
