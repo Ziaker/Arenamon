@@ -87,6 +87,40 @@ class TestRespostasVazias(unittest.TestCase):
         self.assertEqual(q["executores"], ["braco_C", "lingua"])
 
 
+class TestAntecipacaoNaoSeAplica(unittest.TestCase):
+    """Rótulo `nao_se_aplica` (carga/loop sem golpe) vale como `nao` na pontuação: a previsão do sistema segue "nao"."""
+
+    def test_placar_conta_acerto(self):
+        p = avaliacao.placar([{"id": "a", "antecipacao": "nao"}], [{"id": "a", "antecipacao": "nao_se_aplica"}])
+        self.assertEqual(p["antecipacao"]["falsos_positivos"], 0)
+        self.assertEqual(p["antecipacao"]["precisao"], 1.0)
+
+    def test_so_vale_no_campo_antecipacao(self):
+        p = avaliacao.placar([{"id": "a", "apoio": "nao"}], [{"id": "a", "apoio": "nao_se_aplica"}])
+        self.assertEqual(p["apoio"]["falsos_positivos"], 1)
+
+    def test_nao_se_aplica_nao_equivale_a_sim(self):
+        p = avaliacao.placar([{"id": "a", "antecipacao": "sim"}], [{"id": "a", "antecipacao": "nao_se_aplica"}])
+        self.assertEqual(p["antecipacao"]["falsos_positivos"], 1)
+
+    def test_ab_conta_acerto(self):
+        g = [{"id": "a", "antecipacao": "nao_se_aplica"}]
+        r = avaliacao.ab([{"id": "a", "antecipacao": "sim"}], [{"id": "a", "antecipacao": "nao"}], g)
+        self.assertEqual(r["antecipacao"]["so_b_acertou"], 1)
+
+    def test_concordancia_trata_como_nao(self):
+        c = avaliacao.concordancia({"x": [{"id": "a", "antecipacao": "nao"}],
+                                    "y": [{"id": "a", "antecipacao": "nao_se_aplica"}]})
+        self.assertEqual(c["antecipacao"]["discordancias"], [])
+
+
+class TestSchemaIA(unittest.TestCase):
+    def test_antecipacao_aceita_nao_se_aplica(self):
+        import ia_pipeline
+        self.assertIn("nao_se_aplica", ia_pipeline.default_schema()["antecipacao"])
+        self.assertNotIn("nao_se_aplica", ia_pipeline.default_schema()["apoio"])
+
+
 class TestPrevisaoLoop(unittest.TestCase):
     def test_loop_previsto_como_nao(self):
         import gerar_lote

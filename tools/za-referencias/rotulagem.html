@@ -104,6 +104,7 @@ const conf = (n, campo) => `<span class="conf" title="sua confiança nesta respo
 const FASES = [["fase_recuo_inicio","Recuo começa"],["fase_recuo_fim","Recuo termina"],["fase_golpe_inicio","Golpe começa"],
   ["fase_golpe_pico","Golpe/impacto (pico)"],["fase_pose_fim","Pose do golpe termina"],["fase_recuperacao_fim","Recuperação termina"]];
 const SN = [["sim","sim"],["nao","não"],["INCONCLUSIVO","?"]];
+const SNA = [["sim","sim"],["nao","não"],["nao_se_aplica","não se aplica"],["INCONCLUSIVO","?"]];
 function partes(n) {
   const lados = (f, attr) => LADOS.map(([l, t]) => chip(attr, f + "_" + l, t)).join("");
   return `<div class="bloco ex"><b>Executa <small>quem faz a ação</small>${conf(n, "conf_executa")}</b>
@@ -146,7 +147,7 @@ function render() {
       ${partes(it.n)}
       <div class="aviso"></div>
       <div class="perg">
-        ${seg(it.n, "antecipacao", "Antecipação (recuo antes do golpe)?", SN)}
+        ${seg(it.n, "antecipacao", "Antecipação (recuo antes do golpe)?", SNA)}
         <span>Total até o golpe (quadros, opcional)</span><div><input type="number" min="0" max="200" data-campo="antecipacao_q"></div>
         ${seg(it.n, "parte_some_aparece", "Alguma parte some ou aparece?", SN)}
         ${seg(it.n, "apoio", "Pés apoiados no chão?", SN)}

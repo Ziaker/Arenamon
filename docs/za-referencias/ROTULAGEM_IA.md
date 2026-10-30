@@ -85,3 +85,11 @@ A preparação usa cache por hash do conteúdo: rodar de novo sem mudança reapr
   | apoio/impulso, antecipação, parte some, leitura | 0 |
 
 - **Não verificado:** a correção artística das propostas, que depende da revisão humana; a abertura da boca do Sawk; contato real com o chão.
+
+## Gabarito aceito do lote 02 (29/10/2026)
+
+- O responsável aceitou a **auditoria integral** de uma IA externa (30 vídeos, 2.530 quadros, 15 montagens integrais) como visão de referência. Cópia local: `dumper test/za-referencias/avaliacao/auditoria_externa/` (HTML 68 MB + JSON; dado derivado do Z-A, fora do git).
+- **Gabarito:** `dumper test/za-referencias/avaliacao/gabarito_lote_02_aceito.json`, origem `ACEITO_PELO_USUARIO`. Cobre só os **4 clipes** com campos estruturados (Lucario, Hawlucha, Groudon, Sawk): executores, iniciador, antecipação, apoio/impulso e parte some/aparece. Os outros 11 clipes têm na auditoria só fases visuais aproximadas, sem gabarito.
+- **Ajuste sobre a proposta:** Hawlucha e Groudon (`charge01_loop`) passam de antecipação `nao` para `nao_se_aplica` (carga sem golpe).
+- **Novo valor `nao_se_aplica` em antecipação:** existe no schema da IA, na página de revisão da IA e na página de rotulagem de lotes novos (lotes 01 e 02 já gerados não mudam; o hash deles é a chave das respostas). Na pontuação (`avaliacao.py`: placar, A/B e concordância) vale como `nao` **só nesse campo**, porque a previsão do sistema para loops continua `nao`. Teste: `TestAntecipacaoNaoSeAplica` e `TestSchemaIA`.
+- **Limites:** revisor único (sem kappa); o `revisao_ia_477115ec150e.json` com a revisão campo a campo ainda não chegou; a auditoria não testou rig, contato nem jogo.

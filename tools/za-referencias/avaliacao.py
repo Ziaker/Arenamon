@@ -108,7 +108,11 @@ def _vazio(v):
     return v is None or v == "" or v == []
 
 
-def _norm(v):
+def _norm(v, campo=None):
+    """Compara respostas. `nao_se_aplica` (carga/loop sem golpe) vale como `nao` só em antecipacao: a previsão do
+    sistema continua "nao" para esses clipes, igual aos lotes já congelados."""
+    if campo == "antecipacao" and v == "nao_se_aplica":
+        return "nao"
     return tuple(sorted(v)) if isinstance(v, (list, tuple)) else v
 
 
@@ -123,7 +127,7 @@ def placar(previsoes, rotulos):
             if r is None or pr not in r or pr not in p or _vazio(r[pr]) or _vazio(p[pr]):
                 continue
             n += 1
-            pv, rv = _norm(p[pr]), _norm(r[pr])
+            pv, rv = _norm(p[pr], pr), _norm(r[pr], pr)
             if rv != INCONCLUSIVO:
                 com_resposta += 1
             if pv == INCONCLUSIVO:
@@ -170,7 +174,7 @@ def concordancia(rotulos_por_revisor):
         itens = [i for i in ids if all(pr in por_rev[r][i] and not _vazio(por_rev[r][i][pr]) for r in revs)]
         if not itens:
             continue
-        mat = [[_norm(por_rev[r][i][pr]) for r in revs] for i in itens]
+        mat = [[_norm(por_rev[r][i][pr], pr) for r in revs] for i in itens]
         res = {"n_itens": len(itens), "discordancias": [i for i, linha in zip(itens, mat) if len(set(linha)) > 1]}
         if len(revs) == 2:
             res["kappa_cohen"] = round(_cohen([l[0] for l in mat], [l[1] for l in mat]), 4)
@@ -200,8 +204,8 @@ def ab(previsoes_a, previsoes_b, gabarito):
         for i, r in gab.items():
             if i not in pa or i not in pb or pr not in pa[i] or pr not in pb[i] or _vazio(r.get(pr)):
                 continue
-            ca = _norm(pa[i][pr]) == _norm(r[pr])
-            cb = _norm(pb[i][pr]) == _norm(r[pr])
+            ca = _norm(pa[i][pr], pr) == _norm(r[pr], pr)
+            cb = _norm(pb[i][pr], pr) == _norm(r[pr], pr)
             b += (not ca) and cb
             c += ca and not cb
         p = _mcnemar_exato(b, c)

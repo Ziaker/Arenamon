@@ -29,8 +29,9 @@ def default_schema():
             'iniciador': REGIONS + ['INCONCLUSIVO'],
             'iniciadores': REGIONS + ['INCONCLUSIVO'],
             'apoio_impulso': ['perna_D', 'perna_E', 'perna_C'],
+            'antecipacao': ['sim', 'nao', 'nao_se_aplica', 'INCONCLUSIVO'],
             **{k: ['sim', 'nao', 'INCONCLUSIVO'] for k in
-               ['antecipacao', 'parte_some_aparece', 'apoio']},
+               ['parte_some_aparece', 'apoio']},
             'leitura_pose': ['clara', 'confusa', 'INCONCLUSIVO'],
             'massa_aparente': ['leve', 'medio', 'pesado', 'INCONCLUSIVO'],
             'intencao': ['agressivo', 'brincalhao', 'cauteloso', 'neutro', 'INCONCLUSIVO']}
