@@ -1,4 +1,4 @@
-﻿// Perfil de animação por ação e por variante (editor de animações). Camada ADITIVA sobre o que já existe:
+// Perfil de animação por ação e por variante (editor de animações). Camada ADITIVA sobre o que já existe:
 //   • valores globais (velocidade, laço e duração máxima por ação, root motion, trava ao chão) continuam sendo o padrão;
 //   • cada campo do perfil herda o global ou tem uma sobrescrita local (nunca apaga o global);
 //   • faixas da timeline ficam em FRAÇÃO do clipe (0–1): a conversão para segundos é determinística e acompanha
