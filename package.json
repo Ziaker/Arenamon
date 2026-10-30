@@ -1,6 +1,6 @@
 {
   "name": "arenamon",
-  "version": "1.49.9",
+  "version": "1.49.10",
   "description": "LaboratÃ³rios offline do projeto Arenamon",
   "scripts": {
     "morto": "npx --yes knip@5 --no-progress --reporter compact",

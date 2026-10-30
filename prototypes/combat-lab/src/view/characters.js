@@ -1,21 +1,19 @@
 // Personagens do Animation Studio no laboratório: máquina de estados de animação.
-//
-// O .glb exportado pelo Studio traz o mapa de ações (extras.arenamonActions) e, em cada animação, os eventos de
-// combate (extras.arenamon). Sem mapa, as animações são associadas por nome (sinônimos em inglês e português).
-//
+// O .glb exportado pelo Studio traz o mapa de ações (extras.arenamonActions) e, em cada animação, os eventos de combate
+// (extras.arenamon). Sem mapa, as animações são associadas por nome (sinônimos em inglês e português).
 // Regras da máquina de estados (auditoria do overhaul):
-//   • Um clipe só (re)começa ao ENTRAR num estado: troca de estado, nova ação (tackle/esquiva novos, detectados
-//     pelo tempo da ação que recomeça) ou transição curta. Detectar o mesmo estado em quadros seguidos nunca reinicia.
-//   • Cada estado aceita várias animações (variantes). Na entrada, uma variante é sorteada com semente
-//     determinística (lutador, estado, passo da simulação): o replay repete a mesma escolha.
+//   • Um clipe só (re)começa ao ENTRAR num estado: troca de estado, nova ação (tackle/esquiva novos, detectados pelo tempo
+//     da ação que recomeça) ou transição curta. Detectar o mesmo estado em quadros seguidos nunca reinicia.
+//   • Cada estado aceita várias animações (variantes); na entrada, uma variante é sorteada com semente determinística
+//     (lutador, estado, passo da simulação): o replay repete a mesma escolha.
 //   • Transições usam camadas com fade; ações (X/C) têm fade próprio, curto, para prevalecerem visualmente.
 //   • Locomoção tem histerese (parado/andar/sprint/laterais) contra oscilações de poucos quadros.
 //   • A posição vem só da física: o deslocamento horizontal da raiz do GLB é descartado (sem root motion).
-//   • O tempo das animações com duração definida (tackle, esquiva, recuo, guard stun, voo, aterrissagem) vem do
-//     estado da simulação (o clipe é esticado para a duração da ação), inclusive no replay. Ao fim mecânico, uma
-//     execução única não concluída segue em EPÍLOGO até o fim efetivo do clipe (visual-epilogue.js; só visual).
-//   • Telemetria: cada entrada registra animação iniciada/substituída, tempo e porcentagem tocados, motivo,
-//     estados anterior e seguinte e origem (jogador, IA, combate ou sistema).
+//   • O tempo das animações com duração definida (tackle, esquiva, recuo, guard stun, voo, aterrissagem) vem do estado da
+//     simulação (o clipe é esticado para a duração da ação), inclusive no replay. Ao fim mecânico, uma execução única não
+//     concluída segue em EPÍLOGO até o fim efetivo do clipe (visual-epilogue.js; só visual).
+//   • Telemetria: cada entrada registra animação iniciada/substituída, tempo e porcentagem tocados, motivo, estados
+//     anterior e seguinte e origem (jogador, IA, combate ou sistema).
 import * as T from 'three';
 import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
 import {clone} from 'three/addons/utils/SkeletonUtils.js';
@@ -30,7 +28,9 @@ import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
 import {firstAvailablePresentationAction} from '../sim/move-presentation.js';
-import {tryStartEpilogue, stepEpilogue, synthesizeLanding, progressOf, logTransition, resumeEpilogue, markEpilogue, clearEpilogueMark} from './visual-epilogue.js';
+import {tryStartEpilogue, stepEpilogue, synthesizeLanding, progressOf, logTransition, resumeEpilogue, markEpilogue, clearEpilogueMark, epilogueAuthority} from './visual-epilogue.js';
+import {scheduleClipTime, loopScheduleOf} from './clip-scheduler.js';
+import {applyLoopSeam} from './loop-seam.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
@@ -148,10 +148,9 @@ const STORE = 'arenamon-lab-anim-v1:';
 import {createSquashState, resetSquash, updateSquash} from './squash-stretch.js';
 
 /**
- * Grupos de animações que podem ficar FORA da trava vertical (apoio no chão). A trava horizontal continua valendo
- * para todas as animações; marcar um grupo deixa o clipe subir/descer o corpo com o próprio movimento gravado.
- * As chaves são os estados de animação entregues por `stateKey`/`actionFor`.
- */
+ * Grupos de animações que podem ficar FORA da trava vertical (apoio no chão). A trava horizontal continua valendo para
+ * todas as animações; marcar um grupo deixa o clipe subir/descer o corpo com o próprio movimento gravado. As chaves são
+ * os estados de animação entregues por `stateKey`/`actionFor`. */
 export const VERTICAL_MOTION_FREE_GROUPS = [
   {id: 'dodge', label: 'Esquivas', keys: ['dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault']},
   {id: 'jump', label: 'Pulo', keys: ['jump', 'jump_start', 'jump_rise', 'jump_apex', 'jump_fall']},
@@ -173,13 +172,13 @@ export class Character {
     this.ledgeOffset = {y: 0, z: 0};this.footEnabled = true;this.trackEnabled = true;this.extraYaw = 0;
     /** Game feel 6: fases desautorizadas SÓ neste personagem e nesta ação ({tackle: {active: true}, move_swift: {cancel: true}}). Game feel 9: perfil de olhar por Move ('head' | 'headTorso' | 'aim' | 'off'). */
     this.phaseOff = {};this.trackProfile = {};
-    // Tamanho visual por personagem: não muda colisor, sombra nem física (a altura global continua sendo o alvo do fit).
-    // O Wookada nasce 2× em altura e largura; o painel permite ajustar de 0,5× a 3×.
+    // Tamanho visual por personagem: não muda colisor, sombra nem física (a altura global continua sendo o alvo do fit). O
+    // Wookada nasce 2× em altura e largura; o painel permite ajustar de 0,5× a 3×.
     this.heightScale = defaultSizeScale(source);this.widthScale = defaultSizeScale(source);
     // Estados cujo sobe/desce gravado no clipe é preservado (Wookada: esquiva, pulo e tackles). O X/Z continua travado.
     this.freeVerticalMotion = /wookada/i.test(source?.name || '') ? [...WOOKADA_FREE_GROUPS] : [];
-    // Base do apoio vertical do estado livre (altura do clipe no instante em que ele começou): evita pulo de altura
-    // na troca e serve de limite inferior — o estado nunca desce abaixo dela, então nunca afunda no chão.
+    // Base do apoio vertical do estado livre (altura do clipe no instante em que ele começou): evita pulo de altura na
+    // troca e serve de limite inferior — o estado nunca desce abaixo dela, então nunca afunda no chão.
     this.verticalBase = null;this.verticalBaseEntry = null;
     this.animProfile = emptyProfile();
     this.moveAnims = {
@@ -191,7 +190,7 @@ export class Character {
     this.current = null;this.layers = [];this.fade = 0;this.timer = 0;this.clock = 0;this.flightV0 = 0;this.wasFlying = false;this.lastFlight = -Infinity;
     this.transient = null;this.wasGuard = false;this.seenEvents = new WeakSet();this.statesSeen = new Set();this.preview = null;this.visualFreeze = 0;
     this.stableLoco = null;this.locoCandidate = null;this.locoCandidateAt = 0;this.prevAction = null;this.actionSerial = 0;this.log = [];this.transitions = 0;this.restartsAvoided = 0;
-    this.epilogue = null;this.epilogueInterrupt = false;   // conclusão visual independente (visual-epilogue.js): estado transitório, só visual
+    this.epilogue = null;this.epilogueInterrupt = false;this.loopHold = null;this.epilogueNaturalEnd = false;   // conclusão visual independente (visual-epilogue.js): estado transitório, só visual; loopHold/epilogueNaturalEnd: loop avançado (clip-scheduler.js)
     this.groundCache = new Map();this.groundOffset = 0;
     this.tintClones = new Map();this.tintHex = null;
     this.root.traverse(o => {if (o.isMesh) {o.frustumCulled = false;o.castShadow = false;}});
@@ -201,8 +200,8 @@ export class Character {
     this.hips = null;this.root.traverse(o => {if (!this.hips && o.isBone && /hip|pelvis|root/i.test(o.name)) this.hips = o;});
     if (!this.hips) this.root.traverse(o => {if (!this.hips && o.isBone) this.hips = o;});
     this.hipsRest = this.hips?.position.clone();
-    // Alguns exportadores gravam o deslocamento no quadril; outros, num nó raiz acima do esqueleto.
-    // Guarda todos os alvos de posição capazes de mover o personagem inteiro para neutralizá-los no mesmo quadro.
+    // Alguns exportadores gravam o deslocamento no quadril; outros, num nó raiz acima do esqueleto. Guarda todos os alvos
+    // de posição capazes de mover o personagem inteiro para neutralizá-los no mesmo quadro.
     const rootMotionNodes = new Set(this.hips ? [this.hips] : []);
     for (const clip of this.clips) for (const track of clip.tracks) if (track.name.endsWith('.position')) {
       const node = this.root.getObjectByName(track.name.slice(0, -9));
@@ -216,8 +215,8 @@ export class Character {
     this.root = new T.Group();this.deformation = new T.Group();this.presentation = new T.Group();
     this.root.add(this.deformation);this.deformation.add(this.presentation);this.presentation.add(this.model);
     this.model.position.set(0, 0, 0);this.model.rotation.set(0, 0, 0);this.model.scale.setScalar(1);this.model.updateMatrixWorld(true);
-    // O pivô do arquivo pode estar longe do quadril (o Mushroom, por exemplo, vem deslocado no GLB). Centraliza o
-    // quadril no wrapper de apresentação para que girar o lutador não faça a malha orbitar ao redor da hitbox.
+    // O pivô do arquivo pode estar longe do quadril (o Mushroom, por exemplo, vem deslocado no GLB). Centraliza o quadril no
+    // wrapper de apresentação para que girar o lutador não faça a malha orbitar ao redor da hitbox.
     const anchorWorld = this.hips?.getWorldPosition(new T.Vector3()) ?? new T.Vector3();
     this.modelAnchor = this.model.worldToLocal(anchorWorld);
     this.model.position.set(-this.modelAnchor.x, 0, -this.modelAnchor.z);
@@ -338,11 +337,9 @@ export class Character {
   removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.refreshVisual();this.save();}
   /** Troca a variante principal (posição 0) de um estado. */
   setPrimary(id, index) {if (index === null) {delete this.variants[id];} else {if (!this.clipInfo[index]?.compatible) return false;const extras = (this.variants[id] || []).slice(1).filter(i => i !== index);this.variants[id] = [index, ...extras];}this.refreshVisual();this.save();return true;}
-  /**
-   * Para e descarta todas as ações do mixer (atual e camadas). Antes, trocar uma associação só esquecia a ação atual,
-   * que continuava tocando com peso 1 misturada a todas as outras (“forçando” uma pose).
-   */
-  resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;this.epilogue = null;this.epilogueInterrupt = false;clearEpilogueMark(this.lastF);}
+  /** Para e descarta todas as ações do mixer (atual e camadas). Antes, trocar uma associação só esquecia a ação atual, que
+   * continuava tocando com peso 1 misturada a todas as outras (“forçando” uma pose). */
+  resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;this.epilogue = null;this.epilogueInterrupt = false;this.loopHold = null;this.epilogueNaturalEnd = false;if (this.seamAction) {this.seamAction.stop();this.seamAction = null;}clearEpilogueMark(this.lastF);}
   moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.refreshVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
   /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
@@ -403,8 +400,8 @@ export class Character {
     if (Array.isArray(data.freeVerticalMotion)) {
       this.freeVerticalMotion = [...new Set(data.freeVerticalMotion.filter(id => VERTICAL_MOTION_FREE_GROUPS.some(g => g.id === id)))];
     }
-    // Estados antigos podiam ter salvo a trava incompleta como desligada. A versão 2 estreia ligada uma vez; depois a
-    // escolha feita no controle novo volta a ser respeitada normalmente.
+    // Estados antigos podiam ter salvo a trava incompleta como desligada. A versão 2 estreia ligada uma vez; depois a escolha
+    // feita no controle novo volta a ser respeitada normalmente.
     this.lockRootMotion = data.rootMotionLockVersion === 2 && typeof data.lockRootMotion === 'boolean' ? data.lockRootMotion : true;
     if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;
     if (data.moveAnims) {
@@ -443,8 +440,8 @@ export class Character {
     this.restore();return report;
   }
   speedOf(id) {return (Character.options.speed || 1) * (this.speeds[id] ?? 1);}
-  // release_* genéricos (release_<id> dos Moves de carga) são execução única como os release_reflect/psyshock do
-  // ONE_SHOT: sem isto o laço por omissão voltava true e o epílogo de conclusão rejeitava a identidade do Move.
+  // release_* genéricos (release_<id> dos Moves de carga) são execução única como os release_reflect/psyshock do ONE_SHOT:
+  // sem isto o laço por omissão voltava true e o epílogo de conclusão rejeitava a identidade do Move.
   playbackOf(id, key = id) {const o = this.playback[id] || {};return {loop: o.loop ?? !(ONE_SHOT.has(key) || TIMED.has(key) || key.startsWith('release_')), maxDuration: Math.max(0, Number(o.maxDuration) || 0)};}
   /** Ação associada a um estado (primeira da ordem de preferência com variantes). */
   actionFor(stateKey) {
@@ -555,8 +552,8 @@ export class Character {
     }
     if (f.action?.kind === 'recoil') return 'recoil';
     if (f.state === 'guardStun') return 'guardStun';
-    // Recuperação de Move (charge.recovery: sem Tackle nem novos Moves depois de soltar/disparar), com clipe «recovery_move» próprio.
-    // Aparece também ANDANDO (o gate de velocidade era o problema A2: a recuperação sumia com o lutador em movimento).
+    // Recuperação de Move (charge.recovery: sem Tackle nem novos Moves depois de soltar/disparar), com clipe «recovery_move» próprio. Aparece
+    // também ANDANDO (o gate de velocidade era o problema A2: a recuperação sumia com o lutador em movimento).
     if ((f.moveRecovery ?? 0) > 1e-8 && !f.action && !f.guard && this.variantsOf('recovery_move').length) return 'recovery_move';
     if (f.guard) {this.guardSeenAt = this.clock;return 'guard';}
     if (this.current?.key === 'guard' && this.clock - (this.guardSeenAt ?? -Infinity) < Character.options.guardHold * .6 && !f.action) return 'guard';
@@ -604,8 +601,8 @@ export class Character {
         this.startTransient('release_' + moveId);
       }
     }
-    // Defesa ligada/desligada em poucos quadros (comum na IA) não reinicia entrar/sair da defesa:
-    // entrada logo depois de uma saída (ou saída de uma defesa curta) segue direto, só com o fade.
+    // Defesa ligada/desligada em poucos quadros (comum na IA) não reinicia entrar/sair da defesa: entrada logo depois de
+    // uma saída (ou saída de uma defesa curta) segue direto, só com o fade.
     const hold = Character.options.guardHold;
     if (f.guard && !this.wasGuard && !f.action) {if (this.clock - (this.guardOffAt ?? -Infinity) >= hold) this.startTransient('guard_enter');else if (this.transient?.key === 'guard_exit') this.transient = null;this.guardOnAt = this.clock;}
     if (!f.guard && this.wasGuard && !f.action && f.state !== 'guardStun') {if (this.clock - (this.guardOnAt ?? -Infinity) >= hold) this.startTransient('guard_exit');else if (this.transient?.key === 'guard_enter') this.transient = null;this.guardOffAt = this.clock;}
@@ -665,10 +662,9 @@ export class Character {
     });
     return withProfile ? this.overlayProfileWindows(c, actionId, clip?.name) : c;
   }
-  /**
-   * Game feel 6: os campos de fase do editor de animações (Ativo início/fim, Cancelamento, Invencível início/fim — % do clipe, que é esticado sobre a
-   * duração da ação) sobrepõem os marcadores do GLB no contrato. Valores fora de ordem NÃO são corrigidos aqui: o validador do contrato os recusa.
-   */
+  /** Game feel 6: os campos de fase do editor de animações (Ativo início/fim, Cancelamento, Invencível início/fim — % do
+   * clipe, que é esticado sobre a duração da ação) sobrepõem os marcadores do GLB no contrato. Valores fora de ordem NÃO
+   * são corrigidos aqui: o validador do contrato os recusa. */
   overlayProfileWindows(c, actionId, clipName) {
     const pv = id => this.profileValue(actionId, id, clipName), steps = pct => Math.round(pct / 100 * c.actionDurationSteps);
     const aS = pv('activeStart'), aE = pv('activeEnd'), cS = pv('cancelStart'), iS = pv('invulnStart'), iE = pv('invulnEnd');
@@ -692,11 +688,8 @@ export class Character {
     }
     return out;
   }
-  /**
-   * Atualiza a pose. ctx: {tick, source: 'jogador'|'IA'} para o sorteio determinístico e a telemetria.
-   * dt = 0 (pausa) mantém a pose.
-   * SOMENTE VISUAL: nunca modifica o estado autoritativo do lutador.
-   */
+  /** Atualiza a pose. ctx: {tick, source: 'jogador'|'IA'} para o sorteio determinístico e a telemetria; dt = 0 (pausa) mantém a pose.
+   * SOMENTE VISUAL: nunca modifica o estado autoritativo do lutador. */
   update(f, dt, alt, events = [], ctx = {}) {
     if (this.squashFighter !== f || (ctx.tick != null && ctx.tick < this.squashTick)) resetSquash(this.squash);
     this.squashFighter = f;this.squashTick = ctx.tick ?? this.squashTick;this.lastF = f;   // lastF: limpeza do marcador de epílogo em refreshVisual/resetVisual
@@ -724,14 +717,20 @@ export class Character {
       }
     }
     const raw = p ? '__preview' : mp ? (mp.phase === 'charge' ? 'charge_' + mp.moveId : 'release_' + mp.moveId) : this.transient?.key ?? this.stateKey(f);
-    // Conclusão visual independente: pouso com recuperação mecânica zero sintetiza o estado «landing» e uma
-    // execução única não concluída segue em epílogo até o fim efetivo do clipe (locomoção não corta o clipe).
+    // Conclusão visual independente: pouso com recuperação mecânica zero sintetiza o estado «landing» e uma execução
+    // única não concluída segue em epílogo até o fim efetivo do clipe (locomoção não corta o clipe).
     if (landed && !p && !mp && !this.transient) synthesizeLanding(this, f, raw, ctx);
-    // Save/load e replay de quadros: personagens NOVOS restauram o epílogo do marcador gravado no lutador
-    // (o Character é estado visual e não viaja no save; o marcador é inerte para o sim e de uso único).
+    // Save/load e replay de quadros: personagens NOVOS restauram o epílogo do marcador gravado no lutador (o Character é
+    // estado visual e não viaja no save; o marcador é inerte para o sim e de uso único).
     if (!this.epilogue && !p && !mp && !this.transient && f.__visualEpilogue) resumeEpilogue(this, f, ctx);
     if (this.epilogue && stepEpilogue(this, f, raw, ctx) === 'continues') {this.epilogueFrame(f, dt, alt, p, ctx);return;}
-    const key = (p || mp) ? raw : this.smoothLocomotion(raw);
+    let key = (p || mp) ? raw : this.smoothLocomotion(raw);
+    // Loop avançado › Atraso de saída do laço: a troca pedida pela mecânica espera o atraso; autoridade (reação, ação nova, KO, guarda, voo…) e sucessores de recuperação interrompem na hora (visual-epilogue.js).
+    if (!p && !mp && !this.epilogue && this.current && key !== this.current.key && !epilogueAuthority(f) && !key.startsWith('recovery_') && !this.transient) {
+      const holdFor = this.profileValue(this.current.id, 'loopExitDelay', this.clips[this.current.index]?.name) ?? 0;
+      if (holdFor > 0 && this.playbackOf(this.current.id, this.current.key).loop) {if (this.loopHold?.key !== key) this.loopHold = {key, at: this.clock};if (this.clock - this.loopHold.at < holdFor) key = this.current.key;else this.loopHold = null;}
+      else this.loopHold = null;
+    } else this.loopHold = null;
     this.statesSeen.add(key);
     // Identidade da entrada: estado + número da ação/transição (X, C, transição curta ou prévia).
     const serial = p ? p.serial : mp ? mp.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : (f.hitSerial ?? 0);
@@ -758,8 +757,8 @@ export class Character {
         this.enter(key, id, index, entry, f, ctx);
       } else if (this.current) this.current.entry = entry;
       else {
-        // Um modelo nunca deve cair na bind pose/T-pose por falta de associação. Na primeira exibição usa o
-        // primeiro clipe compatível e continua nele até existir uma troca válida.
+        // Um modelo nunca deve cair na bind pose/T-pose por falta de associação. Na primeira exibição usa o primeiro clipe
+        // compatível e continua nele até existir uma troca válida.
         const index = this.clipInfo.findIndex(info => info.compatible);
         if (index >= 0) this.enter(key, '__fallback', index, entry, f, ctx);
       }
@@ -806,15 +805,16 @@ export class Character {
       prev.entry = entry;prev.key = key;prev.id = id;return;
     }
     if (prev) {prev.fadeStart = this.clock;prev.fadeFrom = prev.weight;prev.fadeOut = this.profileValue(prev.id, 'blendOut', prev.clip.name);this.layers.push(prev);}   // Editor › Blend de saída: duração do fade de quem sai (vazio = o blend de entrada do próximo)
-    // Sem clone: o mixer cacheia a ação por (clipe, raiz) e o tempo é por ação. Clonar copiava todos os keyframes de
-    // todas as tracks a cada troca de estado e fazia o cache interno do mixer crescer sem limite (uma entrada por troca).
+    // Sem clone: o mixer cacheia a ação por (clipe, raiz) e o tempo é por ação. Clonar copiava todos os keyframes de todas as tracks a cada troca de estado e fazia o cache do mixer crescer sem limite (uma entrada por troca).
     const clip = this.clips[index], action = this.mixer.clipAction(clip);
-    // Em A → B → A antes do fim do fade, clipAction(A) devolve o mesmo objeto que ainda estava na camada A antiga.
-    // Se essa camada permanecesse na lista, blend() chamaria stop() nela ao terminar o fade e desligaria também a A
-    // atual, deixando o modelo sem ação ativa (bind pose/T-pose). A camada obsoleta sai sem parar a ação reutilizada.
+    // Em A → B → A antes do fim do fade, clipAction(A) devolve o mesmo objeto que ainda estava na camada A antiga. Se
+    // essa camada permanecesse na lista, blend() chamaria stop() nela ao terminar o fade e desligaria também a A atual,
+    // deixando o modelo sem ação ativa (bind pose/T-pose). A camada obsoleta sai sem parar a ação reutilizada.
     this.layers = this.layers.filter(layer => layer.action !== action);
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
-    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
+    // Loop avançado › Fade da conclusão natural: a transição seguinte a um epílogo concluído naturalmente usa o conclusionBlend do clipe que concluiu (perfil: variante → ação → global); vazio = o fade padrão.
+    const cb = this.epilogueNaturalEnd && prev ? this.profileValue(prev.id, 'conclusionBlend', prev.clip.name) : undefined;this.epilogueNaturalEnd = false;
+    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: cb ?? this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
     this.fade = 0;this.timer = 0;this.transitions++;
     if (key === 'jump_apex') this.visualFreeze = Math.max(this.visualFreeze, this.profileValue(id, 'jumpApexFreeze', clip.name) ?? 0);   // pico do salto: congelamento opcional
     // Telemetria da troca (lógica em visual-epilogue.js; interrupções de epílogo saem com epilogueEnd: true).
@@ -833,6 +833,7 @@ export class Character {
     }
     this.layers = this.layers.filter(l => !l.dead);
     this.fade += dt;this.timer += dt;
+    let sch = null;   // agendador de loop avançado (só quando algum campo novo está configurado)
     if (this.current) {
       const a = this.current.action, d = this.current.clip.duration || 1, s = this.speedOf(this.current.id), playback = this.playbackOf(this.current.id, this.current.key), cap = Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d);
       this.current.weight = Math.max(0, 1 - Math.min(1, old));
@@ -840,8 +841,14 @@ export class Character {
       a.setEffectiveWeight(lw === undefined ? this.current.weight : this.current.weight * Math.max(0, Math.min(1, lw)));
       const fx = p ? (p.action ? this.profileFx(this.current, p.action) : null) : this.profileFx(this.current);
       const reversed = !p && !!this.profileValue(this.current.id, 'reverse', this.current.clip.name);
+      sch = !TIMED.has(this.current.key) && !(this.current.key === 'ledge_climb' && this.current.id === 'ledge_climb') && !this.current.key.startsWith('charge_')
+        ? loopScheduleOf(this, this.current, {duration: d, cap, speed: s, loop: p ? p.loop : playback.loop, preview: p, previewSpeed: Character.options.speed}) : null;   // Loop avançado (editor): com QUALQUER campo de tempo novo o relógio livre delega ao clip-scheduler (puro); estados temporais (duração da simulação), carga e borda mantêm o caminho antigo.
       if (p?.paused) {
         a.time = Math.min(d, Math.max(0, p.seek));
+      } else if (sch) {
+        // Loop avançado: intro/ciclo/saída segmentados, pausas, intervalo, easings e fase aplicados pelo scheduler.
+        sch.res = scheduleClipTime({elapsed: sch.elapsed, duration: d, cfg: sch.cfg});
+        a.time = sch.res.time;
       } else if (fx) {
         // Recorte e laço central definidos no editor de animações (só quando o perfil sobrescreve algum deles).
         const trim = trimOf(fx), lr = loopRange(fx);
@@ -884,11 +891,10 @@ export class Character {
       }
       if (reversed) a.time = Math.max(0, cap - a.time);   // Editor › Reverso: o clipe toca de trás para a frente
     }
+    if (sch?.res) applyLoopSeam(this, this.current, sch.cfg, sch.res);
     this.mixer.update(0);
-    // Sem root motion horizontal: projeta a posição no espaço mundial e remove X/Z ali. Não basta zerar X/Z local,
-    // pois rigs com um ancestral rotacionado podem transformar o Y local em deslocamento horizontal no mundo
-    // (caso real do Mushroom). O componente vertical continua disponível para o apoio no chão neutralizá-lo.
-    // Root motion por animação (editor): sobrescreve o global e libera X/Z individualmente.
+    // Sem root motion horizontal: projeta a posição no espaço mundial e remove X/Z ali (não basta zerar X/Z local: rigs com ancestral
+    // rotacionado transformam Y local em deslocamento horizontal — caso real do Mushroom; o vertical continua para o apoio no chão neutralizá-lo). Root motion por animação (editor): sobrescreve o global e libera X/Z.
     const ownRoot = this.current ? this.profileValue(this.current.id, 'rootMotion', this.clips[this.current.index]?.name) : undefined;
     const allowX = !!(this.current && this.profileValue(this.current.id, 'rootAllowX', this.clips[this.current.index]?.name)), allowZ = !!(this.current && this.profileValue(this.current.id, 'rootAllowZ', this.clips[this.current.index]?.name));
     if (ownRoot !== undefined ? !ownRoot : this.lockRootMotion) {
@@ -905,10 +911,8 @@ export class Character {
       this.model.updateMatrixWorld(true);
     }
   }
-  /**
-   * Curva do ponto mais baixo da malha ao longo do clipe (17 amostras, espaço da raiz sem escala), com cache.
-   * Usada pelo apoio no chão: em cada instante, a pose daquele momento fica apoiada no solo.
-   */
+  /** Curva do ponto mais baixo da malha ao longo do clipe (17 amostras, espaço da raiz sem escala), com cache.
+   * Usada pelo apoio no chão: em cada instante, a pose daquele momento fica apoiada no solo. */
   groundCurve(index) {
     if (this.groundCache.has(index)) return this.groundCache.get(index);
     const probe = this.probe ??= (() => {const r = clone(this.source.scene);const m = [];r.traverse(o => {if (o.isSkinnedMesh) m.push(o);});return {root: r, mixer: new T.AnimationMixer(r), meshes: m};})();
@@ -959,11 +963,9 @@ export class Character {
   /** Ponto mais baixo do clipe no instante t (interpolado); clipGround(index) = mínimo do clipe inteiro. */
   groundAt(index, t) {const c = this.groundCurve(index), d = this.clips[index].duration || 1, x = Math.max(0, Math.min(1, t / d)) * (c.length - 1), i = Math.min(c.length - 2, Math.floor(x));return c[i] + (c[i + 1] - c[i]) * (x - i);}
   clipGround(index) {return Math.min(...this.groundCurve(index));}
-  /**
-   * Versão para o quadro: se a curva do clipe ainda não foi calculada, usa a pose de repouso e agenda o cálculo fora do
-   * quadro (antes era síncrono e travava a luta por dezenas a centenas de ms na primeira vez que um clipe tocava;
-   * medido pelo medidor de desempenho). A altura converge suavemente quando a curva fica pronta.
-   */
+  /** Versão para o quadro: se a curva do clipe ainda não foi calculada, usa a pose de repouso e agenda o cálculo fora do
+   * quadro (antes era síncrono e travava a luta por dezenas a centenas de ms na primeira vez que um clipe tocava; medido
+   * pelo medidor de desempenho). A altura converge suavemente quando a curva fica pronta. */
   groundAtFrame(index, t) {
     if (this.groundCache.has(index)) return this.groundAt(index, t);
     this.groundPending ??= new Set();
@@ -978,8 +980,8 @@ export class Character {
   place(f, alt, dt) {
     const opt = Character.options, fit = opt.fit ? C.extras.visual.bodyHeight / this.restHeight : 1;
     const scale = fit * this.heightScale, wide = fit * this.widthScale;
-    // Estados liberados da trava vertical usam o apoio do instante de entrada como base: o que o clipe sobe além
-    // dele aparece no corpo. O que desce é preso nessa base, então o personagem nunca afunda abaixo do chão.
+    // Estados liberados da trava vertical usam o apoio do instante de entrada como base: o que o clipe sobe além dele aparece
+    // no corpo; o que desce é preso nessa base, então o personagem nunca afunda abaixo do chão.
     const verticalFree = this.verticalMotionFree(this.current?.key);
     const autoGround = this.autoGround && C.display.grounding.autoGround;
     let ground = this.restMinY;
@@ -997,8 +999,8 @@ export class Character {
     const sqScale = this.current ? this.profileValue(this.current.id, 'squashScale', this.clips[this.current.index]?.name) : undefined, sqCfg = C.extras.visual.squashStretch;
     updateSquash(this.squash, f, dt, sqScale !== undefined && sqScale !== 1 ? {...sqCfg, squashIntensity: sqCfg.squashIntensity * sqScale, stretchIntensity: sqCfg.stretchIntensity * sqScale} : sqCfg, f.action?.kind === 'dodge' ? C.actions.dodge : C.actions.tackle);
     const target = -support * scale + manual;
-    // A trava elimina a subida/descida produzida pelo clipe. A altitude física continua vindo de `alt`.
-    // Estados livres na vertical usam o alvo preso à base (nunca abaixo do chão); os demais mantêm o amortecimento.
+    // A trava elimina a subida/descida produzida pelo clipe. A altitude física continua vindo de `alt`. Estados livres na
+    // vertical usam o alvo preso à base (nunca abaixo do chão); os demais mantêm o amortecimento.
     const ownGround = this.current ? this.profileValue(this.current.id, 'lockToGround', this.clips[this.current.index]?.name) : undefined;
     if (autoGround && ((ownGround ?? this.lockToGround) || verticalFree)) this.groundOffset = target;
     else this.groundOffset += (target - this.groundOffset) * (dt > 0 ? 1 - Math.exp(-dt / .06) : 1);
@@ -1029,12 +1031,10 @@ export class Character {
     // As janelas marcadas no Studio (hitbox, invulnerabilidade) servem só para comparação: nunca alteram as regras.
     return out;
   }
-  /**
-   * Tingi o personagem inteiro com a cor de lutador (`hex`) ou devolve os materiais à cor original (`null`).
-   * Os materiais são CLONADOS na primeira aplicação: dois lutadores com o mesmo GLB compartilham materiais no
-   * three.js, então tingir um não pode tingir o outro. A cor original fica em `userData.baseColor` (número,
-   * cópia JSON segura — `Material.copy` clona `userData`).
-   */
+  /** Tingi o personagem inteiro com a cor de lutador (`hex`) ou devolve os materiais à cor original (`null`).
+   * Os materiais são CLONADOS na primeira aplicação: dois lutadores com o mesmo GLB compartilham materiais no three.js,
+   * então tingir um não pode tingir o outro. A cor original fica em `userData.baseColor` (número, cópia JSON segura —
+   * `Material.copy` clona `userData`). */
   setTint(hex) {
     const target = hex ? '#' + new T.Color(hex).getHexString() : null;
     this.tintHex = target;
@@ -1057,10 +1057,10 @@ export class Character {
     });
     return this.tintHex;
   }
-  dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.mixer.stopAllAction();this.mixer.uncacheRoot(this.model);this.root.removeFromParent();}
+  dispose() {this.disposed = true;clearTimeout(this.warmTimer);this.seamAction?.stop();this.mixer.stopAllAction();this.mixer.uncacheRoot(this.model);this.root.removeFromParent();}
 }
-// fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer).
-// fade, actionFade, locomotionHold e speed são os parâmetros oficiais C.display.animation (ajustador, presets, desfazer).
+// fade: transição entre estados comuns; actionFade: entrada em X/C e reações de combate (curta, para prevalecer). fade,
+// actionFade, locomotionHold e speed são os parâmetros oficiais C.display.animation (ajustador, presets, desfazer).
 Character.options = {lockRoot: true, fit: true, syncRules: false, guardHold: .25};
 Character.isLiveCombat = false;
 for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) Object.defineProperty(Character.options, key, {enumerable: true, get: () => C.display.animation[key], set: v => {C.display.animation[key] = v;}});
@@ -1068,10 +1068,10 @@ for (const key of ['fade', 'actionFade', 'locomotionHold', 'speed']) Object.defi
 Character.stateStore = null;
 
 /**
- * Associações curadas do Wookada: cada estado recebe o clipe cujo NOME descreve a mesma ação.
- * O manifesto embutido no GLB foi feito às pressas e apontava ações erradas (ex.: “post fall wall crash”
- * como recuo de defesa). O perfil vale como padrão inicial; o usuário continua livre para trocar no painel.
- * Versão 2 = organização sem “run” (andar e correr são o mesmo estado) e meteoros/esquivas nos clipes certos.
+ * Associações curadas do Wookada: cada estado recebe o clipe cujo NOME descreve a mesma ação. O manifesto embutido no GLB
+ * foi feito às pressas e apontava ações erradas (ex.: “post fall wall crash” como recuo de defesa). O perfil vale como
+ * padrão inicial; o usuário continua livre para trocar no painel. Versão 2 = sem “run” (andar e correr são o mesmo
+ * estado) e meteoros/esquivas nos clipes certos.
  */
 export const WOOKADA_PROFILE = {
   version: 2,
