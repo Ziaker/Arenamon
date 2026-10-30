@@ -119,7 +119,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (f.knockRecovery > 0) {
     f.knockRecovery = Math.max(0, f.knockRecovery - dt);if (f.landingRecovery > 0) f.landingRecovery = Math.max(0, f.landingRecovery - dt);if (f.hitstun > 0) f.hitstun = Math.max(0, f.hitstun - dt);if (f.stagger > 0) f.stagger = Math.max(0, f.stagger - dt);if (f.exhaustRecovery > 0) f.exhaustRecovery = Math.max(0, f.exhaustRecovery - dt);if (f.actionRecovery > 0) f.actionRecovery = Math.max(0, f.actionRecovery - dt);if (f.pushRecovery > 0) f.pushRecovery = Math.max(0, f.pushRecovery - dt);
     if (f.knockRecovery <= 0) {
-      f.recoveryFrom = null;f.recoveryKind = null;f.landingRecovery = 0;f.hitstun = 0;f.stagger = 0;f.counterStagger = 0;f.exhaustRecovery = 0;f.actionRecovery = 0;f.pushRecovery = 0;
+      f.recoveryFrom = null;f.recoveryKind = null;f.landingRecovery = 0;f.hitstun = 0;f.stagger = 0;f.counterStagger = 0;f.exhaustRecovery = 0;f.actionRecovery = 0;f.pushRecovery = 0;if (f.pinned) f.pinned = false;
       f.vaultHeight = 0;f.action = null;f.guard = false;f.bufferedTackle = null;
       f.state = (cmd && length(cmd.move) > 1e-5) ? 'moving' : 'neutral';
       return;

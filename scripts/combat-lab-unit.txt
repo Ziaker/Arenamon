@@ -180,3 +180,4 @@ node prototypes/combat-lab/test/save-contexto.test.mjs
 node prototypes/combat-lab/test/water-pulse-mechanics.test.mjs
 node prototypes/combat-lab/test/with-registry.test.mjs
 node prototypes/combat-lab/test/wookada.test.mjs
+node prototypes/combat-lab/test/animation-runtime.test.mjs

@@ -135,6 +135,7 @@ export function applyReaction(target, intent) {
       const d = i.duration;
       f.locomotionVelocity = vec();f.velocity = vec();f.knockRecovery = Math.max(f.knockRecovery, d);
       f.stagger = Math.max(f.stagger ?? 0, d);f.staggerMax = Math.max(f.staggerMax ?? 0, d);f.recoveryKind = 'stagger';f.state = 'stagger';countHit(f);
+      f.pinned = true;   // prensado contra a parede: a animação «hit_crush» (stagger_crush) lê este marcador; é apagado quando a recuperação acaba (ctrl-update)
       return {policy: 'none', duration: d};
     }
     default: return null;

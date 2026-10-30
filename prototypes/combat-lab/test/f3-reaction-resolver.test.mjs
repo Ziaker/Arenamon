@@ -184,6 +184,7 @@ const L2 = {
   },
   wallStagger(f, w) {
     f.locomotionVelocity = {x: 0, z: 0};f.velocity = {x: 0, z: 0};f.knockRecovery = Math.max(f.knockRecovery, w);f.stagger = Math.max(f.stagger ?? 0, w);f.staggerMax = Math.max(f.staggerMax ?? 0, w);f.recoveryKind = 'stagger';f.state = 'stagger';f.hitSerial = (f.hitSerial ?? 0) + 1;
+    f.pinned = true;   // v1.49.7: o prensado na parede passou a marcar o lutador (a animação hit_crush lê f.pinned); a paridade exige o mesmo campo no espelho
   },
 };
 test('counterStagger = applyCounterStagger anterior (inclui recusa quando ativo ou duração <= 0)', () => {

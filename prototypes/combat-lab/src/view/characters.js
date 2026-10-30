@@ -101,7 +101,7 @@ const ALIASES = {
 };
 const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
 const JUMP_PHASES_LIST = ['jump_start', 'jump_rise', 'jump_apex', 'jump_fall'];
-const TIMED = new Set(['airborne_up', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
+const TIMED = new Set(['brake', 'airborne_up', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
 const ONE_SHOT = new Set(['stagger_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'jump_start', 'jump_apex', 'meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'ledge_grab', 'ledge_drop', 'ledge_blocked', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
@@ -493,11 +493,15 @@ export class Character {
       return 'ledge_hang';
     }
     if (f.flight) {
+      // Bounce: o voo é o PRÓPRIO Move (o lutador salta), não uma reação a golpe: com clipe configurado (release_bounce ou move_bounce) ele toca em vez de hit_up/knockback.
+      if (f.flight.bounce && !f.wallSplat) {const bd = getMove('bounce');if (bd && this.specificRelease(bd)) return 'release_bounce';}
       if (f.flight.isEdgeFall && this.clock < (this.ledgeDropUntil ?? -Infinity) && !f.wallSplat) return 'ledge_drop';   // soltar a borda: um clipe curto antes da queda comum
       if (f.wallSplat) return 'wallSplat';
       if (f.flight.isNormalJump) return this.hasJumpPhases() ? this.jumpPhaseKey(f) : 'jump';
       return f.flight.vy > 3 && this.variantsOf('hit_up').length ? 'airborne_up' : 'airborne';
     }
+    // Exaustão (stamina zerada pela ação): com clipe «Recuperando (exausto)» próprio ele toca em vez de segurar a pose do tackle/esquiva; sem ele, segue como sempre.
+    if (f.state === 'recover' && f.recoveryKind === 'exhaust' && this.variantsOf('recover').length) return 'recover';
     const inRecovery = f.state === 'actionRecovery' || f.recoveryFrom;
     if (inRecovery) {
       const cur = this.current?.key;
@@ -529,12 +533,16 @@ export class Character {
     if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];
     if (f.action?.kind === 'dodge') {
       if (f.action.vault) return 'vault';
+      // Finta de tackle (doFeint converte o tackle numa esquiva com action.feint): «Freio do tackle (finta)» — só com clipe próprio, senão segue a esquiva como sempre (o estado «brake» antigo nunca era produzido: brakeLeft não é escrito por ninguém).
+      if (f.action.feint && this.variantsOf('brake').length) return 'brake';
       // Direção da esquiva decidida na entrada e mantida até o fim (o corpo pode girar durante a esquiva).
       if (this.dodgeAction !== this.actionSerial) {const rel = angleDelta(f.facing, f.action.heading);this.dodgeAction = this.actionSerial;this.dodgeKey = Math.abs(rel) < Math.PI / 4 ? 'dodge_forward' : Math.abs(rel) > 3 * Math.PI / 4 ? 'dodge_back' : rel > 0 ? 'dodge_left' : 'dodge_right';}
       return this.dodgeKey;
     }
     if (f.action?.kind === 'recoil') return 'recoil';
     if (f.state === 'guardStun') return 'guardStun';
+    // Recuperação de Move (charge.recovery: sem Tackle nem novos Moves depois de soltar/disparar), parado e com clipe «recovery_move» próprio.
+    if ((f.moveRecovery ?? 0) > 1e-8 && !f.action && !f.guard && length(f.velocity) < .15 && this.variantsOf('recovery_move').length) return 'recovery_move';
     if (f.guard) {this.guardSeenAt = this.clock;return 'guard';}
     if (this.current?.key === 'guard' && this.clock - (this.guardSeenAt ?? -Infinity) < Character.options.guardHold * .6 && !f.action) return 'guard';
     const speed = length(f.velocity), walk = f.attributes.speed;
@@ -582,7 +590,7 @@ export class Character {
       return Math.min(1, Math.max(0, (initialVy - f.flight.vy) / Math.max(1e-4, 2 * initialVy)));
     }
     if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
-    if (key.startsWith('dodge') || key === 'vault') return f.action ? f.action.elapsed / (actionDuration('dodge') * (f.action.durationScale ?? 1)) : 1;
+    if (key.startsWith('dodge') || key === 'vault' || key === 'brake') return f.action ? f.action.elapsed / (actionDuration('dodge') * (f.action.durationScale ?? 1)) : 1;
     if (key === 'ledge_climb') return f.ledge ? Math.min(1, f.ledge.climbT / Math.max(1e-6, C.ledge?.climbTime ?? .5)) : 1;   // acompanha a subida da simulação (a física manda no tempo)
     if (key === 'recoil') return f.action ? f.action.elapsed / R.recoil : 1;
     if (key === 'guardStun') { const max = f.stunMax || R.guardStun || 0.15; return Math.min(1, Math.max(0, 1 - f.stun / Math.max(1e-6, max))); }
@@ -599,6 +607,7 @@ export class Character {
     for (const e of events) if (!this.seenEvents.has(e)) {
       this.seenEvents.add(e);
       if (e.target === f.id && e.result === 'perfect') this.startTransient('guard_hit');
+      if (e.attacker === f.id && e.result === 'aimConfirm' && e.move) this.startAimTransient(e.move);
       if (e.attacker === f.id && e.result === 'ledgeDrop' && this.variantsOf('ledge_drop').length) this.ledgeDropUntil = this.clock + this.clipSeconds('ledge_drop');
       if (e.attacker === f.id && e.result === 'ledgeBlocked' && this.variantsOf('ledge_blocked').length) this.ledgeBlockedUntil = this.clock + this.clipSeconds('ledge_blocked');
       if (e.attacker === f.id && (e.result === 'chargeRelease' || e.result === 'move') && e.slot != null) {
@@ -616,6 +625,21 @@ export class Character {
   }
   /** Duração (s) da primeira variante de uma ação, já dividida pela velocidade; 0 sem clipe. */
   clipSeconds(id) {const i = this.variantsOf(id)[0];return i == null ? 0 : (this.clips[i]?.duration || .4) / this.speedOf(id);}
+  /** Clipe CONFIGURADO para a soltura de um Move (nunca a reserva): release da ficha, release_<id> escolhido no Editor (moveAnims) ou a identidade move_<id>; null = nenhum. variantsOf('release_*') sempre devolve a reserva (tackle), então não serve para saber se há clipe próprio. */
+  specificRelease(def) {
+    const conf = this.moveAnims?.[def.id], own = (conf?.releaseClip != null && !!this.clips[conf.releaseClip]) || !!this.variants[`release_${def.id}`]?.length;
+    const rel = def.presentation?.release;   // pode ser o próprio release_<id> (a ficha dos Moves de carga declara isso): nesse caso só vale se HÁ clipe escolhido, não a reserva de variantsOf
+    if (rel && (rel.startsWith('release_') ? own : this.variantsOf(rel).length > 0)) return rel;
+    if (own) return `release_${def.id}`;
+    return this.variantsOf(`move_${def.id}`).length ? `move_${def.id}` : null;
+  }
+  /** Confirmação de mira de um Move sem ação própria (marcador: Emerging Stone, Spikes…): toca o clipe específico do Move (release da ficha, release_<id> ou a identidade move_<id>); sem nenhum configurado, nada muda. */
+  startAimTransient(moveId) {
+    const def = getMove(moveId), c = def ? this.specificRelease(def) : null;
+    if (!c) return;
+    const dur = this.clipSeconds(c) || .4;
+    this.transient = {key: `release_${moveId}`, until: this.clock + dur, serial: ++this.actionSerial};
+  }
   startTransient(key) {
     const id = this.actionFor(key);if (!id || (id !== key && id !== STATE_ACTIONS[key]?.[0] && !(key === 'guard_hit' && id === 'guard_impact') && id !== 'tackle')) return;
     const variants = this.variantsOf(id);if (!variants?.length) return;
@@ -720,10 +744,15 @@ export class Character {
       const moveDef = liveMoveId ? getMove(liveMoveId) : null;
       const loadoutSlot = liveMoveId ? (f.loadout?.indexOf(liveMoveId) ?? -1) : -1;
       const moveSlot = f.action?.slot ?? f.charge?.slot ?? (loadoutSlot >= 0 ? loadoutSlot : 0);
-      const movePhase = phaseMatch?.[1] ?? 'action';
+      // Ação nascida da SOLTURA de uma carga (Guard Break, Bounce: a soltura vira um tackle com o id do Move): vale a fase «release», senão release_<id> ficava ignorado em silêncio.
+      const fromRelease = !phaseMatch && !!moveDef?.charge && f.action?.move === moveDef.id && f.action.pl != null;
+      const movePhase = phaseMatch?.[1] ?? (fromRelease ? 'release' : 'action');
       // Identidade do Move atribuída no editor de animações (`move_<id>`) vence a ordem padrão na ação; sem clipe nela vale o contrato dos Moves.
       const identity = moveDef && movePhase === 'action' ? `move_${moveDef.id}` : null;
-      const moveAction = moveDef ? (identity && this.variantsOf(identity).length ? identity : firstAvailablePresentationAction(moveDef, moveSlot, movePhase, candidate => this.variantsOf(candidate).length > 0)) : null;
+      const has = c => !!c && this.variantsOf(c).length > 0;
+      // Soltura: clipe específico primeiro (release da ficha, release_<id>) e depois a IDENTIDADE move_<id> (Moves de carga não têm fase «ação»: sem isto move_reflect/psyshock/bounce/water-pulse nunca tocavam).
+      const releaseSpecific = moveDef && movePhase === 'release' ? this.specificRelease(moveDef) : null;
+      const moveAction = moveDef ? (identity && has(identity) ? identity : releaseSpecific ?? firstAvailablePresentationAction(moveDef, moveSlot, movePhase, has)) : null;
       const id = p ? 'preview' : moveAction ?? this.actionFor(key);
       if (id) {
         const index = p ? p.index : (mp ? (mp.phase === 'charge' ? mp.chargeIdx : mp.releaseIdx) : this.pickVariant(id, hash(this.slot, key, ctx.tick ?? Math.round(this.clock * 120), serial)));
