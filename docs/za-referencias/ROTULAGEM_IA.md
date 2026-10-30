@@ -93,3 +93,10 @@ A preparação usa cache por hash do conteúdo: rodar de novo sem mudança reapr
 - **Ajuste sobre a proposta:** Hawlucha e Groudon (`charge01_loop`) passam de antecipação `nao` para `nao_se_aplica` (carga sem golpe).
 - **Novo valor `nao_se_aplica` em antecipação:** existe no schema da IA, na página de revisão da IA e na página de rotulagem de lotes novos (lotes 01 e 02 já gerados não mudam; o hash deles é a chave das respostas). Na pontuação (`avaliacao.py`: placar, A/B e concordância) vale como `nao` **só nesse campo**, porque a previsão do sistema para loops continua `nao`. Teste: `TestAntecipacaoNaoSeAplica` e `TestSchemaIA`.
 - **Limites:** revisor único (sem kappa); o `revisao_ia_477115ec150e.json` com a revisão campo a campo ainda não chegou; a auditoria não testou rig, contato nem jogo.
+
+## Lote 03 (29/10/2026)
+
+- **Filtro de espécies** (`elegibilidade.py`, lista em `elegiveis_lote03.json`, 497 de 1.025 espécies): sem baby; só 2º ou 3º estágio da linha; espécie sem evolução só se o egg group for Humanoide (`humanshape`) ou Monster. Dados da PokeAPI em `dumper test/_ref/` (`pokemon_species.csv`, `pokemon_egg_groups.csv`).
+- **Seleção:** 15 clipes da parte de **teste** (sem vazamento), uma espécie e uma linha por item dentro do lote. Com os lotes 01 e 02 barrando espécies, sobravam só 3 clipes; por decisão do responsável os lotes anteriores agora barram **só o mesmo clipe** (`gerar_lote.py --diverso --repetir-especies --elegiveis`).
+- **Página para rotular (às cegas):** `dumper test/za-referencias/avaliacao/lote_03/rotulagem.html`, hash do lote `a83c78d9fc71`. A pergunta de antecipação já tem a opção "não se aplica". Previsões do sistema ficam em `lote_03_sistema/` (não abrir antes de rotular).
+- **Preparação da IA** feita em `lote_03_ia/` (quadros dos 30 vídeos e cinemática dos 15 clipes). **Propostas da IA ainda não escritas:** falta a IA inspecionar as folhas e gerar `interpretacao.json` e `rotulos_ia.json`.
