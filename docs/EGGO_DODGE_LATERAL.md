@@ -48,6 +48,15 @@ recolhidas) desde o início, voltando suave à rotação normal no fim. A `Dodge
   derrapagem (f13–14).
 - Primeira tentativa do `pair` falhou com o Blender em segundo plano sem memória; repetida sozinha, passou.
 
+## v3 (correção da v2)
+
+A v2 só tinha chaves de Root nos frames do deslocamento; a volta do giro saía como uma reta de f17 a f33 (−32,6° no f20
+em vez de −36°). A v3 chaveia o Root também nos frames-pose: −40° (f17), −36° (f20), −24° (f24), −9° (f28), 0° (f33).
+Refeita depois que o Blender travou e reabriu do autosave.
+
+- Arquivo: `chars/Eggo/eggo dodge lateral v3.blend` (`Dodge Left 2`, `Dodge Right 2` corrigidas; a v2 fica como histórico).
+- Folhas: `scripts/blender-vision/evidence/eggo_dodge_lateral_v3/shot_Dodge_Left_2/report.html` (33 frames, frente/topo).
+
 ## Não verificado
 
 Exportação GLB, Animation Studio e Combat Lab; `perception.py investigate` (códigos de leitura); revisão humana.
