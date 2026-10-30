@@ -10,7 +10,7 @@ AMOSTRAS_CURVA = 24       # pontos da curva de energia reamostrada
 N_ESPECIES_MIN = 8        # abaixo disto um grupo é SEM_BASE_COMPARAVEL
 TOL_ESCALA = 0.02         # |escala - 1| acima disto marca escala_animada
 DECODER_VERSAO = "za_anim-2"  # 2: escala com compensação por osso (trskl)
-METRICAS_VERSAO = "metricas-14"  # subir a cada mudança no código das medidas (entra no hash do cache)
+METRICAS_VERSAO = "metricas-15"  # subir a cada mudança no código das medidas (entra no hash do cache)
 
 ESPACO = "modelo_Y_up_relativo_raiz"
 INTERPOLACAO = "linear+slerp"

@@ -215,10 +215,38 @@ def _pose_parada(clipe, esq, regs, vels, ocultos, R):
             "pico_membros_H_s": round(membros, 3), "pontas": pontas}
 
 
+def _patas_dianteiras(esq, regs, ocultos, R):
+    """Regiões de braço que são patas dianteiras (ponta toca o chão em repouso), para sair como perna do mesmo lado."""
+    if not R.get("patas_no_chao_sao_pernas", {}).get("ativo"):
+        return {}
+    import contato
+    return {regs[k]: "perna" + regs[k][len("braco"):] for k in contato._pontas_de_apoio(esq, regs, ocultos)
+            if _familia(regs[k]) == "braco"}
+
+
+def _renomear_patas(res, troca):
+    """Aplica a troca braço → perna nos papéis, juntando duplicatas (fica a primeira ocorrência)."""
+    if not troca:
+        return res
+    for chave in ("executores", "apoio_impulso", "iniciadores", "acompanhantes"):
+        vistos, nova = set(), []
+        for item in res.get(chave, []):
+            item = dict(item, regiao=troca.get(item["regiao"], item["regiao"]))
+            if item["regiao"] not in vistos:
+                vistos.add(item["regiao"])
+                nova.append(item)
+        res[chave] = nova
+    return res
+
+
 def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
     R = regras or carregar_regras()
     if ocultos is None:
         ocultos = za_anim.ocultos(clipe, esq)
+    return _renomear_patas(_papeis(clipe, esq, regs, categoria, anat, R, ocultos), _patas_dianteiras(esq, regs, ocultos, R))
+
+
+def _papeis(clipe, esq, regs, categoria, anat, R, ocultos):
     vels = _velocidades(clipe, esq, regs, ocultos)
     parada = _pose_parada(clipe, esq, regs, vels, ocultos, R)
     if parada is not None:
@@ -294,9 +322,24 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
                 executores.append({"regiao": r, "osso_ponta": esq.nomes[vels[r]["osso"]], "status": "CANDIDATO",
                                    "evidencia": {"pico_H_s": round(pv, 3), "quadro_pico": pf,
                                                  "frac_do_maior": round(pv / melhor[0], 3)}})
+    secundarias = {}   # região -> motivo, para os acompanhantes
+    motivo_dom = None
+    if categoria not in loco.get("categorias", []):
+        cs = R.get("cauda_secundaria")
+        if cs and any(_familia(e["regiao"]) in cs["membros"] for e in executores):
+            for e in [e for e in executores if _familia(e["regiao"]) == "cauda"]:
+                executores.remove(e)
+                secundarias[e["regiao"]] = "cauda acompanha o golpe do membro (giro do corpo), não executa"
+        dom = R.get("dominancia_executor")
+        if dom and executores:
+            maior = max((float(v["vel"].max()) for r, v in vels.items() if r not in dom["ignorar"]), default=0.0)
+            if maior > 0 and melhor[0] < dom["frac_minima"] * maior:
+                executores = []
+                motivo_dom = "nenhum membro domina o movimento (candidato mais forte = %.0f%% do maior movimento)" % (
+                    100 * melhor[0] / maior)
     executores.sort(key=lambda e: (-e["evidencia"]["frac_do_maior"], e["regiao"]))
     status = "CANDIDATO" if executores else "INCONCLUSIVO"
-    motivo = None if executores else (
+    motivo = None if executores else (motivo_dom or
         "nenhuma região candidata com pico de avanço >= %.2f H/s" % R["pico_minimo_H_s"])
 
     # referência de movimento para iniciadores/acompanhantes: maior pico de qualquer região
@@ -345,7 +388,9 @@ def papeis(clipe, esq, regs, categoria, anat, regras=None, ocultos=None):
     for r in sorted(movem):
         if r in exec_regs:
             continue
-        if r == "olho_palpebra":
+        if r in secundarias:
+            m = secundarias[r]
+        elif r == "olho_palpebra":
             m = "expressão (olho/pálpebra nunca executa golpe)"
         elif r in ("apendice_sensorial", "cabelo_pelagem", "acessorio"):
             m = "movimento secundário de apêndice/cabelo/acessório"

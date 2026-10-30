@@ -430,13 +430,18 @@ def soco_com_apoio(graus_perna=25.0):
     return esq, clipe(esq, n, {"right_hand": frente(n, 30, 0.6)}, rot={"left_leg": giro_x(n, 26, graus_perna, largura=5.0)})
 
 
-def pose_parada(amp=0.02, raiz=0.0, n=60, periodo=60, fps=60):
-    """Loop de pose: braço direito só oscila (amp m), pés parados; raiz pode subir/descer `raiz` m."""
+def pose_parada(amp=0.02, raiz=0.0, n=60, periodo=60, fps=60, cauda_amp=0.0):
+    """Loop de pose: braço direito só oscila (amp m), pés parados; raiz pode subir/descer `raiz` m.
+    cauda_amp: a ponta da cauda balança para os lados (rápido) sem mexer o resto."""
     esq = humanoide()
     f = _np.arange(n)
     braco = _np.zeros((n, 3))
     braco[:, 1] = amp * _np.sin(2 * _np.pi * f / periodo)
     mover = {"right_hand": braco}
+    if cauda_amp:
+        cauda = _np.zeros((n, 3))
+        cauda[:, 0] = cauda_amp * _np.sin(2 * _np.pi * f / 15)
+        mover["tail_02"] = cauda
     if raiz:
         o = _np.zeros((n, 3))
         o[:, 2] = raiz * _np.sin(2 * _np.pi * f / periodo)
@@ -444,5 +449,38 @@ def pose_parada(amp=0.02, raiz=0.0, n=60, periodo=60, fps=60):
         for pe in ("left_foot", "right_foot"):   # pés acompanham a raiz: andam junto no mundo
             mover[pe] = _np.zeros((n, 3))
     c = clipe(esq, n, mover, fps=fps)
+    c.eh_loop = True
+    return esq, c
+
+
+def golpe_com_cauda(amp_braco=0.6, amp_cauda=1.0):
+    """Soco do braço direito e, no mesmo instante, a ponta da cauda é jogada para trás (mais rápida que o braço)."""
+    esq = humanoide()
+    n = 60
+    mover = {}
+    if amp_braco:
+        mover["right_hand"] = frente(n, 30, amp_braco)
+    if amp_cauda:
+        mover["tail_02"] = frente(n, 30, -amp_cauda)
+    return esq, clipe(esq, n, mover)
+
+
+def golpe_fraco_boca_forte():
+    """Fim de ataque: a mão quase não se mexe (0,1 m) e a mandíbula, sem abrir, se desloca muito (0,6 m)."""
+    esq = humanoide()
+    n = 60
+    return esq, clipe(esq, n, {"right_hand": frente(n, 30, 0.1), "jaw": frente(n, 30, 0.6)})
+
+
+def quadrupede_andando(n=60, periodo=30, amp=0.2):
+    """Quadrúpede em esteira: as quatro patas (dianteiras = 'arm' no rig, tocam o chão) ciclam para frente e para trás."""
+    esq = quadrupede()
+    f = _np.arange(n)
+    mover = {}
+    for nome, fase in (("left_hand", 0.0), ("right_hand", _np.pi), ("left_foot", _np.pi), ("right_foot", 0.0)):
+        d = _np.zeros((n, 3))
+        d[:, 2] = amp * _np.sin(2 * _np.pi * f / periodo + fase)
+        mover[nome] = d
+    c = clipe(esq, n, mover)
     c.eh_loop = True
     return esq, c

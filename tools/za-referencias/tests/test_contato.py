@@ -175,6 +175,47 @@ class TestPoseParada(unittest.TestCase):
         self.assertNotEqual(self._p(esq, c)["status"], "NAO_SE_APLICA")
 
 
+class TestExecutoresCorrigidosPeloGabarito(unittest.TestCase):
+    """Erros de executor restantes nos gabaritos aceitos dos lotes 02 e 03 (30/10/2026)."""
+
+    def _p(self, esq, c, cat="attack"):
+        regs = ontologia.regioes(esq)
+        return ontologia.papeis(c, esq, regs, cat, ontologia.anatomia(esq, regs))
+
+    def test_cauda_acompanha_quando_um_membro_golpeia(self):   # Lucario
+        r = self._p(*S.golpe_com_cauda())
+        self.assertEqual([e["regiao"] for e in r["executores"]], ["braco_D"])
+        self.assertIn("cauda", [a["regiao"] for a in r["acompanhantes"]])
+
+    def test_cauda_sozinha_continua_executora(self):
+        r = self._p(*S.golpe_com_cauda(amp_braco=0.0))
+        self.assertEqual([e["regiao"] for e in r["executores"]], ["cauda"])
+
+    def test_pose_parada_com_cauda_balancando(self):   # Pyroar
+        r = self._p(*S.pose_parada(cauda_amp=0.5), cat="charge")
+        self.assertEqual(r["status"], "NAO_SE_APLICA")
+        self.assertEqual(r["executores"], [])
+
+    def test_nenhum_membro_domina_fica_inconclusivo(self):   # Swalot, fim de ataque
+        r = self._p(*S.golpe_fraco_boca_forte())
+        self.assertEqual(r["executores"], [])
+        self.assertEqual(r["status"], "INCONCLUSIVO")
+        self.assertIn("domina", r["motivo"])
+
+    def test_membro_que_domina_continua_executor(self):
+        r = self._p(*S.golpe_com_antena())
+        self.assertEqual([e["regiao"] for e in r["executores"]], ["braco_D"])
+
+    def test_patas_dianteiras_de_quadrupede_sao_pernas(self):   # Aurorus
+        r = self._p(*S.quadrupede_andando(), cat="walk")
+        self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["perna_D", "perna_E"])
+        self.assertEqual(sorted(a["regiao"] for a in r["apoio_impulso"]), ["perna_D", "perna_E"])
+
+    def test_bipede_mantem_os_bracos_na_locomocao(self):
+        r = self._p(*S.andar_com_bracos(), cat="walk")
+        self.assertEqual(sorted(e["regiao"] for e in r["executores"]), ["braco_D", "braco_E", "perna_D", "perna_E"])
+
+
 class TestAntecipacaoEmLoop(unittest.TestCase):
     def test_loop_antecipacao_nao_se_aplica(self):
         import metricas
