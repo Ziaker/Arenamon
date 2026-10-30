@@ -40,7 +40,7 @@ try {
       const L = window.__lab, rows = (window.__rows = []);
       const tick = () => {
         const ch = L.ui.characters[0], f = L.game.fighters[0];
-        if (ch?.current) rows.push({t: performance.now(), key: ch.current.key, time: ch.current.action.time, dur: ch.current.clip.duration, w: ch.current.weight, epi: !!ch.epilogue, act: !!f.action, z: f.position.z, x: f.position.x, clip: ch.current.clip.name});
+        if (ch?.current) rows.push({t: performance.now(), key: ch.current.key, time: ch.current.action.time, dur: ch.current.clip.duration, cap: (() => {const d = ch.current.clip.duration, mx = ch.playbackOf(ch.current.id, ch.current.key).maxDuration;return Math.min(d, mx > 0 ? mx * ch.speedOf(ch.current.id) : d);})(), w: ch.current.weight, epi: !!ch.epilogue, act: !!f.action, z: f.position.z, x: f.position.x, clip: ch.current.clip.name});
         window.__raf = requestAnimationFrame(tick);
       };
       tick();
@@ -62,8 +62,9 @@ try {
     assert.ok(exit, `${data.name}: houve saída registrada do tackle (${JSON.stringify(data.log.slice(0, 6))})`);
     const natural = exit.playedPct >= 95 || data.log.some(e => e.epilogueEnd && e.reason === 'conclusão natural');
     assert.ok(natural && !exit.interrupted, `${data.name}: o tackle só saiu depois do fim efetivo do clipe (≥95 %: ${exit.playedPct} %, motivo «${exit.reason}», interrompido=${exit.interrupted})`);
-    const lastT = Math.max(...tackleRows.map(r => r.time)), dur = tackleRows[0].dur;
-    assert.ok(lastT >= dur * .9, `${data.name}: o clipe «${tackleRows[0].clip}» alcançou ${(lastT / dur * 100).toFixed(0)} % no app real`);
+    const lastT = Math.max(...tackleRows.map(r => r.time)), dur = tackleRows[0].cap;   // fim EFETIVO do clipe (duração máxima × velocidade do Editor limita o clipe)
+    // Em navegador sem GPU o quadro final pode durar mais que o resto do clipe: a última AMOSTRA fica antes do fim e o registro de «conclusão natural» (epílogo) é quem prova o fim.
+    assert.ok(lastT >= dur * .9 || data.log.some(e => e.epilogueEnd && e.reason === 'conclusão natural' && e.playedPct === 100), `${data.name}: o clipe «${tackleRows[0].clip}» alcançou ${(lastT / dur * 100).toFixed(0)} % no app real · saída ${JSON.stringify(exit)} · log ${JSON.stringify(data.log.slice(0, 5))} · últimas ${JSON.stringify(tackleRows.slice(-3))}`);
     if (curto) assert.ok(tackleRows.some(r => r.epi) && data.log.some(e => e.epilogue && e.reason === 'conclusão visual'), `${data.name}: com fim mecânico curto o epílogo entrou no app real`);
     const moved = Math.hypot(tackleRows.at(-1).x - tackleRows[0].x, tackleRows.at(-1).z - tackleRows[0].z);
     assert.ok(moved > .2, `${data.name}: o lutador se deslocou durante a ação (${moved.toFixed(2)} m)`);
@@ -74,10 +75,11 @@ try {
         const n0 = await page.evaluate(() => window.__lab.ui.characters[0].log.length);
         await page.keyboard.down('Space');await page.waitForTimeout(120);await page.keyboard.up('Space');
         await page.waitForTimeout(2200);
-        const lg = await page.evaluate(n => window.__lab.ui.characters[0].log.slice(n).map(e => ({from: e.from, to: e.to, playedPct: e.playedPct, reason: e.reason, interrupted: e.interrupted})), n0);
-        const landExit = lg.find(e => e.from === 'landing');
-        assert.ok(landExit, `${data.name}: o clipe de pouso tocou e saiu (${JSON.stringify(lg.slice(0, 8))})`);
-        assert.ok(landExit.playedPct >= 95 && !landExit.interrupted, `${data.name}: o pouso foi até o fim antes de sair (${landExit.playedPct} %, «${landExit.reason}»)`);
+        const lg = await page.evaluate(n => window.__lab.ui.characters[0].log.slice(n).map(e => ({from: e.from, to: e.to, playedPct: e.playedPct, reason: e.reason, interrupted: e.interrupted, epilogue: !!e.epilogue})), n0);
+        const exits = lg.filter(e => e.from === 'landing' && !e.epilogue);   // a entrada no epílogo também sai de «landing» e não é a saída; após uma «conclusão natural» há ainda a troca normal do quadro
+        assert.ok(exits.length, `${data.name}: o clipe de pouso tocou e saiu (${JSON.stringify(lg.slice(0, 8))})`);
+        const landExit = exits.find(e => e.playedPct >= 95) ?? exits[0];
+        assert.ok(landExit.playedPct >= 95 && exits.every(e => !e.interrupted), `${data.name}: o pouso foi até o fim antes de sair (${JSON.stringify(exits)})`);
         results.push(`${data.name}: pouso «land» tocado até ${landExit.playedPct} % (saída «${landExit.reason}»)`);
       } else results.push(`${data.name}: sem clipe «land» configurado — pouso não aplicável`);
     }

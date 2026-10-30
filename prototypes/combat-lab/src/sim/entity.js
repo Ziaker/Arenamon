@@ -38,6 +38,10 @@ export {altitudeOf};   // definido em altitude.js (folha) para quebrar o ciclo e
 export const emptyCommand = () => ({move: vec(), dodge: false, dodgeHeld: false, tackle: false, tackleHeld: false, guard: false, guardPressed: false, jump: false, jumpHeld: false, target: null, skill: null, skillHeld: null});
 /** Parâmetros próprios de uma ação X/C (C.actions.dodge ou C.actions.tackle). */
 export const actionParams = kind => C.actions[kind];
+/** Chave do ajuste de combate vindo do Editor de animações para a ação em curso: Move (inclusive Move que virou tackle) ou tackle PL1–3. Esquivas e outras ações não têm. */
+export const combatModKey = (/** @type {any} */ a) => !a ? null : a.move ? `move_${a.move}` : a.kind === 'tackle' ? (a.pl === 3 ? 'tackle_pl3' : a.pl === 2 ? 'tackle_pl2' : 'tackle') : null;
+/** Ajustes de combate do Editor (armadura, hit-stop, interrompível, prioridade, buffer) da ação em curso do lutador, ou null. Sem ajuste salvo = comportamento original. */
+export const combatModOf = (/** @type {any} */ f) => { const k = combatModKey(f?.action); return k ? f.combatMods?.[k] ?? null : null; };
 /** As janelas de combate da animação valem agora? Pelo interruptor antigo (todas) ou, em phaseMode 1 («Animação aprovada»), só nas fases autorizadas (game feel 6). Padrão (phaseMode 0): idêntico ao de antes. */
 export const windowsOn = (/** @type {'active'|'invuln'} */ phase, /** @type {any} */ action) => !!C.extras?.toggles?.enableAnimationCombatWindows || !!action?.combatWindows?.phaseContract?.applied?.[phase];   // o contrato resolvido viaja com a ação e com o save: mudar o modo depois não reinterpreta um replay
 /** Duração de uma ação: esquiva e tackle têm durações independentes; recuo usa as regras gerais. */

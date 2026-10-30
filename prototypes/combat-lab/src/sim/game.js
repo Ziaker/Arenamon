@@ -1,7 +1,7 @@
 // Ciclo de partida de passo fixo (120 Hz), igual ao v6, mais estado serializável para replay e cenários.
 import {C} from './config.js';
 import {Brain} from './ai.js';
-import {createFighter, emptyCommand, isInvulnerable, isOffensive, getFighterMaxStamina} from './entity.js';
+import {createFighter, emptyCommand, isInvulnerable, isOffensive, getFighterMaxStamina, combatModOf} from './entity.js';
 import {updateFighter, advanceAction, bufferDuringHitstop, tickCooldowns, isDepleted} from './controller.js';
 import {getEffect, stepHooks} from './move-effects.js';
 import {createWorld, stepWorld, spawn} from './world.js';
@@ -30,7 +30,7 @@ export class Game {
     // Passivas: loadout por lutador + identidade de espécie explícita (R15), mantidos entre partidas.
     this.passiveLoadouts = [[], []];
     this.passiveIdentity = [null, null];
-    this.combatWindows = [null, null];
+    this.combatWindows = [null, null];this.combatMods = [null, null];
     // R31: IDs estáveis de eventos (sequência determinística) e registro do passo de eventos de
     // passivas já processados (detecção de processamento duplicado do mesmo evento).
     this.eventSeq = 0;this.passiveProcessed = new Set();
@@ -47,6 +47,7 @@ export class Game {
     this.fighters.forEach((f, i) => {
       f.loadout = [...(this.loadouts[i] || [])];
       f.combatWindows = this.combatWindows?.[i] ? structuredClone(this.combatWindows[i]) : null;
+      f.combatMods = this.combatMods?.[i] ? structuredClone(this.combatMods[i]) : null;
     });
     this.world = createWorld();
     this.world.mapState = this.mapState;
@@ -116,6 +117,8 @@ export class Game {
         const X = C.extras.combat, dmg = Math.max(0, ...fresh.filter(e => e.result === 'impact').map(e => e.damage ?? 0));
         this.hitstop = X.impactHitstop * (1 + (X.hitstopDamageBoost ?? 0) * Math.min(1, dmg / Math.max(1, X.hitstopDamageRef ?? 30)));
         if (fresh.some(e => e.result === 'impact' && e.riposte)) this.hitstop *= Math.max(0, C.world.riposte?.hitstopMult ?? 1);   // contra-golpe do Riposte: pausa de impacto maior
+        // Editor › Hit-stop (×) da ação do atacante (tackle/Move): multiplica a pausa deste impacto; sem ajuste salvo nada muda.
+        for (const e of fresh) if (e.result === 'impact') {const m = combatModOf(this.fighters.find(x => x.id === e.attacker))?.hitstopMult;if (m != null) {this.hitstop *= Math.max(0, m);break;}}
       }
     }
     for (const f of this.fighters) if (!f.action && !f.blend && !f.flight) f.locomotionVelocity = {...f.velocity};
@@ -172,6 +175,12 @@ export class Game {
     this.combatWindows[id] = windows ? structuredClone(windows) : null;
     if (this.fighters?.[id]) this.fighters[id].combatWindows = this.combatWindows[id];
   }
+  /** Ajustes de combate do Editor de animações (armadura, hit-stop ×, interrompível, prioridade, buffer) por ação do lutador; só entram valores diferentes do neutro. */
+  setCombatMods(id, mods) {
+    this.combatMods ??= [null, null];
+    this.combatMods[id] = mods && Object.keys(mods).length ? structuredClone(mods) : null;
+    if (this.fighters?.[id]) this.fighters[id].combatMods = this.combatMods[id];
+  }
   /** Visão para o HUD e para testes (mesma forma do v6). */
   snapshot() {
     return {phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, hitstop: this.hitstop, events: this.events,
@@ -184,7 +193,7 @@ export class Game {
     return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, eventIdSeq: this.eventIdSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
       mode: this.mode, seed: this.seed, profile: this.profile, enemyProfile: this.enemyProfile,   // contexto da partida (A-09): o save carrega modo, semente e perfis, não só o estado dos lutadores
-      combatWindows: this.combatWindows, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
+      combatWindows: this.combatWindows, combatMods: this.combatMods, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
   load(state) {
     const s = structuredClone(state);
@@ -204,6 +213,7 @@ export class Game {
     if (s.passiveLoadouts) this.passiveLoadouts = s.passiveLoadouts;
     if (s.passiveIdentity) this.passiveIdentity = s.passiveIdentity;
     this.combatWindows = s.combatWindows ? structuredClone(s.combatWindows) : [null, null];
+    this.combatMods = s.combatMods ? structuredClone(s.combatMods) : [null, null];
     for (const f of this.fighters) {
       f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];
       f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;
@@ -219,6 +229,7 @@ export class Game {
     for (let i = 0; i < this.fighters.length; i++) {
       if (this.combatWindows?.[i]) this.fighters[i].combatWindows = structuredClone(this.combatWindows[i]);
       else this.fighters[i].combatWindows = null;
+      this.fighters[i].combatMods = this.combatMods?.[i] ? structuredClone(this.combatMods[i]) : null;
     }
   }
 }

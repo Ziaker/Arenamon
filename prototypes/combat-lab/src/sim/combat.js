@@ -1,6 +1,6 @@
 // Resolução de contatos ofensivos: lançamento, clash, invulnerabilidade, defesa parcial/perfeita.
 import {C} from './config.js';
-import {isInvulnerable, isOffensive, riposteIntercept, altitudeOf, windowsOn} from './entity.js';
+import {isInvulnerable, isOffensive, riposteIntercept, altitudeOf, windowsOn, combatModOf} from './entity.js';
 import {stat} from './status.js';
 import {vec, add, scale, sub, dot, length, normalize, angleOf, direction} from './math.js';
 
@@ -27,6 +27,8 @@ export function clashPossible(a, b, normal, relative) {
   if (!facing) return false;
   // Power Levels diferentes: não há clash. O PL maior vence a disputa (o de baixo é neutralizado e só o dele conecta, pelo fluxo normal de acerto).
   const pa = a.action.pl ?? 1, pb = b.action.pl ?? 1;
+  const ca = combatModOf(a)?.combatPriority ?? 0, cb = combatModOf(b)?.combatPriority ?? 0;   // Editor › Prioridade de combate: desempata PL igual (maior vence, como o PL maior)
+  if (pa === pb && ca !== cb) {const loser = ca > cb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}
   if (pa !== pb) {const loser = pa > pb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}
   if (noClash(a) || noClash(b)) return false;   // Meteor Slam e contra-golpe do Riposte NUNCA fazem clash (mesmo com PL igual)   // o derrotado perde a invulnerabilidade do início do tackle: o golpe do vencedor conecta
   return true;
@@ -158,7 +160,9 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
   const perfect = protectedFront && defender.perfectLeft > 1e-8;
   const atkStageMult = 1 + (attacker.stages?.attack ?? 0) * (C.map?.stageAttackBonus ?? 0.10);
   const attack = stat(attacker, 'attack', attacker.attributes.attack) * (attacker.action.plDamage ?? 1) * atkStageMult;
-  const rawDamage = perfect ? 0 : attack * stat(defender, 'damageTaken', 1);
+  // Editor › Armadura / Interrompível da ação em curso do defensor (tackle/Move): armadura (só na janela ativa) reduz o dano e dispensa a reação; não interrompível dispensa a reação. Sem ajuste = nada muda.
+  const dMod = combatModOf(defender), armorOn = !!dMod && (dMod.armor ?? 0) > 0 && isOffensive(defender), shielded = !!dMod && (dMod.interruptible === false || armorOn);
+  const rawDamage = perfect ? 0 : attack * stat(defender, 'damageTaken', 1) * (armorOn ? Math.max(0, 1 - dMod.armor / 100) : 1);
 
   // Pipeline central: absorve dano bruto no escudo antes da Defesa (R9.6, R10.1, R10.3, R11.3)
   const dmgResult = resolveDamage({target: defender, attacker, rawDamage, sourceKind: 'direct', contact: 'tackle', guarded: protectedFront, perfect});
@@ -198,7 +202,8 @@ export function resolveHit(attacker, defender, normal, relative, force = false) 
     // Meteor slam: o rival é lançado para CIMA com groundBounceForce (ground bounce) e com pouco empurrão horizontal.
     const slam = !!attacker.action.slam, up = slam ? R.groundBounceForce : (kbo ? kbo.vertical : R.launchUp) * stat(defender, 'knockbackTaken', 1) * defStageKnockbackMult, hSpeed = launchSpeed * (slam ? R.slamLaunchHorizontal : 1) * knockbackFactor(defender);
     defender.lastAttacker = attacker.id;
-    if (T.enableLaunch && kbo && !slam) {const dir = length(departure) > 1e-7 ? departure : normal;const r = applyReaction(defender, {kind: 'knockback', direction: dir, horizontal: hSpeed, vertical: up});if (r) {launchInfo = {direction: r.direction, horizontal: r.horizontal, vertical: r.vertical};displacementPolicy = r.policy;}}   // knockback próprio: com V = 0 é empurrão, não voo
+    if (shielded) {/* a ação do defensor resiste à reação (armadura ou não interrompível): o dano já foi aplicado acima */}
+    else if (T.enableLaunch && kbo && !slam) {const dir = length(departure) > 1e-7 ? departure : normal;const r = applyReaction(defender, {kind: 'knockback', direction: dir, horizontal: hSpeed, vertical: up});if (r) {launchInfo = {direction: r.direction, horizontal: r.horizontal, vertical: r.vertical};displacementPolicy = r.policy;}}   // knockback próprio: com V = 0 é empurrão, não voo
     else if (T.enableLaunch) {const dir = slam ? direction(attacker.facing) : length(departure) > 1e-7 ? departure : normal;const r = applyReaction(defender, {kind: 'impulse', direction: dir, horizontal: hSpeed, vertical: up, bounce: slam});launchInfo = {direction: r.direction, horizontal: hSpeed, vertical: up, ...(slam ? {bounce: true} : {})};displacementPolicy = 'impulse';}
     else {
       applyReaction(defender, {kind: 'hitstun', duration: R.hitstun ?? R.guardStun ?? 0.2, countHit: false});   // o hitSerial vem do dano, logo abaixo

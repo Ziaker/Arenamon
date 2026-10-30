@@ -1,7 +1,7 @@
 // Dividido de controller.js (comportamento idêntico): ctrl-update.
 
 import {C} from '../config.js';
-import {nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec, getFighterMaxStamina} from '../entity.js';
+import {combatModOf, nominalDistance, actionParams, invulnerableWindow, chainOpen, actionSpec, getFighterMaxStamina} from '../entity.js';
 import {stat, hasFlag} from '../status.js';
 import {getTackleSetup} from '../moves.js';
 import {vec, add, scale, sub, dot, length, normalize, clamp, angleOf, direction, angleDelta, smoothstep} from '../math.js';
@@ -37,9 +37,11 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   }
   if (f.inputBuffer) {
     f.inputBuffer.age += dt;
-    if (f.inputBuffer.age > A.buffer.window + 1e-8 || cmd.guardPressed) {if (diag && !requested) report(f, {kind: f.inputBuffer.kind, result: 'expired', ...(f.inputBuffer.age > A.buffer.window + 1e-8 ? lastBufferReason.get(f.inputBuffer) ?? {} : {note: 'substituído pela defesa'})});f.inputBuffer = null;}
+    const bufWin = f.inputBuffer.win ?? A.buffer.window;   // Editor › Buffer de entrada da ação em curso (guardado na criação do pedido)
+    if (f.inputBuffer.age > bufWin + 1e-8 || cmd.guardPressed) {if (diag && !requested) report(f, {kind: f.inputBuffer.kind, result: 'expired', ...(f.inputBuffer.age > bufWin + 1e-8 ? lastBufferReason.get(f.inputBuffer) ?? {} : {note: 'substituído pela defesa'})});f.inputBuffer = null;}
   }
-  if (requested && A.buffer.window > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0};}
+  const modBuf = combatModOf(f)?.bufferWindow ?? 0, winNow = Math.max(A.buffer.window, modBuf);
+  if (requested && winNow > 0) {const m = length(cmd.move) > 1 ? normalize(cmd.move) : cmd.move;f.inputBuffer = {kind: requested, move: {...m}, dodgeDirection: cmd.dodgeDirection && {...cmd.dodgeDirection}, age: 0, ...(modBuf > A.buffer.window ? {win: modBuf} : {})};}
   // Jump buffering (Plano D 2.6): o toque fica guardado por jumpBufferWindow e executa no primeiro passo em que as
   // regras permitirem — sem contornar stun, guard stun, cooldown, morte nem bloqueio de ação (o canNormalJump mais
   // abajo vale igual para toque direto e bufferado; o pedido expira e é consumido uma única vez). Fica no topo porque
@@ -55,7 +57,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
   if (diag && (requested || cmd.guardPressed) && (f.flight || f.knockRecovery > 0 || f.hp <= 0)) {
     if (!isSlamTrigger) {
       const why = f.flight ? {reason: 'airborne'} : f.knockRecovery > 0 ? {reason: 'recovery', detail: {left: f.knockRecovery}} : {reason: 'defeated'};
-      if (requested) report(f, {kind: requested, result: A.buffer.window > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
+      if (requested) report(f, {kind: requested, result: winNow > 0 && f.hp > 0 ? 'buffered' : 'denied', ...why});
       if (cmd.guardPressed && T.enableDefense) report(f, {kind: 'guard', result: 'denied', ...why});
     }
   }

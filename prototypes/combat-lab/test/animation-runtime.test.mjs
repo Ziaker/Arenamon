@@ -88,7 +88,7 @@ for (const [src, real] of runs) {
   const flag = id => (Array.isArray(FIELDS) ? FIELDS : Object.values(FIELDS)).find(x => x.id === id)?.applied;
   assert.deepEqual(['blendOut', 'layerWeight', 'reverse'].filter(id => flag(id) !== true), [], 'blendOut/layerWeight/reverse marcados como aplicados');
   const semEfeito = (Array.isArray(FIELDS) ? FIELDS : Object.values(FIELDS)).filter(x => x.applied !== true).map(x => x.id).sort();
-  const esperado = ['armor', 'autoNext', 'bufferWindow', 'combatPriority', 'displacement', 'exitCondition', 'hitstopMult', 'interruptible', 'minTime', 'priority', 'repeats', 'startup', 'verticalSpeed'].sort();
+  const esperado = ['autoNext', 'displacement', 'exitCondition', 'minTime', 'priority', 'repeats', 'startup', 'verticalSpeed'].sort();
   assert.deepEqual(semEfeito.filter(x => !esperado.includes(x)), [], 'nenhum campo NOVO pode ficar sem efeito (catraca: a lista só encolhe)');
   console.log('  campos do Editor ainda SEM efeito no jogo (rotulados assim na interface):', semEfeito.join(', '));
   ok('blendOut, layerWeight e reverse estão marcados como aplicados no perfil (reverse e layerWeight provados acima)');

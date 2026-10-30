@@ -4,6 +4,7 @@
 import {C} from '../sim/config.js';
 import {Character, compareWindows} from '../view/characters.js';
 import {resolveAllPhases, phaseReports} from '../sim/phase-contract.js';
+import {combatModsOf} from '../view/combat-mods.js';
 import {escape, pathGet} from '../ui/tuning.js';
 import * as Moves from '../sim/moves.js';
 import {length} from '../sim/math.js';
@@ -24,6 +25,7 @@ export function syncCharacterCombatWindows() {
     const view = edited ? resolveAllPhases(edited, C, G, {forceAll: G.phaseMode === 2, off: ch.phaseOff, getMove: Moves.getMove}) : null;
     phaseReports[id] = view?.reports ?? null;
     game.setCombatWindows(id, raw && G.phaseMode === 1 ? view.windows : raw);
+    game.setCombatMods(id, ch ? combatModsOf(ch) : null);   // armadura, hit-stop ×, interrompível, prioridade e buffer do Editor
   }
 }
 
