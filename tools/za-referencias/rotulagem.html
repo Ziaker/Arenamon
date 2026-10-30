@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Rotulagem Z-A</title>
+<style>
+:root{--bg:#0f1419;--card:#171d24;--tx:#e6e9ee;--mut:#8b96a5;--ac:#38bdf8;--ac2:#f59e0b;--ac3:#a78bfa;--ln:#26303b;--ok:#22c55e;--chip:#1f2730}
+@media (prefers-color-scheme: light){:root:not([data-theme="dark"]){--bg:#f6f7f9;--card:#fff;--tx:#14181d;--mut:#5d6773;--ac:#0369a1;--ac2:#b45309;--ac3:#6d28d9;--ln:#e3e7ec;--ok:#15803d;--chip:#eef1f4}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 system-ui,Segoe UI,sans-serif}
+main{max-width:1400px;margin:0 auto;padding:12px 16px 80px}h1{font-size:1.3em;margin:.2em 0}p{color:var(--mut);margin:.4em 0}
+.barra{position:sticky;top:0;z-index:3;background:var(--bg);padding:8px 0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;border-bottom:1px solid var(--ln)}
+input,select,textarea,button{font:inherit;color:var(--tx);background:var(--card);border:1px solid var(--ln);border-radius:8px;padding:5px 9px}
+button{cursor:pointer;border-color:var(--ac)}button.prim{background:var(--ac);color:#fff}
+details.ajuda{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:6px 12px;margin:8px 0}
+details.ajuda summary{cursor:pointer;color:var(--tx);font-weight:600}
+details.ajuda li{color:var(--mut);margin:2px 0}
+.lado{color:#2680ff;font-weight:600}
+/* item: vídeo fixo à esquerda, respostas à direita */
+.item{background:var(--card);border:1px solid var(--ln);border-radius:12px;padding:12px;margin:14px 0;display:grid;
+  grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:start}
+.item.feito{border-color:var(--ok)}
+.titulo{grid-column:1/-1;display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.midia{position:sticky;top:56px}
+.videos{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.videos video{width:100%;max-height:calc(100vh - 190px);aspect-ratio:1;object-fit:contain;border-radius:8px;background:#222;display:block;cursor:pointer}
+.player{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin:6px 0 0}
+.player button{min-width:40px}.player input[type=range]{accent-color:var(--ac)}
+.player .barra-q{flex:1;min-width:160px}.player .vel{width:90px}
+.quadro{font-variant-numeric:tabular-nums;color:var(--mut);min-width:110px}
+.player label{display:inline-flex;gap:6px;align-items:center;font-size:12px;color:var(--mut)}
+details.fixos summary{cursor:pointer;color:var(--mut);margin-top:6px;font-size:13px}
+.folhas img{width:100%;display:block;border-radius:6px;margin:6px 0;background:#222}
+/* partes do corpo: uma linha por membro, partes únicas juntas */
+.form{min-width:0}
+.bloco{margin:0 0 8px}.bloco>b{display:block;font-size:13px;margin-bottom:2px}.bloco>b small{font-weight:400;color:var(--mut)}
+.lin{display:grid;grid-template-columns:62px 1fr;gap:2px 6px;align-items:center;font-size:13px}
+.lin>span{color:var(--mut)}
+.tg{display:inline-flex;align-items:center;justify-content:center;min-width:30px;height:26px;padding:0 7px;margin:1px;border-radius:6px;
+  background:var(--chip);border:1px solid var(--ln);cursor:pointer;user-select:none;font-size:12px;color:var(--tx)}
+.tg input{position:absolute;opacity:0;pointer-events:none}
+.tg:has(input:focus-visible){outline:2px solid var(--ac)}
+.ex .tg:has(input:checked){background:var(--ac);border-color:var(--ac);color:#fff}
+.ap .tg:has(input:checked){background:var(--ac2);border-color:var(--ac2);color:#fff}
+.ini .tg:has(input:checked){background:var(--ac3);border-color:var(--ac3);color:#fff}
+.seg .tg:has(input:checked){background:var(--ac);border-color:var(--ac);color:#fff}
+.perg{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;margin-top:6px;font-size:13px}
+.perg>span{color:var(--mut)}
+.perg input[type=number]{width:64px;padding:3px 6px}
+.perg select{padding:3px 6px}
+textarea{width:100%;min-height:44px;margin-top:8px}
+.prog{color:var(--mut)}
+.conf{float:right;font-weight:400}.conf .tg{min-width:0;height:20px;padding:0 5px;font-size:11px}
+.conf .tg:has(input:checked){background:var(--mut);border-color:var(--mut);color:var(--bg)}
+.fases{display:grid;grid-template-columns:1fr 1fr;gap:3px 10px;font-size:12px}
+.fases>div{display:flex;align-items:center;gap:4px}.fases span{flex:1;color:var(--mut)}
+.fases input{width:52px;padding:2px 5px}.fases button{padding:1px 6px;font-size:12px;min-width:0}
+.aviso{color:var(--ac2);font-size:12px;min-height:1em}
+@media (max-width:980px){.item{grid-template-columns:1fr}.midia{position:static}.videos video{max-height:none}}
+</style></head><body><main>
+<h1>Rotulagem cega · lote Z-A <span class="prog">({{HASH}})</span></h1>
+<p><span class="lado">● A bolinha azul marca o lado ESQUERDO do Pokémon.</span> Direita e esquerda são sempre do Pokémon, não de quem olha. Espaço toca/pausa o vídeo do item na tela.</p>
+<details class="ajuda"><summary>Como rotular (clique para abrir)</summary><ul>
+<li><b>Executa:</b> em golpe, ataque, rugido ou dano, marque só quem FAZ a ação (se essa parte ficasse parada, a ação não aconteceria). O braço que só equilibra não conta.</li>
+<li>Em <b>andar, correr ou charge</b>, marque todo membro que balança no ritmo, mesmo que menos que os outros. O que só treme ou fica quase parado não conta.</li>
+<li><b>Apoio:</b> perna que sustenta o peso ou empurra sem golpear. Se não houver nenhuma, marque "nenhuma".</li>
+<li><b>Começa:</b> a parte que se move primeiro (use o quadro a quadro). Se duas começam juntas, marque as duas.</li>
+<li><b>Fases:</b> pare o vídeo no quadro e clique em <b>agora</b>; <b>ir</b> leva o vídeo de volta àquele quadro. Separe o <b>recuo ativo</b> (o corpo indo para trás) da <b>pose parada</b> antes do golpe: a pose parada fica entre "Recuo termina" e "Golpe começa". Em loops (andar, correr, charge), deixe as fases em branco.</li>
+<li><b>Confiança</b> (alta/média/baixa, no canto de cada bloco): o quanto você tem certeza daquela resposta. Clicar de novo desmarca.</li>
+<li>Use "?" (inconclusivo) sempre que não der para ver. A página não mostra o que o sistema calculou. As respostas ficam salvas neste navegador; no fim, clique em <b>Baixar rótulos</b>.</li>
+<li>Bolinha: no ombro esquerdo; sem braço, no quadril ou na asa esquerda; sem membros, ao lado do corpo. Ela só orienta.</li>
+<li><b>Chão (grade escura):</b> é <b>estimado</b> pela altura mais baixa que as pontas dos pés atingem no clipe; o Z-A não traz o chão de verdade. Pé encostando na grade sugere apoio, mas confira. Em Pokémon sem pernas o chão não aparece; em pulos ele pode ficar na altura errada.</li>
+</ul></details>
+<div class="barra">
+  <label>Seu nome <input id="revisor" placeholder="ex.: Rafael" required></label>
+  <span class="prog" id="prog"></span>
+  <button class="prim" id="baixar">Baixar rótulos</button>
+  <button id="limpar" title="Apaga as respostas salvas neste navegador">Recomeçar</button>
+</div>
+<div id="itens"></div>
+</main>
+<script>
+const LOTE = /*LOTE*/null;
+// lados = do PRÓPRIO Pokémon (não de quem olha a tela). Códigos iguais aos do sistema.
+const REGIOES = [["braco_D","braço direito do Pokémon"],["braco_E","braço esquerdo do Pokémon"],["braco_C","braço (sem lado / central)"],["perna_D","perna direita do Pokémon"],["perna_E","perna esquerda do Pokémon"],["perna_C","perna (sem lado / central)"],["cabeca","cabeça"],["pescoco","pescoço"],["mandibula","boca/mandíbula"],["lingua","língua"],["cauda","cauda"],["asa_D","asa direita do Pokémon"],["asa_E","asa esquerda do Pokémon"],["asa_C","asa (sem lado)"],["nucleo","tronco/quadril"],["apendice_sensorial","antena/orelha"],["outro","outra parte"]];
+// linhas da tabela: membros com lado (D/E/central) e partes únicas
+const MEMBROS = [["braco","Braço"],["perna","Perna"],["asa","Asa"]];
+const UNICAS = [["cabeca","Cabeça"],["pescoco","Pescoço"],["mandibula","Boca/mandíbula"],["lingua","Língua"],["cauda","Cauda"],["nucleo","Tronco/quadril"],["apendice_sensorial","Antena/orelha"],["outro","Outra parte"]];
+const LADOS = [["D","dir."],["E","esq."],["C","central"]];
+const NOME = Object.fromEntries(REGIOES);
+const CHAVE = "rotulagem_za_" + "{{HASH}}";
+let estado = {};
+try { estado = JSON.parse(localStorage.getItem(CHAVE) || "{}"); } catch (e) { estado = {}; }
+const salvar = () => { try { localStorage.setItem(CHAVE, JSON.stringify(estado)); } catch (e) {} atualizar(); };
+// itens que o responsável decidiu não usar (LOTE.ignorados): somem da página e do arquivo baixado
+const IGNORADOS = new Set(LOTE.ignorados || []);
+const ITENS = LOTE.itens.filter(it => !IGNORADOS.has(it.n));
+const chip = (attr, val, txt, tipo, nome, titulo) =>
+  `<label class="tg" title="${titulo || NOME[val] || txt}"><input type="${tipo || "checkbox"}" ${nome ? `name="${nome}"` : ""} ${attr}="${val}" value="${val}">${txt}</label>`;
+// pergunta curta com botões (sim / não / ?)
+const seg = (n, campo, rotulo, opcoes) => `<span>${rotulo}</span><div class="seg">${opcoes.map(o =>
+  chip("data-r", campo, o[1], "radio", campo + "_" + n, o[1]).replace(`value="${campo}"`, `value="${o[0]}"`)).join("")}</div>`;
+const CONF = [["alta","alta"],["media","média"],["baixa","baixa"]];
+const conf = (n, campo) => `<span class="conf" title="sua confiança nesta resposta">${CONF.map(o =>
+  chip("data-r", campo, o[1], "radio", campo + "_" + n, "confiança " + o[1]).replace(`value="${campo}"`, `value="${o[0]}"`)).join("")}</span>`;
+// fases da ação em quadros: "agora" copia o quadro do vídeo; "ir" leva o vídeo até ele
+const FASES = [["fase_recuo_inicio","Recuo começa"],["fase_recuo_fim","Recuo termina"],["fase_golpe_inicio","Golpe começa"],
+  ["fase_golpe_pico","Golpe/impacto (pico)"],["fase_pose_fim","Pose do golpe termina"],["fase_recuperacao_fim","Recuperação termina"]];
+const SN = [["sim","sim"],["nao","não"],["INCONCLUSIVO","?"]];
+const SNA = [["sim","sim"],["nao","não"],["nao_se_aplica","não se aplica"],["INCONCLUSIVO","?"]];
+function partes(n) {
+  const lados = (f, attr) => LADOS.map(([l, t]) => chip(attr, f + "_" + l, t)).join("");
+  return `<div class="bloco ex"><b>Executa <small>quem faz a ação</small>${conf(n, "conf_executa")}</b>
+      ${MEMBROS.map(([f, rot]) => `<div class="lin"><span>${rot}</span><div>${lados(f, "data-exec")}</div></div>`).join("")}
+      <div class="lin"><span>Outras</span><div>${UNICAS.map(([c, rot]) => chip("data-exec", c, rot)).join("")}${chip("data-exec", "INCONCLUSIVO", "? não dá para ver", "", "", "inconclusivo")}</div></div>
+    </div>
+    <div class="bloco ap"><b>Apoio/impulso <small>pernas que sustentam o peso ou empurram</small>${conf(n, "conf_apoio")}</b>
+      <div class="lin"><span>Perna</span><div>${lados("perna", "data-apoio")}${chip("data-apoio", "nenhuma", "nenhuma", "", "", "nenhuma perna de apoio")}</div></div>
+    </div>
+    <div class="bloco ini"><b>Começa a se mover primeiro <small>pode marcar mais de um, se começam juntos</small>${conf(n, "conf_inicio")}</b>
+      ${MEMBROS.map(([f, rot]) => `<div class="lin"><span>${rot}</span><div>${lados(f, "data-ini")}</div></div>`).join("")}
+      <div class="lin"><span>Outras</span><div>${UNICAS.map(([c, rot]) => chip("data-ini", c, rot)).join("")}${chip("data-ini", "INCONCLUSIVO", "? não dá para ver", "", "", "inconclusivo")}</div></div>
+    </div>
+    <div class="bloco"><b>Fases da ação <small>em quadros; deixe em branco o que não existe</small>${conf(n, "conf_fases")}</b>
+      <div class="fases">${FASES.map(([c, rot]) => `<div><span>${rot}</span><input type="number" min="0" max="999" data-campo="${c}">
+        <button type="button" data-agora="${c}" title="usar o quadro atual do vídeo">agora</button><button type="button" data-ir="${c}" title="levar o vídeo até este quadro">ir</button></div>`).join("")}</div>
+    </div>`;
+}
+function render() {
+  const el = document.getElementById("itens");
+  el.innerHTML = ITENS.map(it => `
+  <section class="item" data-id="${it.id}">
+    <div class="titulo"><b>${it.n}. ${it.pokemon || ""}</b> <code>${it.clipe}</code> <span class="prog">código ${it.codigo_leitura || "—"}</span></div>
+    <div class="midia">
+    ${(it.videos || []).length ? `
+      <div class="videos">${it.videos.map(v => `<video muted playsinline loop preload="auto" data-src="${v}"></video>`).join("")}</div>
+      <div class="player">
+        <button data-acao="play" title="tocar / pausar">▶</button>
+        <button data-acao="menos" title="volta 1 quadro">◀ 1</button>
+        <button data-acao="mais" title="avança 1 quadro">1 ▶</button>
+        <input class="barra-q" type="range" min="0" max="${(it.quadros_total || 1) - 1}" value="0" data-acao="barra" aria-label="posição no clipe">
+        <span class="quadro">quadro 0 de ${(it.quadros_total || 1) - 1}</span>
+        <label>Velocidade <input class="vel" type="range" min="0.1" max="1" step="0.05" value="0.5" data-acao="vel"> <b class="velv">0,50×</b></label>
+      </div>
+      <details class="fixos"><summary>Ver quadros fixos</summary>` : ""}
+      <div class="folhas">${it.folhas.map(f => `<a href="${f}" target="_blank" title="abrir em tamanho real"><img loading="lazy" src="${f}" alt="folha ${f}"></a>`).join("") || "<p>Sem folha gerada.</p>"}</div>
+      ${(it.videos || []).length ? "</details>" : ""}
+    </div>
+    <div class="form">
+      ${partes(it.n)}
+      <div class="aviso"></div>
+      <div class="perg">
+        ${seg(it.n, "antecipacao", "Antecipação (recuo antes do golpe)?", SNA)}
+        <span>Total até o golpe (quadros, opcional)</span><div><input type="number" min="0" max="200" data-campo="antecipacao_q"></div>
+        ${seg(it.n, "parte_some_aparece", "Alguma parte some ou aparece?", SN)}
+        ${seg(it.n, "apoio", "Pés apoiados no chão?", SN)}
+        ${seg(it.n, "leitura_pose", "A pose se lê com clareza?", [["clara","clara"],["confusa","confusa"],["INCONCLUSIVO","?"]])}
+        ${seg(it.n, "massa_aparente", "Peso aparente", [["leve","leve"],["medio","médio"],["pesado","pesado"],["INCONCLUSIVO","?"]])}
+        ${seg(it.n, "conf_antecipacao", "Confiança na antecipação", CONF)}
+        ${seg(it.n, "intencao", "Intenção (sua leitura)", [["agressivo","agressivo"],["brincalhao","brincalhão"],["cauteloso","cauteloso"],["neutro","neutro"],["INCONCLUSIVO","?"]])}
+      </div>
+      <textarea data-campo="observacao" placeholder="Discordo / observação (o que o sistema deveria saber)"></textarea>
+    </div>
+  </section>`).join("");
+  el.querySelectorAll(".item").forEach(sec => {
+    const id = sec.dataset.id, r = estado[id] || {};
+    sec.querySelectorAll("[data-campo]").forEach(i => { if (r[i.dataset.campo] !== undefined) i.value = r[i.dataset.campo]; });
+    sec.querySelectorAll("[data-r]").forEach(i => { i.checked = r[i.dataset.r] === i.value; });
+    sec.querySelectorAll("[data-exec]").forEach(i => { i.checked = (r.executores || []).includes(i.dataset.exec) || (r.executores === "INCONCLUSIVO" && i.dataset.exec === "INCONCLUSIVO"); });
+    const inis = r.iniciadores || (r.iniciador ? [r.iniciador] : []);
+    sec.querySelectorAll("[data-ini]").forEach(i => { i.checked = inis.includes(i.dataset.ini); });
+    sec.querySelectorAll("[data-apoio]").forEach(i => { i.checked = (r.apoio_impulso || []).includes(i.dataset.apoio) || (i.dataset.apoio === "nenhuma" && Array.isArray(r.apoio_impulso) && !r.apoio_impulso.length); });
+    // clicar de novo num botão de opção já marcado desmarca
+    sec.querySelectorAll("input[type=radio]").forEach(i => {
+      const lb = i.closest("label");
+      lb.addEventListener("mousedown", () => { i.dataset.estava = i.checked ? "1" : ""; });
+      lb.addEventListener("click", e => {
+        if (i.dataset.estava) { e.preventDefault(); i.checked = false; i.dataset.estava = ""; sec.dispatchEvent(new Event("input")); }
+      });
+    });
+    sec.addEventListener("input", () => {
+      const o = estado[id] = estado[id] || {};
+      sec.querySelectorAll("[data-campo]").forEach(i => { if (i.value === "") delete o[i.dataset.campo]; else o[i.dataset.campo] = i.value; });
+      new Set([...sec.querySelectorAll("[data-r]")].map(i => i.dataset.r)).forEach(c => {
+        const m = sec.querySelector(`[data-r="${c}"]:checked`);
+        if (m) o[c] = m.value; else delete o[c];
+      });
+      const ex = [...sec.querySelectorAll("[data-exec]:checked")].map(i => i.dataset.exec);
+      if (ex.includes("INCONCLUSIVO")) o.executores = "INCONCLUSIVO"; else if (ex.length) o.executores = ex.sort(); else delete o.executores;
+      const ini = [...sec.querySelectorAll("[data-ini]:checked")].map(i => i.dataset.ini).sort();
+      if (ini.includes("INCONCLUSIVO")) { o.iniciadores = ["INCONCLUSIVO"]; o.iniciador = "INCONCLUSIVO"; }
+      else if (ini.length) { o.iniciadores = ini; if (ini.length === 1) o.iniciador = ini[0]; else delete o.iniciador; }
+      else { delete o.iniciadores; delete o.iniciador; }
+      const ap = [...sec.querySelectorAll("[data-apoio]:checked")].map(i => i.dataset.apoio);
+      if (ap.includes("nenhuma")) o.apoio_impulso = []; else if (ap.length) o.apoio_impulso = ap.sort(); else delete o.apoio_impulso;
+      salvar();
+    });
+  });
+  el.querySelectorAll(".item").forEach(prepararPlayer);
+  atualizar();
+}
+// Cada vídeo é carregado inteiro na memória quando o item aparece na tela: assim avançar quadro a quadro funciona
+// em qualquer servidor (alguns não deixam o navegador pular dentro do arquivo). Aberto direto do disco (file://),
+// o fetch é bloqueado e o vídeo usa o arquivo direto, que já permite pular.
+const carregarVideo = v => {
+  if (v.dataset.carregado) return;
+  v.dataset.carregado = "1";
+  fetch(v.dataset.src).then(r => { if (!r.ok) throw new Error(r.status); return r.blob(); })
+    .then(b => { v.src = URL.createObjectURL(b); })
+    .catch(() => { v.src = v.dataset.src; });
+};
+const observador = "IntersectionObserver" in window ? new IntersectionObserver(es => es.forEach(e => {
+  if (e.isIntersecting) { e.target.querySelectorAll("video").forEach(carregarVideo); observador.unobserve(e.target); }
+}), { rootMargin: "600px" }) : null;
+function prepararPlayer(sec) {
+  const vids = [...sec.querySelectorAll("video")];
+  if (!vids.length) return;
+  if (observador) observador.observe(sec); else vids.forEach(carregarVideo);
+  const it = LOTE.itens.find(x => x.id === sec.dataset.id);
+  const fps = it.fps || 60, ultimo = (it.quadros_total || 1) - 1;
+  const btn = sec.querySelector('[data-acao="play"]'), barra = sec.querySelector('[data-acao="barra"]');
+  const vel = sec.querySelector('[data-acao="vel"]'), velv = sec.querySelector(".velv"), qd = sec.querySelector(".quadro");
+  const mestre = vids[0];
+  const q = () => Math.min(ultimo, Math.floor(mestre.currentTime * fps + 1e-6));
+  const ir = f => { const t = (Math.max(0, Math.min(ultimo, f)) + 0.5) / fps; vids.forEach(v => { v.currentTime = t; }); };
+  const mostrar = () => { const f = q(); barra.value = f; qd.textContent = "quadro " + f + " de " + ultimo; };
+  const taxa = () => { vids.forEach(v => { v.playbackRate = +vel.value; }); velv.textContent = (+vel.value).toFixed(2).replace(".", ",") + "×"; };
+  const pausar = () => { vids.forEach(v => v.pause()); btn.textContent = "▶"; };
+  taxa();
+  btn.onclick = () => {
+    if (mestre.paused) { taxa(); vids.forEach(v => { v.currentTime = mestre.currentTime; v.play(); }); btn.textContent = "⏸"; }
+    else pausar();
+  };
+  sec.querySelector('[data-acao="menos"]').onclick = () => { pausar(); ir(q() - 1); };
+  sec.querySelector('[data-acao="mais"]').onclick = () => { pausar(); ir(q() + 1); };
+  barra.oninput = e => { e.stopPropagation(); pausar(); ir(+barra.value); };
+  vel.oninput = e => { e.stopPropagation(); taxa(); };
+  mestre.addEventListener("timeupdate", () => {
+    mostrar();
+    vids.slice(1).forEach(v => { if (Math.abs(v.currentTime - mestre.currentTime) > 1.5 / fps) v.currentTime = mestre.currentTime; });
+  });
+  mestre.addEventListener("seeked", mostrar);
+  sec.querySelectorAll("[data-agora]").forEach(b => b.onclick = () => {
+    pausar(); sec.querySelector(`[data-campo="${b.dataset.agora}"]`).value = q(); sec.dispatchEvent(new Event("input"));
+  });
+  sec.querySelectorAll("[data-ir]").forEach(b => b.onclick = () => {
+    const v = sec.querySelector(`[data-campo="${b.dataset.ir}"]`).value; if (v !== "") { pausar(); ir(+v); }
+  });
+  vids.forEach(v => v.addEventListener("click", () => btn.click()));
+}
+document.addEventListener("keydown", e => {
+  // espaço toca/pausa, a menos que se esteja escrevendo (texto, número, observação, lista)
+  const a = document.activeElement;
+  if (e.code !== "Space" || /TEXTAREA|SELECT/.test(a.tagName) || (a.tagName === "INPUT" && !/checkbox|radio|range/.test(a.type))) return;
+  const alvo = [...document.querySelectorAll(".item")].find(s => { const r = s.getBoundingClientRect(); return r.top < innerHeight / 2 && r.bottom > innerHeight / 2; });
+  const b = alvo && alvo.querySelector('[data-acao="play"]');
+  if (b) { e.preventDefault(); b.click(); }
+});
+function atualizar() {
+  let feitos = 0;
+  document.querySelectorAll(".item").forEach(sec => {
+    const r = estado[sec.dataset.id] || {};
+    const ok = r.antecipacao && (r.executores === "INCONCLUSIVO" || (r.executores || []).length);
+    sec.classList.toggle("feito", !!ok); feitos += ok ? 1 : 0;
+    // mesma perna como executora e de apoio: avisa (pode ser de propósito, ex.: chute que também empurra)
+    const dupla = (r.apoio_impulso || []).filter(p => Array.isArray(r.executores) && r.executores.includes(p));
+    const av = sec.querySelector(".aviso");
+    if (av) av.textContent = dupla.length ? "Atenção: " + dupla.map(p => NOME[p]).join(", ") + " está em Executa e em Apoio. Se foi de propósito, explique na observação." : "";
+  });
+  document.getElementById("prog").textContent = `${feitos} de ${ITENS.length} respondidas`;
+}
+document.getElementById("revisor").value = estado.__revisor || "";
+document.getElementById("revisor").addEventListener("input", e => { estado.__revisor = e.target.value; salvar(); });
+document.getElementById("baixar").addEventListener("click", () => {
+  const nome = (estado.__revisor || "").trim();
+  if (!nome) { alert("Escreva seu nome antes de baixar."); return; }
+  const rot = ITENS.map(it => Object.assign({ id: it.id }, estado[it.id] || {}));
+  const blob = new Blob([JSON.stringify({ lote: "{{HASH}}", revisor: nome, rotulos: rot }, null, 1)], { type: "application/json" });
+  const a = document.createElement("a"); a.href = URL.createObjectURL(blob);
+  a.download = `rotulos_${nome.replace(/\W+/g, "_")}_{{HASH}}.json`; a.click();
+});
+document.getElementById("limpar").addEventListener("click", () => { if (confirm("Apagar todas as respostas salvas neste navegador?")) { estado = {}; salvar(); render(); } });
+render();
+</script></body></html>

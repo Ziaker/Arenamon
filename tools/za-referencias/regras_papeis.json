@@ -1,0 +1,62 @@
+{
+  "_sobre": "Regras de papel na ação (Task 3). Editável: cada saída de ontologia.papeis cita a regra aplicada. Frações são do maior pico entre as candidatas; velocidades em alturas do esqueleto por segundo (H/s).",
+  "limiar_executor_frac": 0.6,
+  "janela_executor_q": 4,
+  "abertura_mandibula_graus": 15,
+  "janela_mandibula_q": 6,
+  "limiar_inicio_frac": 0.2,
+  "janela_preparacao_q": 30,
+  "limiar_movimento_frac": 0.1,
+  "pico_minimo_H_s": 0.5,
+  "candidatas": {
+    "attack": ["braco", "perna", "cabeca", "cauda", "asa"],
+    "rangeattack": ["braco", "perna", "cabeca", "cauda", "asa"],
+    "walk": ["perna"],
+    "run": ["perna"],
+    "backwalk": ["perna"],
+    "fly": ["asa"],
+    "_padrao": ["braco", "perna", "cabeca", "cauda", "asa", "pescoco", "nucleo"]
+  },
+  "locomocao": {
+    "_sobre": "charge NÃO entra: os charge01_loop são poses de carga paradas (revisão IA do lote 02; decisão do revisor, 25/10/2026). Em locomoção os membros alternam: conta todo membro que cicla (pico >= limiar_frac do maior pico entre os membros), sem janela de tempo e sem exigir movimento para fora do corpo.",
+    "categorias": ["walk", "run", "backwalk", "turnmove", "dash", "fly"],
+    "candidatas": ["braco", "perna", "asa"],
+    "limiar_frac": 0.4
+  },
+  "pose_parada": {
+    "_sobre": "Loop de pose (carga, espera, respiração): raiz quase imóvel, pontas dos pés paradas no mundo e membros só oscilando. Fica sem executor (NAO_SE_APLICA) e sem iniciador; as pernas com pé parado ficam como apoio. Decisão do revisor, 25/10/2026, depois da revisão IA do lote 02 (Hawlucha e Groudon em charge01_loop). A cauda não conta como membro: balançar a cauda não desfaz a pose (30/10/2026, Pyroar charge01_loop).",
+    "raiz_max_H": 0.05,
+    "pes_max_H": 0.03,
+    "membros_max_H_s": 1.5,
+    "familias_pes": ["perna"],
+    "familias_membros": ["braco", "perna", "asa", "cabeca", "pescoco"]
+  },
+  "cauda_secundaria": {
+    "_sobre": "Fora da locomoção: se um membro (braço, perna ou asa) é executor, a cauda que acelera junto só acompanha o giro do corpo e vira acompanhante, mesmo sendo mais rápida. Cauda sozinha continua executora. Decisão do revisor, 30/10/2026 (Lucario attack01, gabarito aceito do lote 02).",
+    "membros": ["braco", "perna", "asa"]
+  },
+  "dominancia_executor": {
+    "_sobre": "Fora da locomoção: o candidato mais forte precisa ter pelo menos frac_minima do maior movimento de qualquer região (menos as ignoradas). Senão nenhum membro domina a ação e fica INCONCLUSIVO. Decisão do revisor, 30/10/2026 (Swalot attack03_end, gabarito aceito do lote 03).",
+    "frac_minima": 0.5,
+    "ignorar": ["olho_palpebra", "auxiliar", "raiz", "outro"]
+  },
+  "patas_no_chao_sao_pernas": {
+    "_sobre": "Em quadrúpedes, a cadeia de braço cuja ponta toca o chão em repouso é a pata dianteira: nos papéis (executor, apoio, iniciador, acompanhante) ela sai como perna do mesmo lado. Decisão do revisor, 30/10/2026 (Aurorus walk01_loop, gabarito aceito do lote 03).",
+    "ativo": true
+  },
+  "reacoes": {
+    "_sobre": "Reação do corpo todo (dano) e aterrissagem: nenhum membro executa; fica sem executor (NAO_SE_APLICA) e sem iniciador. As pernas que dobram no clipe ficam como apoio. Decisão do revisor, 30/10/2026, pelo gabarito aceito dos lotes 02 e 03 (Lairon em damage01, Blastoise em land02).",
+    "categorias": ["damage", "land"]
+  },
+  "apoio_impulso": {
+    "_sobre": "Fora da locomoção: perna que NÃO golpeia mas dobra (sustenta o peso ou empurra) da preparação até o golpe. Campo separado dos executores; executor é só quem golpeia. Em locomoção (walk, run...) as pernas que ciclam são executoras E apoio/impulso (decisão do revisor, 30/10/2026, gabarito aceito dos lotes 02 e 03); braços que balançam não são apoio. Em reação (damage, land) vale a flexão no clipe inteiro.",
+    "familias": ["perna"],
+    "flexao_minima_graus": 10
+  },
+  "condicionais": {
+    "mandibula": "abre_no_pico",
+    "lingua": "abre_no_pico",
+    "apendice_sensorial": "unica_cadeia"
+  },
+  "nunca_executa": ["olho_palpebra", "cabelo_pelagem", "acessorio", "auxiliar", "raiz", "outro"]
+}

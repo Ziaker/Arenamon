@@ -63,6 +63,6 @@ dumper test/
 chars/vigor/
 chars/vigor.zip
 
-# Python: cache gerado a cada execucao do Blender Vision
+# Python: cache gerado ao rodar o Blender Vision e as ferramentas (tools/za-referencias)
 __pycache__/
 *.pyc
