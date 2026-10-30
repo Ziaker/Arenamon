@@ -13,7 +13,7 @@ export const RESERVA = new Set(['hit', 'fall', 'downed', 'move_1', 'move_2', 'mo
 export const CLASSIFICACOES = ['CONCLUIDA_NATURALMENTE', 'INTERROMPIDA_POR_NOVA_ACAO', 'INTERROMPIDA_POR_REACAO', 'CORTADA_INDEVIDAMENTE', 'FALLBACK', 'SEM_CLIPE', 'NAO_ALCANCADA'];
 
 /** Ações de laço/estado contínuo: não têm «fim natural»; para elas, CONCLUIDA_NATURALMENTE significa «mantida pelo tempo mínimo de prova». */
-const LOOPING_IDS = new Set(['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'block', 'tackle_charge', 'charge_reflect', 'charge_psyshock']);
+export const LOOPING_IDS = new Set(['idle', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right', 'block', 'tackle_charge', 'charge_reflect', 'charge_psyshock']);
 /** Estados de reação/dano: uma transição para qualquer um deles é INTERROMPIDA_POR_REACAO. */
 const REACTION_TO = new Set(['hitstun', 'stagger', 'stagger_crush', 'pushed', 'pushed_side', 'airborne', 'airborne_up', 'wallSplat', 'landing', 'recover', 'defeated', 'guardStun', 'recoil', 'guard_hit', 'actionRecovery']);
 /** Reasons que autorizam a troca para a ação que realmente nasceu. */
@@ -59,12 +59,12 @@ export function executions(run) {
       if (restarted) e = null;
     }
     if (!e) {
-      e = {who: f.who, id: f.id, key: f.key, clip: f.clip, firstTick: f.tick, lastTick: f.tick, frames: 0, minTime: Infinity, maxTime: -Infinity, maxWeight: 0, duration: f.duration ?? null, keys: new Set(), lastTime: 0, lastEntry: f.entry, endLog: null};
+      e = {who: f.who, id: f.id, key: f.key, clip: f.clip, firstTick: f.tick, lastTick: f.tick, frames: 0, minTime: Infinity, maxTime: -Infinity, maxWeight: 0, duration: f.duration ?? null, keys: new Set(), lastTime: 0, lastEntry: f.entry, endLog: null, entry: f.entry, index: f.index, firstTime: f.time, weights: [], epTimes: [], releaseTick: null};
       open.set(kk, e);exs.push(e);
       let l = byWhoKey.get(kk);if (!l) byWhoKey.set(kk, l = []);l.push(e);
     }
     e.frames++;e.minTime = Math.min(e.minTime, f.time);e.maxTime = Math.max(e.maxTime, f.time);
-    e.maxWeight = Math.max(e.maxWeight, f.weight);e.keys.add(f.key);e.lastTick = f.tick;e.lastTime = f.time;e.lastEntry = f.entry;e.duration = f.duration ?? e.duration;
+    e.maxWeight = Math.max(e.maxWeight, f.weight);e.keys.add(f.key);e.weights.push(f.weight);if (f.epilogue) {e.epTimes.push(f.time);e.releaseTick ??= f.tick;}e.lastTick = f.tick;e.lastTime = f.time;e.lastEntry = f.entry;e.duration = f.duration ?? e.duration;
   }
   const logs = run.rec.logs;
   for (const [kk, list] of byWhoKey) {

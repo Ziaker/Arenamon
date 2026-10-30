@@ -40,3 +40,4 @@ node prototypes/combat-lab/test/move-showcase.browser.mjs
 node prototypes/combat-lab/test/move-save.browser.mjs
 node prototypes/combat-lab/test/animation-editor-viewport.browser.mjs
 node prototypes/combat-lab/test/animation-conclusao-visual.browser.mjs
+node prototypes/combat-lab/test/animation-conclusao-cenarios.browser.mjs

@@ -15,6 +15,7 @@
 // `speedOf`, `variantsOf`, `clips`, `log` e mantêm o estado em `ch.epilogue = {key, id, entry, started, cap?, baseElapsed?}`.
 import {C} from '../sim/config.js';
 import {actionDuration, actionSpec} from '../sim/entity.js';
+import {trimOf} from '../sim/animation-profile.js';
 import {MOVE_KEYS, TIMED, ONE_SHOT, ACTION_KEYS, COMBAT_KEYS, LOCOMOTION, TRANSIENT} from './characters.js';
 
 /** Chaves novas que são sucessoras legítimas: o clipe dedicado de recuperação assume (fade normal, sem epílogo). */
@@ -22,7 +23,13 @@ const SUCCESSORS = new Set(['recovery_tackle', 'recovery_dodge', 'recovery_move'
 /** Estados mecânicos que são autoridade sobre o visual: reagem imediatamente (o epílogo nunca os atrasa). */
 const AUTHORITY_STATES = new Set(['hitstun', 'stagger', 'pushed', 'wallSplat', 'defeated', 'guardStun', 'recover']);
 /** Execução única elegível: chaves temporizadas pela simulação, one-shot, disparos de Move e recuperações. */
-const epilogueKey = key => ONE_SHOT.has(key) || TIMED.has(key) || key.startsWith('release_');
+/** Reações e transições de execução única cujo laço padrão é «sim» (não estão em ONE_SHOT/TIMED): empurrão, empurrão lateral e subida
+ * da borda tocada por clipe de reserva. Sem isso o clipe era cortado no fim mecânico (ex.: «get hit» com 0,35 s de 1,29 s). Laço explícito
+ * do Editor continua valendo (fica de fora, como os demais laços). */
+const ONCE_EXTRA = new Set(['pushed', 'pushed_side', 'ledge_climb']);
+const epilogueKey = key => ONE_SHOT.has(key) || TIMED.has(key) || ONCE_EXTRA.has(key) || key.startsWith('release_');
+/** Laço efetivo para o epílogo: nas ONCE_EXTRA só o laço ligado explicitamente no Editor conta. */
+const loops = (ch, id, key) => ONCE_EXTRA.has(key) ? ch.playback?.[id]?.loop === true : ch.playbackOf(id, key).loop;
 
 /** Estado mecânico autoritativo ativo? Enquanto houver autoridade, o epílogo não entra e o ativo o encerra. */
 export function epilogueAuthority(f, cur = null) {
@@ -41,6 +48,16 @@ export function epilogueActive(ch) {return !!ch.epilogue;}
 function capOf(ch, layer) {
   const d = layer.clip.duration || 1, s = ch.speedOf(layer.id), playback = ch.playbackOf(layer.id, layer.key);
   return Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d);
+}
+/**
+ * Tempo restante até o fim EFETIVO, no sentido em que o clipe avança: respeita o Fim do recorte (trimEnd) e o
+ * Reverso (o tempo exibido vai para o início; o avanço real é cap − tempo). Sem isso o epílogo nunca concluía
+ * com recorte ou reverso (o tempo para em trimEnd·d ou em 0, nunca em cap).
+ */
+function remainingOf(ch, layer, cap = capOf(ch, layer)) {
+  const d = layer.clip.duration || 1, fx = ch.profileFx(layer), end = Math.min(cap, (fx ? trimOf(fx)[1] : 1) * d);
+  const reversed = !!ch.profileValue(layer.id, 'reverse', layer.clip.name), forward = reversed ? cap - layer.action.time : layer.action.time;
+  return end - forward;
 }
 
 /**
@@ -65,7 +82,7 @@ export function resumeEpilogue(ch, f, ctx) {
   const m = f.__visualEpilogue;
   clearEpilogueMark(f);   // consome o marcador: vale uma restauração
   if (!m || typeof m !== 'object' || !m.key || !epilogueKey(m.key)) return false;
-  if (ch.playbackOf(m.id, m.key).loop || epilogueAuthority(f)) return false;
+  if (loops(ch, m.id, m.key) || epilogueAuthority(f)) return false;
   if (!ch.clips[m.index] || !(ch.variantsOf(m.id) || []).includes(m.index)) return false;
   ch.enter(m.key, m.id, m.index, m.entry, f, ctx);
   const cur = ch.current;
@@ -89,11 +106,11 @@ export function tryStartEpilogue(ch, f, raw, dt, ctx) {
   const cur = ch.current;
   if (!cur || !epilogueKey(cur.key)) return false;
   if (ch.profileValue(cur.id, 'visualCompletion', ch.clips[cur.index]?.name) === false) return false;   // Editor › Conclusão visual: desligada para esta ação/variante
-  if (ch.playbackOf(cur.id, cur.key).loop) return false;   // laços autorais sem condição de término ficam de fora por ora
+  if (loops(ch, cur.id, cur.key)) return false;   // laços autorais sem condição de término ficam de fora por ora
   if (ch.preview || ch.movePreview || ch.transient || epilogueAuthority(f, cur)) return false;
   if (SUCCESSORS.has(raw)) return false;   // recovery_tackle/dodge/move: o clipe dedicado assume com fade normal
   const cap = capOf(ch, cur), s = ch.speedOf(cur.id);
-  if (cap - cur.action.time <= (ch.lastDt || dt || C.test.step) * s) return false;   // já concluída (ou a 1 quadro do fim)
+  if (remainingOf(ch, cur, cap) <= (ch.lastDt || dt || C.test.step) * s) return false;   // já concluída (ou a 1 quadro do fim)
   ch.epilogue = {key: cur.key, id: cur.id, entry: cur.entry, started: ch.clock, cap, baseElapsed: undefined};
   // Camadas de fade pendentes encerram na hora (ex.: o blend de ENTRADA da própria ação ainda em curso numa
   // liberação mecânica mais curta que o fade): com o epílogo o clipe corrente é o dono da pose — peso pleno
@@ -118,7 +135,7 @@ export function stepEpilogue(ch, f, raw, ctx) {
   if (!e || !cur || cur.entry !== e.entry) {ch.epilogue = null;clearEpilogueMark(f);return 'ended';}
   if (ch.preview || ch.movePreview || ch.transient) {ch.epilogue = null;ch.epilogueInterrupt = true;clearEpilogueMark(f);return 'ended';}
   const cap = capOf(ch, cur), s = ch.speedOf(cur.id), frame = (ch.lastDt || C.test.step) * s;
-  if (cap - cur.action.time <= frame) {
+  if (remainingOf(ch, cur, cap) <= frame) {
     // Fim natural: o clipe alcançou o fim efetivo. O próprio quadro segue o `raw` normal (fade padrão).
     pushLog(ch, {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: cur.key, to: raw, clipFrom: ch.clips[cur.index]?.name, clipTo: null,
       playedSeconds: +cur.action.time.toFixed(3), playedPct: 100, reason: 'conclusão natural', epilogueEnd: true, interrupted: false, source: ctx.source || 'sistema'});
@@ -198,13 +215,17 @@ export function logTransition(ch, prev, key, id, index, f, ctx) {
   const source = key === '__preview' ? 'prévia' : COMBAT_KEYS.has(key) || f.flight ? 'combate' : ACTION_KEYS.has(key) || key === 'guard' || key === 'guard_enter' || LOCOMOTION.has(key) || key === 'sprint' ? (ctx.source || 'jogador') : 'sistema';
   // Fim de X/C: concluída se o último tempo visto + um quadro alcança a duração; senão foi cancelada (defesa, sprint…).
   const seen = ch.lastActionSeen, natural = !!seen && seen.elapsed + (ch.lastDt || 0) * 1.05 + C.test.step >= actionDuration(seen.kind) - 1e-6;
-  const reason = key === '__preview' ? 'prévia manual' : COMBAT_KEYS.has(key) ? 'reação de combate' : prev && ACTION_KEYS.has(prev.key) && !ACTION_KEYS.has(key) && !f.action ? (natural ? 'ação concluída' : key === 'sprint' ? 'esquiva → sprint' : 'ação cancelada (defesa)')
+  let reason = key === '__preview' ? 'prévia manual' : COMBAT_KEYS.has(key) ? 'reação de combate' : prev && ACTION_KEYS.has(prev.key) && !ACTION_KEYS.has(key) && !f.action ? (natural ? 'ação concluída' : key === 'sprint' ? 'esquiva → sprint' : 'ação cancelada (defesa)')
     : f.action?.fromCancel && key === 'tackle' ? 'cancelamento C → X' : ACTION_KEYS.has(key) ? (prev?.key === key ? 'nova ação (mesmo estado)' : 'nova ação')
     : COMBAT_KEYS.has(key) ? 'reação de combate' : key === 'sprint' ? 'sprint' : key.endsWith('_stop') ? 'freio físico' : TRANSIENT.has(key) ? 'transição curta' : LOCOMOTION.has(key) ? 'locomoção' : key;
   // Fim natural de ação não conta como interrupção (a última amostra pode cair um quadro antes do fim).
-  const interrupted = prev && (TIMED.has(prev.key) || ONE_SHOT.has(prev.key)) && pct < .95 && reason !== 'ação concluída';
+  // Troca do MESMO quadro em que o epílogo concluiu naturalmente: o clipe chegou ao fim efetivo (recorte/duração máxima podem deixá-lo antes
+  // da duração bruta) — nunca é interrupção nem «cancelada». Antes saía como «ação cancelada (defesa)» interrompida a 77 % (Cogumelo, Move).
+  const afterNatural = !!ch.afterNaturalEnd;ch.afterNaturalEnd = false;
+  if (afterNatural && reason === 'ação cancelada (defesa)') reason = 'ação concluída';
+  const interrupted = !afterNatural && prev && (TIMED.has(prev.key) || ONE_SHOT.has(prev.key)) && pct < .95 && reason !== 'ação concluída';
   const ev = {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: prev?.key ?? null, to: key, clipFrom: prev ? ch.clips[prev.index]?.name : null, clipTo: ch.clips[index].name,
-    variant: ch.variantsOf(id).indexOf(index) + 1, variants: ch.variantsOf(id).length, playedSeconds: +played.toFixed(3), playedPct: +(pct * 100).toFixed(1), reason, interrupted: !!interrupted, source,
+    variant: ch.variantsOf(id).indexOf(index) + 1, variants: ch.variantsOf(id).length, playedSeconds: +played.toFixed(3), playedPct: afterNatural ? 100 : +(pct * 100).toFixed(1), reason, interrupted: !!interrupted, source,
     execFrom: prev?.entry ?? null, weightFrom: prev ? +prev.weight.toFixed(3) : null};   // identidade da execução que saiu (serial da ação) e o peso visual dela na saída
   if (ch.epilogueInterrupt) {ev.epilogueEnd = true;ch.epilogueInterrupt = false;}   // a transição normal encerra um epílogo interrompido por autoridade
   pushLog(ch, ev);

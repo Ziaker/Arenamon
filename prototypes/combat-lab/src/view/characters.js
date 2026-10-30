@@ -816,7 +816,7 @@ export class Character {
     this.layers = this.layers.filter(layer => layer.action !== action);
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
     // Loop avançado › Fade da conclusão natural: a transição seguinte a um epílogo concluído naturalmente usa o conclusionBlend do clipe que concluiu (perfil: variante → ação → global); vazio = o fade padrão.
-    const cb = this.epilogueNaturalEnd && prev ? this.profileValue(prev.id, 'conclusionBlend', prev.clip.name) : undefined;this.epilogueNaturalEnd = false;
+    const cb = this.epilogueNaturalEnd && prev ? this.profileValue(prev.id, 'conclusionBlend', prev.clip.name) : undefined;this.afterNaturalEnd = this.epilogueNaturalEnd && !!prev;this.epilogueNaturalEnd = false;   // afterNaturalEnd: a telemetria desta troca não é corte (logTransition)
     this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: cb ?? this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
     this.fade = 0;this.timer = 0;this.transitions++;
     if (key === 'jump_apex') this.visualFreeze = Math.max(this.visualFreeze, this.profileValue(id, 'jumpApexFreeze', clip.name) ?? 0);   // pico do salto: congelamento opcional

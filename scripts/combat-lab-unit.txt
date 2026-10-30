@@ -189,3 +189,6 @@ node prototypes/combat-lab/test/animation-editor-preview.test.mjs
 node prototypes/combat-lab/test/animation-variants.test.mjs
 node prototypes/combat-lab/test/animation-preservar-config.test.mjs
 node prototypes/combat-lab/test/animation-combat-mods.test.mjs
+node prototypes/combat-lab/test/animation-epilogue-casos.test.mjs
+node prototypes/combat-lab/test/animation-execution-report.test.mjs
+node prototypes/combat-lab/test/animation-viewport-vs-jogo.test.mjs

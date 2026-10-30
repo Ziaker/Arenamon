@@ -5,7 +5,7 @@ Gerada por `node scripts/gen-matriz-animacoes.mjs` (gameplay real: `Game` + `Cha
 Critério de aprovação **por execução**: cada exercício de um clipe é segmentado e classificado — `CONCLUIDA_NATURALMENTE` (fim efetivo do clipe), `INTERROMPIDA_POR_NOVA_ACAO`/`INTERROMPIDA_POR_REACAO` (troca autorizada), `CORTADA_INDEVIDAMENTE` (corte para locomoção/neutral/idle sem razão autorizada com < 95% do clipe), `FALLBACK` (clipe fora da lista configurada), `SEM_CLIPE` (recurso ausente) e `NAO_ALCANCADA` (nunca tocou). Aprovação exige classificação positiva + duração mínima (≥ 8 quadros ou ≥ 25% do clipe, o que for menor) + peso máximo ≥ 0,3: um clipe de 1–4 quadros ou de peso 0,05 **nunca** é aprovado. Para ações de laço (idle, walk, sprint, block, cargas), `CONCLUIDA_NATURALMENTE` significa «mantida pelo tempo mínimo de prova».
 
 - **Sintético** (um clipe distinto por ação): 90 aprovadas · 0 não aprovadas · 0 reserva · 0 sem clipe configurado.
-  CONCLUIDA_NATURALMENTE 54 · INTERROMPIDA_POR_NOVA_ACAO 24 · INTERROMPIDA_POR_REACAO 12 · CORTADA_INDEVIDAMENTE 0 · FALLBACK 0 · SEM_CLIPE 0 · NAO_ALCANCADA 0
+  CONCLUIDA_NATURALMENTE 56 · INTERROMPIDA_POR_NOVA_ACAO 22 · INTERROMPIDA_POR_REACAO 12 · CORTADA_INDEVIDAMENTE 0 · FALLBACK 0 · SEM_CLIPE 0 · NAO_ALCANCADA 0
 - **wookada.glb** (importado): 40 aprovadas · 0 não aprovadas · 2 reserva · 48 sem clipe configurado.
   CONCLUIDA_NATURALMENTE 33 · INTERROMPIDA_POR_NOVA_ACAO 5 · INTERROMPIDA_POR_REACAO 2 · CORTADA_INDEVIDAMENTE 0 · FALLBACK 0 · SEM_CLIPE 48 · NAO_ALCANCADA 0
 - **Cogumelo.glb** (importado): 33 aprovadas · 0 não aprovadas · 1 reserva · 56 sem clipe configurado.
@@ -15,17 +15,17 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 ## Sintético (todas as ações)
 | personagem | ação | gatilho real | clipe configurado | clipe executado | frames | parâmetros aplicados | fallback | classificação | resultado |
 |---|---|---|---|---|---|---|---|---|---|
-| sintético | `idle` | locomoção: parado, girar, andar nas 4 direções | act:idle | act:idle | 60208 | tempo 0.00–0.50 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (265× CONCLUIDA_NATURALMENTE) |
+| sintético | `idle` | locomoção: parado, girar, andar nas 4 direções | act:idle | act:idle | 59457 | tempo 0.00–0.50 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (265× CONCLUIDA_NATURALMENTE) |
 | sintético | `turn` | reação: acerto contra a parede (wall-splat e prensado) | act:turn | act:turn | 62 | tempo 0.01–0.38 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
 | sintético | `walk` | locomoção: parado, girar, andar nas 4 direções | act:walk | act:walk | 949 | tempo 0.01–0.76 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (14× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `walk_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | act:walk_back | act:walk_back | 48 | tempo 0.01–0.70 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (1× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `walk_left` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | act:walk_left | act:walk_left | 48 | tempo 0.01–0.70 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (1× INTERROMPIDA_POR_NOVA_ACAO) |
-| sintético | `walk_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | act:walk_right | act:walk_right | 48 | tempo 0.01–0.70 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (1× INTERROMPIDA_POR_NOVA_ACAO) |
+| sintético | `walk_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | act:walk_right | act:walk_right | 58 | tempo 0.01–0.70 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (2× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `sprint` | locomoção: sprint nas 4 direções e freios | act:sprint | act:sprint | 146 | tempo 0.01–0.66 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (2× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `sprint_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | act:sprint_back | act:sprint_back | 25 | tempo 0.01–0.36 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (1× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `sprint_left` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | act:sprint_left | act:sprint_left | 22 | tempo 0.01–0.32 s · peso 0.92 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (1× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `sprint_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | act:sprint_right | act:sprint_right | 19 | tempo 0.01–0.28 s · peso 0.79 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (1× INTERROMPIDA_POR_NOVA_ACAO) |
-| sintético | `walk_stop` | locomoção: parado, girar, andar nas 4 direções | act:walk_stop | act:walk_stop | 730 | tempo 0.00–0.89 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (6× CONCLUIDA_NATURALMENTE) |
+| sintético | `walk_stop` | locomoção: parado, girar, andar nas 4 direções | act:walk_stop | act:walk_stop | 668 | tempo 0.00–0.89 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (5× CONCLUIDA_NATURALMENTE) |
 | sintético | `sprint_stop` | locomoção: sprint nas 4 direções e freios | act:sprint_stop | act:sprint_stop | 370 | tempo 0.00–1.01 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (2× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `block_start` | defesa: entra, segura, sai | act:block_start | act:block_start | 313 | tempo 0.00–1.14 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (6× CONCLUIDA_NATURALMENTE) |
 | sintético | `block` | defesa: entra, segura, sai | act:block | act:block | 441 | tempo 0.00–1.27 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (4× CONCLUIDA_NATURALMENTE) |
@@ -36,8 +36,8 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 | sintético | `hit` | reserva: sem hit_light → «hit» | act:hit | act:hit | 70 | tempo 0.00–1.01 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
 | sintético | `hit_light` | reação: contato sem lançamento (enableLaunch desligado) → hitstun | act:hit_light | act:hit_light | 79 | tempo 0.00–1.14 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
 | sintético | `hit_heavy` | reação: Guard Break quebra a defesa (atordoamento) | act:hit_heavy | act:hit_heavy | 245 | tempo 0.00–1.27 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (3× INTERROMPIDA_POR_REACAO) |
-| sintético | `push` | reação: clash X×X (atordoamento dos dois) | act:push | act:push | 1476 | tempo 0.00–0.50 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (4× INTERROMPIDA_POR_NOVA_ACAO) |
-| sintético | `push_side` | Sand Wave pelo lado (empurrão lateral) | act:push_side | act:push_side | 145 | tempo 0.01–0.63 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (1× INTERROMPIDA_POR_NOVA_ACAO) |
+| sintético | `push` | reação: clash X×X (atordoamento dos dois) | act:push | act:push | 2251 | tempo 0.00–0.50 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (30× CONCLUIDA_NATURALMENTE) |
+| sintético | `push_side` | Sand Wave pelo lado (empurrão lateral) | act:push_side | act:push_side | 172 | tempo 0.01–0.63 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
 | sintético | `hit_up` | reação: tackle do rival acerta o lutador livre (hitstun, empurrão, recuperação) | act:hit_up | act:hit_up | 280 | tempo 0.01–0.30 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (19× INTERROMPIDA_POR_REACAO) |
 | sintético | `hit_crush` | Sand Wave prende o alvo na parede (prensado) | act:hit_crush | act:hit_crush | 36 | tempo 0.00–0.51 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (1× INTERROMPIDA_POR_REACAO) |
 | sintético | `knockback` | reação: tackle do rival acerta o lutador livre (hitstun, empurrão, recuperação) | act:knockback | act:knockback | 604 | tempo 0.13–1.00 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (20× INTERROMPIDA_POR_REACAO) |
@@ -69,7 +69,7 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 | sintético | `wall_splat` | reação: acerto contra a parede (wall-splat e prensado) | act:wall_splat | act:wall_splat | 85 | tempo 0.01–0.76 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (1× INTERROMPIDA_POR_REACAO) |
 | sintético | `ledge_grab` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | act:ledge_grab | act:ledge_grab | 33 | tempo 0.00–0.15 s · peso 0.44 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (3× INTERROMPIDA_POR_NOVA_ACAO) |
 | sintético | `ledge_hang` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | act:ledge_hang | act:ledge_hang | 215 | tempo 0.00–1.01 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (2× INTERROMPIDA_POR_NOVA_ACAO) |
-| sintético | `ledge_climb` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | act:ledge_climb | act:ledge_climb | 54 | tempo 0.00–1.13 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
+| sintético | `ledge_climb` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | act:ledge_climb | act:ledge_climb | 55 | tempo 0.00–1.14 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
 | sintético | `ledge_drop` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | act:ledge_drop | act:ledge_drop | 38 | tempo 0.00–0.54 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (1× INTERROMPIDA_POR_REACAO) |
 | sintético | `ledge_blocked` | borda bloqueada: o topo está ocupado pelo rival | act:ledge_blocked | act:ledge_blocked | 35 | tempo 0.00–0.50 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
 | sintético | `move_1` | reserva: sem a identidade do Move → clipe do slot (move_1) | act:move_1 | act:move_1 | 44 | tempo 0.00–0.63 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
@@ -109,12 +109,12 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 ## wookada.glb
 | personagem | ação | gatilho real | clipe configurado | clipe executado | frames | parâmetros aplicados | fallback | classificação | resultado |
 |---|---|---|---|---|---|---|---|---|---|
-| wookada.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | Mutant Idle | Mutant Idle | 21805 | tempo 0.01–7.35 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (169× CONCLUIDA_NATURALMENTE) |
+| wookada.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | Mutant Idle | Mutant Idle | 21637 | tempo 0.01–7.35 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (169× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `turn` | reação: acerto contra a parede (wall-splat e prensado) | turn | turn | 52 | tempo 0.01–0.38 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (2× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `walk` | locomoção: parado, girar, andar nas 4 direções | Mutant Walking | Mutant Walking | 1196 | tempo 0.00–1.02 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (19× CONCLUIDA_NATURALMENTE) |
-| wookada.glb | `walk_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Mutant Walking | Mutant Walking | 138 | tempo 0.00–1.02 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
+| wookada.glb | `walk_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Mutant Walking | Mutant Walking | 107 | tempo 0.00–1.02 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (2× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `walk_left` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Mutant Walking | Mutant Walking | 101 | tempo 0.00–1.02 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (2× CONCLUIDA_NATURALMENTE) |
-| wookada.glb | `walk_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Mutant Walking | Mutant Walking | 138 | tempo 0.00–1.02 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
+| wookada.glb | `walk_right` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Mutant Walking | Mutant Walking | 101 | tempo 0.00–1.02 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (2× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `sprint` | locomoção: sprint nas 4 direções e freios | sprint 8 dir | sprint 8 dir | 155 | tempo 0.01–0.63 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `sprint_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | sprint 8 dir | sprint 8 dir | 22 | tempo 0.01–0.32 s · peso 0.92 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `sprint_left` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | sprint 8 dir | sprint 8 dir | 23 | tempo 0.01–0.34 s · peso 0.96 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
@@ -127,7 +127,7 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 | wookada.glb | `guard_impact` | defesa: bloqueia um tackle (guard stun no defensor, recuo no atacante) | block start | block start | 181 | tempo 0.00–0.88 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `perfect_guard` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | wookada.glb | `blocked` | espelho: o azul ataca um defensor (recuo do atacante, guard stun do rival) | dash back | dash back | 74 | tempo 0.00–1.06 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
-| wookada.glb | `hit` | reação: contato sem lançamento (enableLaunch desligado) → hitstun | get hit | get hit 3 | 791 | tempo 0.00–1.44 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
+| wookada.glb | `hit` | reação: contato sem lançamento (enableLaunch desligado) → hitstun | get hit | get hit 3 | 1026 | tempo 0.00–1.44 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (9× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `hit_light` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | wookada.glb | `hit_heavy` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | wookada.glb | `push` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
@@ -163,7 +163,7 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 | wookada.glb | `wall_splat` | reação: acerto contra a parede (wall-splat e prensado) | Wall Crash | post fall wall crash | 85 | tempo 0.00–0.57 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (1× INTERROMPIDA_POR_REACAO) |
 | wookada.glb | `ledge_grab` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | wookada.glb | `ledge_hang` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | ledge idle (freeze frame) | ledge idle (freeze frame) | 283 | tempo 0.00–0.08 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (2× INTERROMPIDA_POR_NOVA_ACAO) |
-| wookada.glb | `ledge_climb` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | ledge up | ledge up | 54 | tempo 0.00–1.41 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
+| wookada.glb | `ledge_climb` | borda: agarrar, ficar pendurado, tentar subir bloqueado, subir e soltar | ledge up | ledge up | 55 | tempo 0.00–1.42 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
 | wookada.glb | `ledge_drop` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | wookada.glb | `ledge_blocked` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | wookada.glb | `move_1` | contra-ataque: Riposte (atordoamento do atacante) | move blast 2 | moveblast 6 | 2508 | tempo 0.00–1.70 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (25× INTERROMPIDA_POR_NOVA_ACAO) |
@@ -203,7 +203,7 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 ## Cogumelo.glb
 | personagem | ação | gatilho real | clipe configurado | clipe executado | frames | parâmetros aplicados | fallback | classificação | resultado |
 |---|---|---|---|---|---|---|---|---|---|
-| Cogumelo.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | idle | idle | 20516 | tempo 0.00–3.69 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (156× CONCLUIDA_NATURALMENTE) |
+| Cogumelo.glb | `idle` | locomoção: parado, girar, andar nas 4 direções | idle | idle | 20211 | tempo 0.00–3.69 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (156× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `turn` | reação: acerto contra a parede (wall-splat e prensado) | alt idle | alt idle | 52 | tempo 0.01–0.38 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (2× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `walk` | locomoção: parado, girar, andar nas 4 direções | Standing Run Right | Standing Run Right | 916 | tempo 0.00–0.79 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (13× INTERROMPIDA_POR_NOVA_ACAO) |
 | Cogumelo.glb | `walk_back` | lock-on com corpo sempre virado ao alvo: andar e sprint nas 4 direções | Run Backwards (1) | Run Backwards (1) | 60 | tempo 0.01–0.66 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (2× INTERROMPIDA_POR_NOVA_ACAO) |
@@ -213,7 +213,7 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 | Cogumelo.glb | `sprint_back` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `sprint_left` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `sprint_right` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `walk_stop` | locomoção: parado, girar, andar nas 4 direções | Standing Block React Large | Standing Block React Large | 630 | tempo 0.00–0.93 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (4× CONCLUIDA_NATURALMENTE) |
+| Cogumelo.glb | `walk_stop` | locomoção: parado, girar, andar nas 4 direções | Standing Block React Large | Standing Block React Large | 500 | tempo 0.00–0.93 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (2× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `sprint_stop` | locomoção: sprint nas 4 direções e freios | Zombie Reaction Hit | Zombie Reaction Hit | 274 | tempo 0.00–1.36 s · peso 1.00 | não | INTERROMPIDA_POR_NOVA_ACAO | aprovada por execução (2× INTERROMPIDA_POR_NOVA_ACAO) |
 | Cogumelo.glb | `block_start` | defesa: entra, segura, sai | Big Hit To Head | Big Hit To Head | 328 | tempo 0.00–1.59 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (5× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `block` | defesa: bloqueia um tackle (guard stun no defensor, recuo no atacante) | Standing Block Idle | Standing Block Idle | 284 | tempo 0.01–1.65 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
@@ -221,7 +221,7 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 | Cogumelo.glb | `guard_impact` | defesa: bloqueia um tackle (guard stun no defensor, recuo no atacante) | Standing Block React Large | Standing Block React Large | 185 | tempo 0.00–0.93 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (3× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `perfect_guard` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `blocked` | espelho: o azul ataca um defensor (recuo do atacante, guard stun do rival) | Hit Reaction | Hit Reaction | 74 | tempo 0.00–2.09 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (1× CONCLUIDA_NATURALMENTE) |
-| Cogumelo.glb | `hit` | reação: acerto contra a parede (wall-splat e prensado) | Big Hit To Head | Big Hit To Head | 896 | tempo 0.00–1.59 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (5× INTERROMPIDA_POR_REACAO) |
+| Cogumelo.glb | `hit` | reação: acerto contra a parede (wall-splat e prensado) | Big Hit To Head | Big Hit To Head | 1292 | tempo 0.00–1.59 s · peso 1.00 | não | INTERROMPIDA_POR_REACAO | aprovada por execução (9× INTERROMPIDA_POR_REACAO) |
 | Cogumelo.glb | `hit_light` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `hit_heavy` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `push` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
@@ -248,7 +248,7 @@ Critério de aprovação **por execução**: cada exercício de um clipe é segm
 | Cogumelo.glb | `dodge_back` | locomoção: sprint nas 4 direções e freios | Fall A Land To Run Forward | Fall A Land To Run Forward | 579 | tempo 0.01–0.97 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (7× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `dodge_left` | locomoção: sprint nas 4 direções e freios | Hit On Side Of Head | Hit On Side Of Head | 391 | tempo 0.03–2.43 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (4× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `dodge_right` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
-| Cogumelo.glb | `jump` | esquiva C nas 4 direções + vault sobre o rival | Jump | Jump Over | 788 | tempo 0.00–1.37 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (8× CONCLUIDA_NATURALMENTE) |
+| Cogumelo.glb | `jump` | esquiva C nas 4 direções + vault sobre o rival | Jump | Jump Over | 827 | tempo 0.00–1.37 s · peso 1.00 | não | CONCLUIDA_NATURALMENTE | aprovada por execução (9× CONCLUIDA_NATURALMENTE) |
 | Cogumelo.glb | `jump_start` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `jump_rise` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |
 | Cogumelo.glb | `jump_apex` | — | — | — | 0 | — | não | SEM_CLIPE | sem clipe configurado (nada a provar) |

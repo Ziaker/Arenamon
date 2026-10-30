@@ -1,0 +1,76 @@
+[
+ {
+  "p": "wookada.glb",
+  "caso": "Move + andar",
+  "clip": "moveblast 3",
+  "natural": true,
+  "epi": true,
+  "andou": 0.19
+ },
+ {
+  "p": "wookada.glb",
+  "caso": "esquiva + andar",
+  "clip": "dodge foward",
+  "natural": true,
+  "epi": false,
+  "andou": 3.43
+ },
+ {
+  "p": "wookada.glb",
+  "caso": "tackle na parede",
+  "clip": "tackle 1",
+  "natural": true,
+  "epi": true,
+  "maiorSaltoQuadroM": 0.28
+ },
+ {
+  "p": "wookada.glb",
+  "caso": "tackle na plataforma",
+  "clip": "tacke 7",
+  "natural": true,
+  "emCima": true
+ },
+ {
+  "p": "wookada.glb",
+  "caso": "interrupção por esquiva",
+  "tackleTocado": 89.4,
+  "motivo": "nova ação"
+ },
+ {
+  "p": "Cogumelo.glb",
+  "caso": "Move + andar",
+  "clip": "move 1",
+  "natural": true,
+  "epi": true,
+  "andou": 0.86
+ },
+ {
+  "p": "Cogumelo.glb",
+  "caso": "esquiva + andar",
+  "clip": "Hit On Side Of Head",
+  "natural": true,
+  "epi": false,
+  "andou": 3.43
+ },
+ {
+  "p": "Cogumelo.glb",
+  "caso": "tackle na parede",
+  "clip": "charge",
+  "natural": true,
+  "epi": true,
+  "maiorSaltoQuadroM": 0.23
+ },
+ {
+  "p": "Cogumelo.glb",
+  "caso": "tackle na plataforma",
+  "clip": "charge",
+  "natural": true,
+  "emCima": true
+ },
+ {
+  "p": "Cogumelo.glb",
+  "caso": "interrupção por esquiva",
+  "tackleTocado": 88.3,
+  "motivo": "nova ação"
+ }
+]

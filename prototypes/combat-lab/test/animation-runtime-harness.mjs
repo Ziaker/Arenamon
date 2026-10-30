@@ -110,7 +110,7 @@ export function makeMatch({equip = [[], []], positions = [vec(0, -3), vec(0, 3)]
         if (!cur) continue;
         const act = cur.action, snap = {tick: g.tick, who: i, key: cur.key, id: cur.id, clip: cur.clip?.name, time: act.time, weight: act.getEffectiveWeight(), running: act.isRunning(), duration: cur.clip?.duration, state: f.state,
           actionKind: f.action?.kind ?? null, actionMove: f.action?.move ?? null, knockRecovery: f.knockRecovery ?? 0, moveRecovery: f.moveRecovery ?? 0, actionRecovery: f.actionRecovery ?? 0,
-          hitstun: f.hitstun ?? 0, stagger: f.stagger ?? 0, pos: {x: +f.position.x.toFixed(4), z: +f.position.z.toFixed(4)}, entry: cur.entry ?? null, started: cur.started ?? null};
+          hitstun: f.hitstun ?? 0, stagger: f.stagger ?? 0, pos: {x: +f.position.x.toFixed(4), z: +f.position.z.toFixed(4)}, entry: cur.entry ?? null, started: cur.started ?? null, epilogue: !!ch.epilogue, index: cur.index};
         const k = `${i}:${cur.id}`;   // por lutador: o Wookada e o Cogumelo têm clipes diferentes
         let r = rec.reached.get(k);if (!r) {r = {id: cur.id, firstTick: g.tick, scenario: m.scenario, who: i, key: cur.key, frames: 0, clip: snap.clip, minTime: Infinity, maxTime: -Infinity, maxWeight: 0, keys: new Set(), clips: new Set()};rec.reached.set(k, r);}
         r.clips.add(snap.clip);
