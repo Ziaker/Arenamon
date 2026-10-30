@@ -32,6 +32,22 @@ nenhum original sobrescrito.
 Limite da ferramenta: o gráfico do `dense` escreve «t = g + 1» e «30 FPS» fixos no texto, mesmo com `--offset 0` e cena
 a 24 fps; os dados do relatório usam o offset 0 correto.
 
+## v2 (Dodge Left 2 / Dodge Right 2) · giro do frame 6 desde o início
+
+Pedido do responsável: seguir o frame 6 que ele editou na `Dodge Left 1` (corpo girado −41° no Root, coluna −33°, pernas
+recolhidas) desde o início, voltando suave à rotação normal no fim. A `Dodge Left 1` com a edição dele ficou intacta.
+
+- Arquivo novo: `chars/Eggo/eggo dodge lateral v2.blend` (Actions `Dodge Left 2` e `Dodge Right 2`, espelho).
+- Giro do Root: 0 → −18° (f3) → −34° (f4) → −41° (f6–f17) → volta suave a 0° entre f17 e f33. Coluna: até −33° (f6).
+- Pernas no voo: pés ~20 cm à frente e ~25 cm acima do chão, pé líder embaixo do corpo (medido no f6 dele).
+- Joelhos dobram para a frente do corpo girado (no f6, a até 4 cm dos joelhos da edição).
+- Evidências: `scripts/blender-vision/evidence/eggo_dodge_lateral_v2/` — `shot_Dodge_Left_2/report.html` (33 frames,
+  frente/topo/3-4), `pair_v1edit_vs_v2/` (f6: IoU 0,89 com a edição), `dense_Dodge_Left_2/`, `motion_lens/`.
+- Observado: na volta (f20–33) os pés giram no lugar junto com o corpo (pivô, ~16 cm de arrasto em 13 frames);
+  o pé de trás arrasta no f4 (decolagem). Alertas ALTO do Motion Lens só no estalo (f4–6), no pouso (f11–12) e na
+  derrapagem (f13–14).
+- Primeira tentativa do `pair` falhou com o Blender em segundo plano sem memória; repetida sozinha, passou.
+
 ## Não verificado
 
 Exportação GLB, Animation Studio e Combat Lab; `perception.py investigate` (códigos de leitura); revisão humana.

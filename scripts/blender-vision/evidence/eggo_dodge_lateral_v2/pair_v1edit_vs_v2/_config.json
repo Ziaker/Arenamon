@@ -1,0 +1,24 @@
+{
+ "offset": 0,
+ "size": 480,
+ "armature": null,
+ "mode": "pair",
+ "actions": [
+  "Dodge Left 1",
+  "Dodge Left 2"
+ ],
+ "frames": [
+  3,
+  6,
+  10,
+  13,
+  17,
+  24
+ ],
+ "views": [
+  "front",
+  "top"
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\evidence\\eggo_dodge_lateral_v2\\pair_v1edit_vs_v2.tmp-20420",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\eggo dodge lateral v2.blend"
+}
