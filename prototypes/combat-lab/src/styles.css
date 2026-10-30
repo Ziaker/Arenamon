@@ -1160,3 +1160,14 @@ body.modo-moves #editor-open-actions{display:none!important}
 .ae-props .act-controls{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .ae-log{font-size:11px;padding:1px 0;border-bottom:1px solid #1b3144}.ae-log.warn{color:#f5c04a}.ae-log small{color:#8fa6bb}
 .ae-seg.jogo{background-image:repeating-linear-gradient(45deg,#0004 0 4px,transparent 4px 8px);opacity:.75}
+
+/* Viewport 3D própria do Editor de animações (animation-preview.js): canvas independente da arena, com régua de seek. */
+.ae-viewport{pointer-events:auto;position:absolute;inset:44px 0 0;display:flex;flex-direction:column;gap:4px;padding:4px 8px}
+.ae-viewport-mount{flex:1;min-height:0;border:1px solid #2a4157;border-radius:10px;overflow:hidden;background:#141a22}
+.ae-viewport-mount canvas{display:block;width:100%;height:100%}
+.ae-vpseek{width:100%}
+.ae-vptime{color:#8fa6bb;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ae-pmode{display:inline-flex;border:1px solid #2a4157;border-radius:999px;overflow:hidden}
+.ae-pmode button{border:0;border-radius:0;background:transparent;padding:2px 8px;color:#8fa6bb}
+.ae-pmode button[aria-pressed="true"]{background:#1b3144;color:#fff}
+.ae-vp-fallback{align-self:center;margin:auto;color:#ffd27d;background:#0b1520ee;border:1px solid #6b571f;border-radius:10px;padding:10px 14px;max-width:420px}

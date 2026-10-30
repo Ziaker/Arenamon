@@ -840,7 +840,7 @@ export class Character {
       const lw = this.profileValue(this.current.id, 'layerWeight', this.current.clip.name);   // Editor › Peso da camada: teto do peso do clipe na mistura
       a.setEffectiveWeight(lw === undefined ? this.current.weight : this.current.weight * Math.max(0, Math.min(1, lw)));
       const fx = p ? (p.action ? this.profileFx(this.current, p.action) : null) : this.profileFx(this.current);
-      const reversed = !p && !!this.profileValue(this.current.id, 'reverse', this.current.clip.name);
+      const reversed = !!this.profileValue(this.current.id, 'reverse', this.current.clip.name);   // vale também na prévia do editor (viewport)
       sch = !TIMED.has(this.current.key) && !(this.current.key === 'ledge_climb' && this.current.id === 'ledge_climb') && !this.current.key.startsWith('charge_')
         ? loopScheduleOf(this, this.current, {duration: d, cap, speed: s, loop: p ? p.loop : playback.loop, preview: p, previewSpeed: Character.options.speed}) : null;   // Loop avançado (editor): com QUALQUER campo de tempo novo o relógio livre delega ao clip-scheduler (puro); estados temporais (duração da simulação), carga e borda mantêm o caminho antigo.
       if (p?.paused) {

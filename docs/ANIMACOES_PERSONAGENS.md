@@ -13,3 +13,11 @@ Abra `JOGAR_ARENAMON.html` e use **Personagens e animações**.
 
 Os efeitos **Squash & Stretch** e **Smear de Membros** ficam em **Ações → Tackle**, com controles próprios. Eles alteram somente a apresentação visual.
 
+## Viewport 3D do Editor de animações
+
+Abra `JOGAR_ARENAMON.html` › **Personagens e animações** › **Editor de animações**. A área central do Editor agora tem uma **viewport 3D própria** (cena, câmera, luz e canvas independentes da arena): o mesmo modelo e armature do lutador, tocados pelo mesmo código de tempo do jogo. O lutador da arena não é tocado.
+
+- Transporte: ▶ Tocar / ⏸ Pausar, ⏹, ⏮ ⏭ (1 quadro = 1/30 s), laço e régua de seek com o relógio `tempo / duração · quadro`.
+- Os controles de loop, recorte, velocidade e Reverso do painel de propriedades valem **ao vivo** na viewport e no jogo.
+- Botões **🖥 Viewport / 🏟 Arena**: a Arena é o modo antigo (prévia no lutador da arena); entra sozinho se o WebGL não estiver disponível.
+- Nada é gravado pela prévia. Teste: `prototypes/combat-lab/test/animation-editor-preview.test.mjs` e `animation-editor-viewport.browser.mjs` (Wookada real); captura em `prototypes/combat-lab/evidence/animation-editor/viewport.png`.

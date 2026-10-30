@@ -56,9 +56,12 @@ const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
  */
 export function loopScheduleOf(ch, layer, {duration: d, cap, speed: s, loop, preview: p, previewSpeed}) {
   const name = ch.clips[layer.index]?.name, values = {};
-  for (const fid of TIME_FIELD_IDS) {const v = ch.profileValue(layer.id, fid, name);if (v !== undefined && v !== null) values[fid] = v;}
+  // Na prévia do editor a camada tem id 'preview': os campos valem pela AÇÃO em prévia (p.action), como em profileFx — sem
+  // isto os 15 controles de loopagem liam o perfil de 'preview' (inexistente) e a prévia caía no caminho clássico.
+  const action = p?.action ?? layer.id;
+  for (const fid of TIME_FIELD_IDS) {const v = ch.profileValue(action, fid, name);if (v !== undefined && v !== null) values[fid] = v;}
   if (!Object.keys(values).length) return null;
-  const fx = ch.profileFx(layer), trim = fx ? trimOf(fx) : [0, 1], lrf = fx ? loopRange(fx) : trim;
+  const fx = ch.profileFx(layer, action), trim = fx ? trimOf(fx) : [0, 1], lrf = fx ? loopRange(fx) : trim;
   const t0 = trim[0] * d, t1 = Math.min(trim[1] * d, cap);
   let c0 = values.loopStartTime != null ? values.loopStartTime : lrf[0] * d, c1 = values.loopEndTime != null ? values.loopEndTime : lrf[1] * d;
   c0 = clamp(c0, t0, t1 - .01);c1 = clamp(c1, c0 + .01, t1);

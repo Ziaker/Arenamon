@@ -12,6 +12,7 @@ import {listMoves, getMove} from '../sim/moves.js';
 import {effectiveMovePhases} from '../sim/move-phases.js';
 import {presentationActionCandidates} from '../sim/move-presentation.js';
 import {C} from '../sim/config.js';
+import {createAnimationPreview, PREVIEW_FRAME} from '../view/animation-preview.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const TABS = [['geral', 'Visão geral'], ['fases', 'Fases e janelas'], ['mov', 'Movimento'], ['trans', 'Transições'], ['hit', 'Hitboxes'], ['ev', 'Eventos VFX e áudio'], ['prin', 'Princípios'], ['jogo', 'Parâmetros do jogo'], ['diag', 'Diagnóstico']];
@@ -25,7 +26,8 @@ const MIN_STRIP = 18;
 export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, STATE_LABELS, ACTION_LABELS, STATE_ACTIONS, ACTION_IDS, onChanged = () => {}, loadAnimationFile}) {
   const root = $('anim-editor');
   if (!root) return {open() {}, close() {}, isOpen: () => false};
-  const S = {slot: 0, action: 'idle', variantIdx: null, tab: 'geral', scope: 'action', search: '', onlyMissing: false, hit: 0, play: false, loop: true, paused: false, seek: 0, undo: [], redo: [], open: false, saved: true};
+  const S = {slot: 0, action: 'idle', variantIdx: null, tab: 'geral', scope: 'action', search: '', onlyMissing: false, hit: 0, play: false, loop: true, paused: false, seek: 0, undo: [], redo: [], open: false, saved: true, arenaPrev: false};
+  let preview = null;   // viewport 3D própria (view/animation-preview.js); nula até a montagem da UI
   const ch = () => ui.characters[S.slot] || null;
   /** Move pela identidade (`move_<id>`): clipe próprio de um Move, usado antes de move_1…4 e do tackle. */
   const moveIdentity = id => {const m = /^move_(.+)$/.exec(id || '');return m && !ACTION_IDS.includes(id) ? getMove(m[1]) : null;};
@@ -86,22 +88,53 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     if (snap(c) === before) return;   // edição repetida ou sem efeito: não polui o desfazer
     S.undo.push(before);if (S.undo.length > 100) S.undo.shift();S.redo.length = 0;
     c.save();S.saved = true;onChanged();refresh({keepList: true});
+    if (vpOn()) preview.syncFrom(c);   // aplica o controle AO VIVO na viewport (blend() relê o perfil a cada quadro)
   }
   const undo = () => {const c = ch();if (!c || !S.undo.length) return;S.redo.push(snap(c));restoreSnap(c, S.undo.pop());onChanged();refresh();};
   const redo = () => {const c = ch();if (!c || !S.redo.length) return;S.undo.push(snap(c));restoreSnap(c, S.redo.pop());onChanged();refresh();};
 
-  // ---------- Prévia no personagem real ----------
+  // ---------- Prévia: viewport 3D própria (padrão) ou personagem real na arena (fallback explícito) ----------
+  /** Viewport ativa? Só quando o WebGL está disponível e o usuário não escolheu o modo arena. */
+  const vpOn = () => !!preview && preview.available && !S.arenaPrev;
+  /** Instantâneo atual da prévia, em segundos de clipe. */
+  const previewTime = () => {
+    if (vpOn()) return preview.time();
+    const c = ch();
+    return c?.preview && c.current?.action ? c.current.action.time : S.seek;
+  };
   function startPlay() {
     const c = ch(), i = c && clipIndex(c);if (i == null) return;
-    c.startPreview(i, {action: S.action, loop: S.loop, paused: S.paused, seek: S.seek});
+    if (vpOn()) preview.loadFrom(c, i, {action: S.action, loop: S.loop, paused: S.paused, seek: S.seek});
+    else c.startPreview(i, {action: S.action, loop: S.loop, paused: S.paused, seek: S.seek});
   }
   function playPause() {
     const c = ch();if (!c || clipIndex(c) == null) return;
-    if (c.preview && !c.preview.paused) {S.paused = true;S.seek = c.current?.action.time ?? S.seek;} else {S.paused = false;}
+    const playing = vpOn() ? preview.playing() : !!(c.preview && !c.preview.paused);
+    if (playing) {S.paused = true;S.seek = previewTime();} else {S.paused = false;}
     startPlay();refreshTransport();
   }
   function seekTo(seconds) {const c = ch();if (!c || clipIndex(c) == null) return;S.paused = true;S.seek = seconds;startPlay();refreshTransport();}
-  function stopPlay() {ch()?.stopPreview();S.paused = false;refreshTransport();}
+  function stopPlay() {if (vpOn()) preview.stop();else ch()?.stopPreview();S.paused = false;refreshTransport();}
+  /** Troca o modo de prévia (viewport própria × lutador da arena). Para a prévia anterior antes de alternar. */
+  function setPreviewMode(arena) {
+    const c = ch();if (c?.preview) stopPlay();
+    S.arenaPrev = !!arena;
+    const note = root.querySelector('[data-vp-fallback]');
+    if (note) note.hidden = !(S.arenaPrev && preview && !preview.available);
+    if (!S.arenaPrev && c) syncViewport(true);   // volta à viewport: recarrega o clipe configurado
+    refreshTransport();
+  }
+  /** Mantém a viewport espelhando a seleção: troca de fonte/clipe quando muda e aplica o perfil ao vivo. */
+  let vpSig = '';
+  function syncViewport(reload = false) {
+    const c = ch();if (!preview || !c) return;
+    if (!vpOn()) return;
+    preview.ensure(c);   // anexa o modelo e copia o perfil (modelo aparece na viewport, ainda sem «Tocar»)
+    const i = clipIndex(c);
+    const sig = `${S.slot}|${c.source.name}|${i}|${S.action}`;
+    if (i != null && (reload || sig !== vpSig)) {S.seek = 0;startPlay();}
+    vpSig = sig;
+  }
 
   // ---------- Lista ----------
   const statusOf = (c, id) => {
@@ -344,9 +377,10 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
   function refreshTransport() {
     const c = ch(), el = root.querySelector('[data-transport]');
     if (!el) return;
-    const playing = !!(c?.preview && !c.preview.paused);
+    const playing = vpOn() ? preview.playing() : !!(c?.preview && !c.preview.paused);
     el.querySelector('[data-play]').textContent = playing ? '⏸ Pausar' : '▶ Tocar';
     el.querySelector('[data-loop]').checked = S.loop;
+    for (const b of el.querySelectorAll('[data-pmode]')) b.setAttribute('aria-pressed', String((b.dataset.pmode === 'arena') === S.arenaPrev));
   }
   /** Fases que a simulação declara para o Move da identidade selecionada (referência somente leitura). */
   function gameTracksOf() {
@@ -393,23 +427,24 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
   function clearHitboxVisuals() {for (const m of hbVis.meshes) {m.removeFromParent();m.geometry.dispose();m.material.dispose();}hbVis = {sig: '', owner: null, meshes: []};}
   const HB_COLORS = [0xff4d8d, 0xffb54a, 0x4de1e1, 0xc78bff];
   function syncHitboxVisuals() {
-    const c = ch(), list = S.open && c && clipIndex(c) != null ? c.animProfile.hitboxes[profileKey(c)] || [] : [];
-    const sig = c ? `${S.slot}|${profileKey(c)}|${JSON.stringify(list)}` : '';
+    const c = ch(), vis = vpOn() && preview.character() ? preview.character() : c;   // malhas vão no modelo da viewport quando ela está ativa
+    const list = S.open && c && vis && clipIndex(c) != null ? c.animProfile.hitboxes[profileKey(c)] || [] : [];
+    const sig = c ? `${S.slot}|${vpOn()}|${profileKey(c)}|${JSON.stringify(list)}` : '';
     if (sig !== hbVis.sig) {
       clearHitboxVisuals();
-      if (c && list.length) {
-        hbVis.owner = c;
+      if (c && vis && list.length) {
+        hbVis.owner = vis;
         list.forEach((h, n) => {
           const geo = h.shape === 'box' ? new THREE.BoxGeometry(1, 1, 1) : h.shape === 'capsule' ? new THREE.CapsuleGeometry(.5, .6, 4, 12) : new THREE.SphereGeometry(.5, 14, 10);
           const mat = new THREE.MeshBasicMaterial({color: HB_COLORS[n % HB_COLORS.length], wireframe: true, transparent: true, opacity: .9, depthTest: false});
           const mesh = new THREE.Mesh(geo, mat);mesh.renderOrder = 999;mesh.userData.hb = h;
-          ((h.bone && c.model.getObjectByName(h.bone)) || c.presentation).add(mesh);hbVis.meshes.push(mesh);
+          ((h.bone && vis.model.getObjectByName(h.bone)) || vis.presentation).add(mesh);hbVis.meshes.push(mesh);
         });
       }
       hbVis.sig = sig;
     }
     if (!c || !hbVis.meshes.length) return;
-    const i = clipIndex(c), dur = c.clips[i].duration, t = c.preview && c.current?.action ? c.current.action.time : S.seek, frac = dur ? t / dur : 0, sc = new THREE.Vector3();
+    const i = clipIndex(c), dur = c.clips[i].duration, t = vpOn() ? preview.time() : (c.preview && c.current?.action ? c.current.action.time : S.seek), frac = dur ? t / dur : 0, sc = new THREE.Vector3();
     for (const m of hbVis.meshes) {
       const h = m.userData.hb, p = m.parent;p.getWorldScale(sc);
       const rs = (v, k) => v / Math.max(1e-4, Math.abs(k));
@@ -426,12 +461,16 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     const c = ch(), head = root.querySelector('[data-head]');
     if (!c || !head) return;
     const i = clipIndex(c);if (i == null) return;
-    const dur = c.clips[i].duration, playing = c.preview && c.current?.action;
-    const t = playing ? c.current.action.time : S.seek;
+    const dur = c.clips[i].duration, playing = vpOn() ? preview.playing() : !!(c.preview && c.current?.action);
+    const t = previewTime();
     head.style.left = `calc(110px + (100% - 110px) * ${Math.min(1, Math.max(0, t / dur))})`;
     const lab = root.querySelector('[data-time]');
     if (lab && !lab.textContent.includes('→')) lab.textContent = `${t.toFixed(3)} s · ${(t / dur * 100).toFixed(0)} % · quadro ${Math.round(t * 30)}`;
-    const play = root.querySelector('[data-play]');if (play) play.textContent = c.preview && !c.preview.paused ? '⏸ Pausar' : '▶ Tocar';
+    const play = root.querySelector('[data-play]');if (play) play.textContent = playing ? '⏸ Pausar' : '▶ Tocar';
+    // Régua de seek e relógio da viewport 3D.
+    const seek = root.querySelector('[data-vpseek]'), clock = root.querySelector('[data-vptime]');
+    if (vpOn() && seek && document.activeElement !== seek) {seek.max = String(dur);seek.value = String(Math.min(dur, Math.max(0, t)));}
+    if (vpOn() && clock) clock.textContent = `${t.toFixed(3)} / ${dur.toFixed(3)} s · quadro ${Math.round(t * 30)}`;
   }
 
   // ---------- Montagem ----------
@@ -443,12 +482,19 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
       <div class="ae-tabs">${TABS.map(([id, name]) => `<button type="button" data-tab="${id}" aria-pressed="${id === S.tab}" title="${TAB_TIPS[id]}">${name}</button>`).join('')}</div>
       <div class="ae-body"><div class="ae-left"><div class="ae-search"><input type="search" data-search placeholder="Buscar animação…" title="Filtra a lista pelo nome"><label class="check"><input type="checkbox" data-missing title="Mostra só as animações sem clipe próprio"> só ausentes</label></div><div class="ae-count" data-count></div><div class="ae-listbox" data-list></div></div>
       <div class="ae-div v" data-div="left" role="separator" aria-orientation="vertical" tabindex="0" title="Arraste para redimensionar · clique para recolher/abrir"></div>
-      <div class="ae-center"><div class="ae-stage" data-stage><div class="ae-transport" data-transport><button type="button" data-play title="Toca ou pausa a animação no personagem real">▶ Tocar</button><button type="button" data-stop title="Para a prévia e volta ao jogo">⏹</button><button type="button" data-step="-1" title="Quadro anterior">⏮</button><button type="button" data-step="1" title="Próximo quadro">⏭</button><label class="check" title="Repete a prévia em laço (não muda o jogo)"><input type="checkbox" data-loop checked> laço</label></div><div class="ae-stage-note">O personagem real aparece na arena (atrás deste painel).</div></div></div>
+      <div class="ae-center"><div class="ae-stage" data-stage><div class="ae-transport" data-transport><button type="button" data-play title="Toca ou pausa a animação na prévia">▶ Tocar</button><button type="button" data-stop title="Para a prévia">⏹</button><button type="button" data-step="-1" title="Quadro anterior (1/30 s)">⏮</button><button type="button" data-step="1" title="Próximo quadro (1/30 s)">⏭</button><label class="check" title="Repete a prévia em laço (não muda o jogo)"><input type="checkbox" data-loop checked> laço</label><span class="ae-pmode" role="group" title="Onde a prévia toca: na viewport 3D desta janela (padrão) ou no lutador da arena (fallback)"><button type="button" data-pmode="viewport" aria-pressed="true">🖥 Viewport</button><button type="button" data-pmode="arena" aria-pressed="false">🏟 Arena</button></span><span class="ae-vptime" data-vptime title="Tempo atual / total do clipe na viewport"></span></div>
+      <div class="ae-viewport" data-viewport><div class="ae-viewport-mount" data-vp-mount title="Prévia 3D independente: mesmo modelo, armature, pipeline de tempo e controles do jogo — o lutador da arena não é tocado"></div>
+      <input type="range" class="ae-vpseek" data-vpseek min="0" max="1" step="${1 / 30}" value="0" title="Percorrer o clipe (arrastar busca; pausa na posição)">
+      <div class="ae-vp-fallback" data-vp-fallback hidden>⚠ WebGL indisponível neste navegador: a viewport 3D não pode abrir. <button type="button" data-vp-arena>Usar prévia na arena (modo antigo)</button></div>
+      <div class="ae-stage-note">Prévia 3D independente — o lutador da arena não é tocado. <button type="button" data-vp-note-arena title="Toca a prévia no lutador da arena atrás do painel (modo antigo)">usar a arena</button></div></div></div></div>
       <div class="ae-div v" data-div="right" role="separator" aria-orientation="vertical" tabindex="0" title="Arraste para redimensionar · clique para recolher/abrir"></div>
       <div class="ae-right"><div data-props class="ae-props"></div></div></div>
       <div class="ae-div h" data-div="bottom" role="separator" aria-orientation="horizontal" tabindex="0" title="Arraste para redimensionar · clique para recolher/abrir"></div>
       <div class="ae-bottom"><div data-tl class="ae-tl"></div></div>`;
     wire();applyLayout();
+    preview = createAnimationPreview({mount: root.querySelector('[data-vp-mount]')});
+    if (!preview.available) {S.arenaPrev = true;root.querySelector('[data-vp-fallback]').hidden = false;}   // sem WebGL: fallback arena explícito
+    window.__aePreview = preview;   // gancho de teste (teste de navegador da viewport)
   }
   function applyLayout() {
     root.style.setProperty('--ae-left', (L.cl ? MIN_STRIP : L.left) + 'px');root.style.setProperty('--ae-right', (L.cr ? MIN_STRIP : L.right) + 'px');root.style.setProperty('--ae-bottom', (L.cb ? MIN_STRIP : L.bottom) + 'px');
@@ -464,8 +510,12 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     root.querySelector('[data-missing]').onchange = e => {S.onlyMissing = e.target.checked;renderList();};
     root.querySelector('[data-play]').onclick = playPause;
     root.querySelector('[data-stop]').onclick = stopPlay;
-    root.querySelector('[data-loop]').onchange = e => {S.loop = e.target.checked;if (ch()?.preview) startPlay();};
-    for (const b of root.querySelectorAll('[data-step]')) b.onclick = () => {const c = ch(), i = c && clipIndex(c);if (i == null) return;const t = c.current?.action.time ?? S.seek;seekTo(Math.min(c.clips[i].duration, Math.max(0, t + Number(b.dataset.step) / 30)));};
+    root.querySelector('[data-loop]').onchange = e => {S.loop = e.target.checked;if (vpOn() || ch()?.preview) startPlay();};
+    for (const b of root.querySelectorAll('[data-pmode]')) b.onclick = () => setPreviewMode(b.dataset.pmode === 'arena');
+    root.querySelector('[data-vp-arena]').onclick = () => setPreviewMode(true);
+    root.querySelector('[data-vp-note-arena]').onclick = () => setPreviewMode(true);
+    root.querySelector('[data-vpseek]').oninput = e => seekTo(Number(e.target.value));
+    for (const b of root.querySelectorAll('[data-step]')) b.onclick = () => {const c = ch(), i = c && clipIndex(c);if (i == null) return;const t = previewTime();seekTo(Math.min(c.clips[i].duration, Math.max(0, t + Number(b.dataset.step) * PREVIEW_FRAME)));};
     root.querySelector('[data-export]').onclick = () => {const c = ch();if (!c) return;const a = document.createElement('a');a.href = URL.createObjectURL(new Blob([JSON.stringify({kind: 'arenamon-anim-profile', character: c.source.name, profile: c.animProfile, speeds: c.speeds, playback: c.playback}, null, 2)], {type: 'application/json'}));a.download = `perfil-animacoes-${(c.source.name || 'personagem').replace(/\W+/g, '_')}.json`;a.click();setTimeout(() => URL.revokeObjectURL(a.href), 500);};
     root.querySelector('[data-import-profile]').onchange = async e => {
       const file = e.target.files[0];if (!file) return;
@@ -500,7 +550,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     root.querySelector('[data-undo]').disabled = !S.undo.length;root.querySelector('[data-redo]').disabled = !S.redo.length;
     root.querySelector('[data-saved]').textContent = S.saved ? '✓ Salvo' : '● Alterado';
     if (!keepList || true) renderList();
-    renderProps();renderTimeline();refreshTransport();
+    renderProps();renderTimeline();refreshTransport();syncViewport();
   }
   let timer = null;
   function open(action) {
@@ -508,10 +558,10 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     if (action) S.action = action;
     root.hidden = false;S.open = true;$('anim-open')?.setAttribute('aria-expanded', 'true');
     $('anim-open')?.classList.add('active');
-    refresh();clearInterval(timer);timer = setInterval(liveHead, 60);
+    refresh();preview?.show();clearInterval(timer);timer = setInterval(liveHead, 60);
   }
   function close() {
-    stopPlay();root.hidden = true;S.open = false;clearInterval(timer);clearHitboxVisuals();$('anim-open')?.setAttribute('aria-expanded', 'false');$('anim-open')?.classList.remove('active');
+    stopPlay();preview?.hide();root.hidden = true;S.open = false;clearInterval(timer);clearHitboxVisuals();$('anim-open')?.setAttribute('aria-expanded', 'false');$('anim-open')?.classList.remove('active');
   }
   window.addEventListener('keydown', e => {
     if (!S.open) return;
@@ -519,5 +569,5 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     if ((e.ctrlKey || e.metaKey) && !e.target.matches?.('input,textarea,select')) {if (e.key === 'z') {e.preventDefault();undo();} else if (e.key === 'y') {e.preventDefault();redo();}}
   }, true);
   $('anim-open')?.addEventListener('click', () => (S.open ? close() : open()));
-  return {open, close, isOpen: () => S.open, select, state: S, JUMP_PHASES};
+  return {open, close, isOpen: () => S.open, select, state: S, JUMP_PHASES, preview: () => preview};
 }
