@@ -113,3 +113,11 @@ A preparação usa cache por hash do conteúdo: rodar de novo sem mudança reapr
 - O responsável aprovou as propostas da IA e a auditoria externa do lote 03. Arquivo: `dumper test/za-referencias/avaliacao/gabarito_lote_03_aceito.json`, origem `ACEITO_PELO_USUARIO`, 15 clipes, só os campos pontuáveis (executores, iniciador, antecipação, apoio/impulso, parte some/aparece).
 - **Ajuste único sobre a proposta:** Wigglytuff, executores `mandibula` → `INCONCLUSIVO` (a auditoria não vê boca nem projétil).
 - Revisor único (sem kappa); muitos campos ficam INCONCLUSIVO por desenho. Não alterei o lote humano (hash `a83c78d9fc71`).
+
+## Regras corrigidas pelo gabarito dos lotes 02 e 03 (30/10/2026)
+
+- **Dano e aterrissagem** (`damage`, `land`, lista editável em `regras_papeis.json` → `reacoes`): o corpo todo reage, então ficam **sem executor** (NAO_SE_APLICA); as pernas que dobram no clipe ficam como apoio.
+- **Locomoção** (walk, run…): as pernas que ciclam são executoras **e também** apoio/impulso. Isso inverte a regra de 25/10 ("locomoção não tem apoio separado"); o teste antigo foi trocado. Braços que balançam não contam como apoio.
+- Banco refeito (41.790 clipes, 0 falhas, ~22 min), normas recopiadas para `tools/za-referencias/` e previsões dos lotes 01, 02 e 03 refeitas.
+- **Placar do sistema contra os 19 clipes dos gabaritos aceitos (lotes 02 e 03), antes → depois:** apoio/impulso 11/12 → 14/14 certos; executores: inconclusivos corretos 7 → 9 e falsos positivos 10 → 8; antecipação 0,89 e parte some/aparece 1,00 (iguais). O campo iniciador continua 0 porque o gabarito é inconclusivo por desenho (as regiões começam juntas).
+- **Ainda errado em executores:** cauda incluída no ataque do Lucario e no Pyroar (carga com cauda balançando), Swalot (final de ataque), Sylveon e Wigglytuff (gabarito inconclusivo) e os braços na caminhada do Aurorus. Não mexi: cada um pede decisão própria.
