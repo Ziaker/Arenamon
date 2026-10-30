@@ -31,7 +31,7 @@
 | M1 | Personagens: «Cogumelo» é o Mosh; faltavam Vigoroth, Eggo, Croagunk, Drowzee, Gumshoos | Média | §9 |
 | M2 | Exportação glTF listava 3 modos; o 5.2.2 tem 5 | Média | §7.3 |
 | M3 | `--factory-startup` desliga os add-ons do usuário | Média | §4 |
-| M4 | Caminho da Pose Library desatualizado | Baixa | §7.1 (Asset Shelf) |
+| M4 | Caminho da Pose Library: manter tanto o Action Editor quanto o Asset Shelf da 3D Viewport (ambos válidos na doc oficial 5.2) | Baixa | §7.1 (tabela) |
 | M5 | O script de auditoria não mostrava o slot e ignorava `fps_base` | Baixa | §8.1 (testado no 5.2.2) |
 | M6 | Testes «10+ ciclos» e regressão ampla contra a regra de testes leves | Baixa | §10.3 com as ferramentas existentes |
 | M7 | Auditoria e edição não eram separadas | Alta | §1: modos A/B/C |

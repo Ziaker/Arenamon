@@ -196,6 +196,16 @@ As janelas vindas da animação só valem no combate com **«Fonte dos tempos» 
 com cada fase autorizada no painel Personagens. Em `phaseMode = 2` («Comparar») o combate não muda. O resultado depende
 da configuração e da origem dos marcadores. Num relatório, diga qual fonte estava ativa.
 
+### 6.1 Quais alterações exigem nova validação mecânica (checklist)
+
+| Tipo de alteração no Blender | Afeta a mecânica do jogo? | Exige revalidação no Combat Lab? | O que verificar |
+|---|---|---|---|
+| **Ajuste de poses e curvas internas** (arcos, easing, silhueta) mantendo duração e eventos intactos | **Não** (a física e os tempos mecânicos permanecem idênticos) | Opcional (apenas inspeção visual) | Verificar se o impacto visual ainda coincide aproximadamente com a janela ativa |
+| **Mudar a duração total do clipe** com eventos no GLB | **Sim** (em `phaseMode = 1` com eventos GLB, a proporção evento/duração desloca as janelas) | **Sim (obrigatória)** | Rechecar `getCombatWindows()` no console do Lab e rodar teste de combate |
+| **Adicionar, mover ou apagar marcadores de eventos** (`hitbox_on/off`, `invuln_*`, etc.) | **Sim** (altera o contrato canônico `AnimationCombatWindows`) | **Sim (obrigatória)** | Conferir no Studio se os pares início/fim estão na ordem correta e fecham intervalos válidos |
+| **Retimar o golpe (adiantar/atrasar o frame do contato)** sob perfil existente | **Indireto** (a janela mecânica fica fixa no perfil, mas o golpe bate «no ar» ou antes da hora) | **Sim (obrigatória)** | Comparar o frame do impacto no visual com o início da janela ativa no Lab |
+| **Alterar `rootMotion` ou `lockToGround`** no perfil | **Sim** (muda o deslocamento físico e a ancoragem vertical) | **Sim (obrigatória)** | Verificar colisão com paredes, alcance efetivo do golpe e travamento no piso |
+
 **Campos que ficam só salvos (`applied:false`) em `animation-profile.js`:** `startup`, `priority` (camada), `repeats`,
 `exitCondition`, `displacement`, `verticalSpeed`, `minTime`, `autoNext`. Não os apresente como efeito implementado.
 Exemplos com efeito (`applied:true`): `armor`, `hitstopMult`, `interruptible`, as janelas acima, `rootMotion` e
@@ -215,7 +225,7 @@ invente caminhos.
 |---|---|---|---|
 | Graph Editor | Editor Type › Graph Editor; Key › Interpolation Mode / Handle Type | Spacing, easing, arcos, overshoot | Curva visual ≠ deslocamento físico (root vem da física salvo `rootMotion`) |
 | Dope Sheet / Action Editor | Dope Sheet › Action Editor; seletor de Action **e de slot** | Duplicar Action, organizar poses-chave | Confira se a chave caiu na Action/slot pretendido |
-| Pose Library | Asset Shelf da viewport em Pose Mode; Pose › Create Pose Asset | Poses reutilizáveis | Rigs diferentes (Wookada × Mosh × Vigoroth) não são compatíveis automaticamente |
+| Pose Library | Dope Sheet › Action Editor ou Asset Shelf da 3D Viewport em Pose Mode; Pose › Create Pose Asset | Poses reutilizáveis | Rigs diferentes (Wookada × Mosh × Vigoroth) não são compatíveis automaticamente |
 | In-Betweens / Breakdowner | Pose › In-Betweens | Poses intermediárias | — |
 | IK / Constraints | Bone Constraints › Add › Inverse Kinematics | Contatos persistentes (Target, Pole, Chain Length) | Constraints **não** exportam: bake visual numa cópia |
 | Rigify | Add-on `rigify` (ativo); Add › Armature › metarig | Gerar controles para rig novo | Não substitui pesos nem revisão de deformação |
