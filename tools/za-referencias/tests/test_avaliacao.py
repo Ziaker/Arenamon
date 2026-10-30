@@ -163,13 +163,13 @@ class TestEscolherSemRepetirClipe(unittest.TestCase):
         import gerar_lote
         from sintetico import c
         banco = [c("pm0001_00_00", "00400_attack01", especie=1, status="MEDIDO", conjunto=0),
-                 c("pm0001_00_00", "00100_run01_loop", especie=1, status="MEDIDO", conjunto=0)]
+                 c("pm0001_00_00", "00410_attack01", especie=1, status="MEDIDO", conjunto=0)]
         for l in banco:
             l["id"] = "%s/%s" % (l["modelo"], l["clipe"])
         esc = gerar_lote.escolher_diverso(banco, excluir_ids={"pm0001_00_00/00400_attack01"})
         ids = {l["id"] for l in esc}
         self.assertNotIn("pm0001_00_00/00400_attack01", ids)
-        self.assertIn("pm0001_00_00/00100_run01_loop", ids)
+        self.assertIn("pm0001_00_00/00410_attack01", ids)
 
 
 class TestEscolherDiverso(unittest.TestCase):
