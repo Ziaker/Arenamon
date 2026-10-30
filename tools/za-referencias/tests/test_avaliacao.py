@@ -145,6 +145,19 @@ class TestPrevisaoApoio(unittest.TestCase):
         self.assertEqual(p["apoio_impulso"], ["perna_E"])
 
 
+class TestEscolherSoElegiveis(unittest.TestCase):
+    def test_so_especies_elegiveis(self):
+        import gerar_lote
+        from sintetico import c
+        banco = [c("pm%04d_00_00" % i, "00400_attack01", especie=i, status="MEDIDO", conjunto=0) for i in range(1, 40)]
+        for l in banco:
+            l["id"] = "%s/%s" % (l["modelo"], l["clipe"])
+        ok = {5, 6, 7, 8, 9}
+        esc = gerar_lote.escolher_diverso(banco, so_especies=ok)
+        self.assertTrue(esc)
+        self.assertTrue({l["especie"] for l in esc} <= ok)
+
+
 class TestEscolherDiverso(unittest.TestCase):
     def _banco(self):
         from sintetico import c

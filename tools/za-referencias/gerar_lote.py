@@ -116,12 +116,13 @@ RESERVA_DIVERSO = [("attack", None, None), ("roar", None, None), ("jumpup", None
                    ("eat", None, None), ("turnmove", None, None), ("down", None, None), ("rangeattack", None, None)]
 
 
-def escolher_diverso(teste, excluir_especies=(), semente=2026, n=15, excluir_cadeias=()):
+def escolher_diverso(teste, excluir_especies=(), semente=2026, n=15, excluir_cadeias=(), so_especies=None):
     """~15 itens variados para rotular: uma espécie e uma linha evolutiva por item (nada redundante), formas comuns
     (_00_00), conjunto 0, revezando classes do corpo e categorias. Espécies de lotes anteriores ficam de fora.
     'charge' entra com e sem executor previsto, para conferir os charge sem membro que cicla."""
     rnd = random.Random(semente)
-    medidos = sorted((l for l in teste if l.get("status") == "MEDIDO" and l.get("especie") not in excluir_especies),
+    medidos = sorted((l for l in teste if l.get("status") == "MEDIDO" and l.get("especie") not in excluir_especies
+                      and (so_especies is None or l.get("especie") in so_especies)),
                      key=lambda l: l["id"])
     rnd.shuffle(medidos)
     base = [l for l in medidos if l.get("conjunto", 0) == 0 and l["modelo"].endswith("_00_00")]
@@ -180,6 +181,11 @@ def main():
     diverso = sys.argv[1] == "--diverso"
     if diverso:
         sys.argv.pop(1)
+    so_especies = None
+    if sys.argv[1] == "--elegiveis":   # lista de elegibilidade.py: só essas espécies entram no lote
+        with open(sys.argv[2], encoding="utf-8") as fh:
+            so_especies = set(json.load(fh)["especies"])
+        del sys.argv[1:3]
     banco, dump, saida = sys.argv[1:4]
     anteriores = sys.argv[4:]   # pastas de lotes anteriores: espécies que não podem repetir
     with open(os.path.join(AQUI, "especies.json"), encoding="utf-8") as fh:
@@ -201,7 +207,7 @@ def main():
                 ids = {it["id"] for it in json.load(fh)["itens"]}
             excl |= {l["especie"] for l in clipes if l["id"] in ids}
             excl_cad |= {l.get("cadeia") or l["especie"] for l in clipes if l["id"] in ids}
-        lote = escolher_diverso(div["teste"], excl, excluir_cadeias=excl_cad)
+        lote = escolher_diverso(div["teste"], excl, excluir_cadeias=excl_cad, so_especies=so_especies)
     else:
         lote = escolher(div["teste"])
     print("divisão: %d grupos, teste %.1f%%; lote %d clipes" % (div["grupos"], 100 * div["relatorio_vazamento"]["frac_teste_real"], len(lote)), flush=True)
