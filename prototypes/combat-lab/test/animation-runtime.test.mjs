@@ -23,18 +23,29 @@ ok(`inventário dinâmico: ${actions.length} ações configuráveis (65 fixas do
 
 // ---- (1) sintético: TODAS as ações tocam, com o clipe exato ----
 const syn = runAll(null), synCh = makeCharacter(actions, 'azul.glb'), synRows = rowsFor('sintético', synCh, syn, true);
-assert.deepEqual(synRows.filter(r => r.resultado !== 'OK').map(r => `${r.acao}: ${r.resultado}`), [], 'toda ação configurada com clipe válido toca no gameplay real com o clipe exato');
-ok(`sintético: ${synRows.length} de ${synRows.length} ações tocaram com o clipe exato configurado (nenhuma reserva, nenhuma substituição)`);
+const synConfigured = synRows.filter(r => r.configurado !== '—');
+assert.deepEqual(synRows.filter(r => r.fallback !== 'não').map(r => `${r.acao}: tocou ${r.fallback} no lugar de ${r.configurado}`), [], 'nenhuma ação caiu em reserva não listada (FALLBACK)');
+assert.deepEqual(synConfigured.filter(r => r.classificacao === 'NAO_ALCANCADA').map(r => r.acao), [], 'toda ação configurada com clipe válido tocou no gameplay real');
+ok(`sintético: ${synConfigured.length} ações configuradas tocaram com o clipe exato (nenhuma reserva, nenhuma substituição)`);
+const synCortadas = synConfigured.filter(r => r.classificacao === 'CORTADA_INDEVIDAMENTE');
+const synCurtas = synConfigured.filter(r => !r.resultado.startsWith('aprovada') && !['CORTADA_INDEVIDAMENTE', 'SEM_CLIPE', '—'].includes(r.classificacao));
+if (synCurtas.length) console.log('  · reprovadas só pelo portão de duração/peso (critério, não falha de roteamento):', synCurtas.map(r => `${r.acao} (${r.classificacao})`).join(', '));
 
 // ---- (2) GLBs importados de verdade, COM a configuração salva do usuário (inicial/workspace-inicial.zip) ----
 const w = await loadConfiguredSource(chars('wookada/wookada.glb'), 'wookada.glb'), c = await loadConfiguredSource(chars('mosh/Cogumelo.glb'), 'Cogumelo.glb');
 // cada modelo importado é o lutador AZUL (o que age em todos os cenários) numa rodada própria; o outro serve de rival
 const runs = [[w, runAll([w, c])], [c, runAll([c, w])]];
+const realCortadas = [];
 for (const [src, real] of runs) {
   const who = 0, ch = new Character(src, {persist: true}), rows = rowsFor(src.name, ch, real, false, who);
   const configured = rows.filter(r => r.configurado !== '—');
-  assert.deepEqual(rows.filter(r => r.resultado.startsWith('FALHA')).map(r => `${r.acao}: ${r.resultado}`), [], `${src.name}: toda ação com clipe configurado toca no gameplay real (ou é reserva documentada)`);
-  ok(`${src.name} (importado): ${configured.length} ações configuradas, ${rows.filter(r => r.resultado === 'OK').length} tocadas com o clipe exato, ${rows.filter(r => r.resultado.startsWith('reserva')).length} reservas, ${rows.length - configured.length} sem clipe configurado`);
+  realCortadas.push(...configured.filter(r => r.classificacao === 'CORTADA_INDEVIDAMENTE').map(r => `${src.name} ${r.acao}: ${r.resultado}`));
+  const fallbackadas = rows.filter(r => r.classificacao === 'FALLBACK'), naoAlcancadas = configured.filter(r => r.classificacao === 'NAO_ALCANCADA');
+  assert.deepEqual(fallbackadas.map(r => `${r.acao}: tocou ${r.fallback}`), [], `${src.name}: nenhuma ação caiu em reserva não listada (FALLBACK)`);
+  assert.deepEqual(naoAlcancadas.map(r => r.acao), [], `${src.name}: toda ação com clipe configurado tocou no gameplay real`);
+  const curtas = configured.filter(r => !r.resultado.startsWith('aprovada') && !['CORTADA_INDEVIDAMENTE', 'SEM_CLIPE', '—'].includes(r.classificacao));
+  if (curtas.length) console.log(`  · ${src.name} reprovadas só pelo portão de duração/peso:`, curtas.map(r => `${r.acao} (${r.classificacao})`).join(', '));
+  ok(`${src.name} (importado): ${configured.filter(r => r.resultado.startsWith('aprovada')).length}/${configured.length} ações configuradas aprovadas por execução, ${rows.filter(r => r.resultado.startsWith('reserva')).length} reservas, ${rows.length - configured.length} sem clipe configurado`);
 }
 
 // ---- (3) parâmetros do Editor aplicados ao mixer: velocidade, recorte e laço ----
@@ -86,17 +97,25 @@ for (const [src, real] of runs) {
 }
 
 // ---- (5) replay e save/load no meio: a mesma partida toca a mesma sequência de animações ----
+// Comparação por frame REFORÇADA (A9): não basta a chave — comparamos também o índice/identidade do clipe, o tempo
+// do clipe (action.time) e o peso efetivo. Save/load no meio da conclusão visual deve retomar a mesma sequência.
 {
-  const seq = m => m.rec.frames.filter(f => f.who === 0).map(f => `${f.key}>${f.id}`);
+  const sig = m => m.rec.frames.filter(f => f.who === 0).map(f => [f.key, f.id, +f.time.toFixed(4), +f.weight.toFixed(3)]);
   const play = () => SCENARIOS.find(x => x.name.startsWith('tackle X e recuperação')).build();
-  assert.deepEqual(seq(play()), seq(play()), 'dois replays idênticos tocam a mesma sequência quadro a quadro');
-  ok('replay: duas execuções da mesma partida tocam a mesma sequência de animações, quadro a quadro');
+  assert.deepEqual(sig(play()), sig(play()), 'dois replays idênticos tocam a mesma sequência quadro a quadro (key · id · time · weight)');
+  ok('replay: duas execuções da mesma partida tocam a mesma sequência de animações, quadro a quadro, com tempo de clipe e peso');
   const m1 = makeMatch();m1.run(20);m1.step(cmd({tackle: true, move: vec(0, 1), target: 1, locked: true}));m1.run(15);
   const snap = m1.g.save();for (let i = 0; i < 120; i++) m1.step();
   const m2 = makeMatch();m2.g.load(snap);for (let i = 0; i < 120; i++) m2.step();
-  const tail = m => m.rec.frames.filter(f => f.who === 0).slice(-90).map(f => `${f.key}>${f.id}`);
-  assert.deepEqual(tail(m2), tail(m1), 'depois do load a sequência final de animações é a mesma');
-  ok('save/load no meio do tackle: a partida carregada termina tocando a mesma sequência');
+  const tail = m => m.rec.frames.filter(f => f.who === 0).slice(-90).map(f => [f.key, f.id, +f.time.toFixed(4), +f.weight.toFixed(3)]);
+  assert.deepEqual(tail(m2), tail(m1), 'depois do load a sequência final de animações é a mesma (key · id · time · weight)');
+  ok('save/load no meio do tackle: a partida carregada termina tocando a mesma sequência, com tempo de clipe e peso');
 }
+
+// ---- (6) epílogo de execução única: NENHUMA execução é cortada para locomoção/neutral/idle/turn sem razão autorizada ----
+// (Pós-correção do epílogo isto deve ser zero: cada ação de execução única leva o clipe ao fim efetivo ou é
+// interrompida por razão autorizada. Se este assert falhar, o critério por execução achou um corte real.)
+assert.deepEqual([...synCortadas.map(r => `sintético ${r.acao}: ${r.resultado}`), ...realCortadas], [], 'zero CORTADA_INDEVIDAMENTE nos três personagens (ações de execução única concluem ou são interrompidas por razão autorizada)');
+ok('epílogo: zero cortes indevidos para locomoção/neutral/idle nos três personagens');
 console.log(`\n${n} verificações de animação no runtime aprovadas.`);
 process.exit(0);

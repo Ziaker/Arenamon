@@ -21,7 +21,7 @@ export const cmd = (o = {}) => ({...emptyCommand(), ...o});
 export const EDITOR_IDS = ANIMATION_GROUPS.flatMap(g => g[2]);
 
 /** Clipe sintético com nome = identidade da ação (duração e amplitude próprias para o mixer ter o que reproduzir). */
-function clip(name, duration, amp) {
+export function clip(name, duration, amp) {
   const times = [0, duration / 2, duration], q = a => new T.Quaternion().setFromAxisAngle(new T.Vector3(1, 0, 0), a * Math.PI / 180).toArray();
   return new T.AnimationClip(name, duration, [new T.QuaternionKeyframeTrack('mixamorigSpine.quaternion', times, [...q(0), ...q(amp), ...q(0)]),
     new T.VectorKeyframeTrack('mixamorigHips.position', times, [0, 100, 0, 3, 100 - amp / 5, 40, 0, 100, 0])]);
@@ -94,16 +94,23 @@ export function makeMatch({equip = [[], []], positions = [vec(0, -3), vec(0, 3)]
   equip.forEach((ids, i) => {if (ids.length) g.setLoadout(i, ids);});
   const actions = configurableActions(), chars = sources ? sources.map(src => new Character(src, {persist: !!src.assetId})) : [makeCharacter(actions, 'azul.glb', omit), makeCharacter(actions, 'vermelho.glb', omit)];
   for (const ch of chars) ch.autoGround = false;
-  const rec = {frames: [], reached: new Map()};
+  const rec = {frames: [], reached: new Map(), logs: []};
+  const logCursor = [0, 0];
   const m = {g, chars, rec, actions, scenario: 'cenario',
     step(a = cmd(), b = cmd()) {
       g.step(a, b);
       for (let i = 0; i < 2; i++) {
         const f = g.fighters[i], ch = chars[i], alt = (f.flight?.y ?? f.groundY ?? 0) + (f.vaultHeight ?? 0);
         ch.update(f, C.test.step, alt, g.lastStepEvents, {tick: g.tick, source: i ? 'IA' : 'jogador', fighters: g.fighters});
+        // Cópia integral do log de transições do Character (o original é circular, 400 entradas): cada entrada ganha `who`.
+        if (ch.log.length < logCursor[i]) logCursor[i] = 0;   // estouro do buffer circular: ressincroniza pelo tick
+        for (let j = logCursor[i]; j < ch.log.length; j++) rec.logs.push({...ch.log[j], who: i});
+        logCursor[i] = ch.log.length;
         const cur = ch.current;
         if (!cur) continue;
-        const act = cur.action, snap = {tick: g.tick, who: i, key: cur.key, id: cur.id, clip: cur.clip?.name, time: act.time, weight: act.getEffectiveWeight(), running: act.isRunning(), duration: cur.clip?.duration, state: f.state};
+        const act = cur.action, snap = {tick: g.tick, who: i, key: cur.key, id: cur.id, clip: cur.clip?.name, time: act.time, weight: act.getEffectiveWeight(), running: act.isRunning(), duration: cur.clip?.duration, state: f.state,
+          actionKind: f.action?.kind ?? null, actionMove: f.action?.move ?? null, knockRecovery: f.knockRecovery ?? 0, moveRecovery: f.moveRecovery ?? 0, actionRecovery: f.actionRecovery ?? 0,
+          hitstun: f.hitstun ?? 0, stagger: f.stagger ?? 0, pos: {x: +f.position.x.toFixed(4), z: +f.position.z.toFixed(4)}, entry: cur.entry ?? null, started: cur.started ?? null};
         const k = `${i}:${cur.id}`;   // por lutador: o Wookada e o Cogumelo têm clipes diferentes
         let r = rec.reached.get(k);if (!r) {r = {id: cur.id, firstTick: g.tick, scenario: m.scenario, who: i, key: cur.key, frames: 0, clip: snap.clip, minTime: Infinity, maxTime: -Infinity, maxWeight: 0, keys: new Set(), clips: new Set()};rec.reached.set(k, r);}
         r.clips.add(snap.clip);

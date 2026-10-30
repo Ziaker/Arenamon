@@ -58,10 +58,17 @@ test('associação por nome: variantes de tackle, esquivas, sprint e freios', ()
 test('tackle e esquiva tocam até o fim, sem reinício por detecção repetida', () => {
   for (const kind of ['tackle', 'dodge']) {
     const {ch, g} = setup();const keys = run(ch, g, 160, t => [t === 20 ? cmd({move: vec(1, 0), [kind]: true, dodgeDirection: vec(1, 0)}) : cmd(), cmd()]);
-    const key = kind === 'tackle' ? 'tackle' : 'dodge_forward', e = entries(ch, key);
-    check(`${kind}: uma única entrada`, e.length === 1, `${e.length} entradas`);
-    const next = after(ch, e[0]);
+    const key = kind === 'tackle' ? 'tackle' : 'dodge_forward';
+    // Eventos do epílogo de conclusão visual não são entradas novas: o clipe segue na MESMA execução.
+    const plain = ch.log.filter(x => !x.epilogue && !x.epilogueEnd);
+    const e = plain.filter(ev => ev.to === key);
+    check(`${kind}: uma única entrada (o epílogo não reinicia o clipe)`, e.length === 1, `${e.length} entradas`);
+    const next = plain[plain.indexOf(e[0]) + 1];
     check(`${kind}: termina a ${next?.playedPct}% do clipe`, next && next.playedPct >= 95 && !next.interrupted && next.reason === 'ação concluída', JSON.stringify(next));
+    // Conclusão visual independente: o fim mecânico abre um epílogo que só solta o clipe na conclusão natural.
+    const ep = ch.log.filter(x => x.epilogue || x.epilogueEnd);
+    check(`${kind}: epílogo registrado (conclusão visual → conclusão natural ao fim do clipe)`,
+      ep.length >= 2 && ep[0].reason === 'conclusão visual' && ep.at(-1).reason === 'conclusão natural' && ep.at(-1).playedPct === 100, JSON.stringify(ep.map(x => x.reason)));
     // Tempo do clipe monotônico durante a ação (nunca volta ao início).
     const span = keys.filter(k => k.key === key);let mono = true;for (let i = 1; i < span.length; i++) if (span[i].time < span[i - 1].time - 1e-9) mono = false;
     check(`${kind}: tempo do clipe só avança`, mono);
@@ -70,7 +77,7 @@ test('tackle e esquiva tocam até o fim, sem reinício por detecção repetida',
 test('dois tackles seguidos reiniciam o clipe (nova ação legítima); variante sorteada só na entrada', () => {
   const {ch, g} = setup();C.actions.tackle.cost = 0;ch.addVariant('tackle', 4);ch.addVariant('tackle', 5);
   const keys = run(ch, g, 3000, t => [t % 100 === 10 ? cmd({move: vec(t % 200 < 100 ? 1 : -1, 0), tackle: true}) : cmd(), cmd()]);
-  const tackles = entries(ch, 'tackle');
+  const tackles = entries(ch, 'tackle').filter(e => !e.epilogue);   // os epílogos de conclusão visual não são entradas
   check('uma entrada por tackle', tackles.length === 30, `${tackles.length}`);
   check('as 3 variantes aparecem', new Set(tackles.map(e => e.clipTo)).size === 3, [...new Set(tackles.map(e => e.clipTo))].join(', '));
   // Durante cada tackle o índice do clipe não muda.
@@ -78,7 +85,7 @@ test('dois tackles seguidos reiniciam o clipe (nova ação legítima); variante 
   check('variante fixa durante a reprodução', stable);
   // Determinismo: a mesma sequência de passos escolhe as mesmas variantes.
   const r2 = setup();C.actions.tackle.cost = 0;r2.ch.addVariant('tackle', 4);r2.ch.addVariant('tackle', 5);run(r2.ch, r2.g, 3000, t => [t % 100 === 10 ? cmd({move: vec(t % 200 < 100 ? 1 : -1, 0), tackle: true}) : cmd(), cmd()]);
-  check('sorteio determinístico (replay escolhe as mesmas variantes)', JSON.stringify(entries(r2.ch, 'tackle').map(e => e.clipTo)) === JSON.stringify(tackles.map(e => e.clipTo)));
+  check('sorteio determinístico (replay escolhe as mesmas variantes)', JSON.stringify(entries(r2.ch, 'tackle').filter(e => !e.epilogue).map(e => e.clipTo)) === JSON.stringify(tackles.map(e => e.clipTo)));
 });
 test('cancelamento C → X: transição legítima registrada, com o motivo', () => {
   const {ch, g} = setup();
@@ -93,7 +100,7 @@ test('esquiva → sprint → freio do sprint → inversão', () => {
   const seq = ch.log.map(e => e.to).filter((k, i, a) => k !== a[i - 1]);
   check('sequência esquiva → sprint', seq.indexOf('sprint') === seq.indexOf('dodge_forward') + 1, seq.join(' → '));
   check('sprint → freio do sprint ao soltar C', seq.includes('sprint_stop') && seq.indexOf('sprint_stop') > seq.indexOf('sprint'), seq.join(' → '));
-  check('freio entra só com desaceleração real', ch.log.filter(e => e.to === 'sprint_stop').every(e => e.reason === 'freio físico'));
+  check('freio entra só com desaceleração real', ch.log.filter(e => e.to === 'sprint_stop' && !e.epilogue && !e.epilogueEnd).every(e => e.reason === 'freio físico'));
 });
 test('andar → freio da caminhada → inversão', () => {
   const {ch, g} = setup();

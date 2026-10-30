@@ -12,7 +12,8 @@
 //   • Locomoção tem histerese (parado/andar/sprint/laterais) contra oscilações de poucos quadros.
 //   • A posição vem só da física: o deslocamento horizontal da raiz do GLB é descartado (sem root motion).
 //   • O tempo das animações com duração definida (tackle, esquiva, recuo, guard stun, voo, aterrissagem) vem do
-//     estado da simulação (o clipe é esticado para a duração da ação), inclusive no replay.
+//     estado da simulação (o clipe é esticado para a duração da ação), inclusive no replay. Ao fim mecânico, uma
+//     execução única não concluída segue em EPÍLOGO até o fim efetivo do clipe (visual-epilogue.js; só visual).
 //   • Telemetria: cada entrada registra animação iniciada/substituída, tempo e porcentagem tocados, motivo,
 //     estados anterior e seguinte e origem (jogador, IA, combate ou sistema).
 import * as T from 'three';
@@ -29,6 +30,7 @@ import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
 import {firstAvailablePresentationAction} from '../sim/move-presentation.js';
+import {tryStartEpilogue, stepEpilogue, synthesizeLanding, progressOf, logTransition, resumeEpilogue, markEpilogue, clearEpilogueMark} from './visual-epilogue.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
 export const STATE_ACTIONS = {
@@ -101,13 +103,15 @@ const ALIASES = {
 };
 const MOVE_KEYS = ['move_1', 'move_2', 'move_3', 'move_4'];
 const JUMP_PHASES_LIST = ['jump_start', 'jump_rise', 'jump_apex', 'jump_fall'];
-const TIMED = new Set(['brake', 'airborne_up', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
+export const TIMED = new Set(['brake', 'airborne_up', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', 'jump', 'recoil', 'guardStun', 'airborne', 'landing', 'recover', 'defeated', 'stagger', 'hitstun', 'actionRecovery', ...MOVE_KEYS]);
 const TRANSIENT = new Set(['guard_enter', 'guard_exit', 'guard_hit']);
 /** Tocam uma vez a partir da entrada e seguram a última pose (não repetem em laço). */
 const ONE_SHOT = new Set(['stagger_crush', 'recovery_tackle', 'recovery_dodge', 'recovery_move', 'jump_start', 'jump_apex', 'meteor_prep', 'meteor_dive', 'meteor_ground', ...TRANSIENT, 'walk_stop', 'sprint_stop', '__preview', 'ledge_grab', 'ledge_drop', 'ledge_blocked', 'release_reflect', 'release_psyshock', 'hitstun', 'stagger', ...MOVE_KEYS]);
-const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
-const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
-const COMBAT_KEYS = new Set(['wallSplat', 'airborne_up', 'pushed_side', 'stagger_crush', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
+export const LOCOMOTION = new Set(['neutral', 'turn', 'walk', 'walk_back', 'walk_left', 'walk_right', 'sprint', 'sprint_back', 'sprint_left', 'sprint_right']);
+export const ACTION_KEYS = new Set(['meteor_prep', 'meteor_dive', 'meteor_ground', 'tackle', 'tackle_pl2', 'tackle_pl3', 'dodge_forward', 'dodge_back', 'dodge_left', 'dodge_right', 'vault', ...MOVE_KEYS]);
+export const COMBAT_KEYS = new Set(['wallSplat', 'airborne_up', 'pushed_side', 'stagger_crush', 'airborne', 'landing', 'recover', 'guardStun', 'recoil', 'defeated', 'pushed', 'guard_hit', 'stagger', 'hitstun', 'actionRecovery']);
+// Exportados para visual-epilogue.js (epílogo de conclusão e telemetria de transições).
+export {MOVE_KEYS, TRANSIENT, ONE_SHOT};
 
 /** Perfil de olhar padrão de um Move: a definição pode declarar `tracking` ('head' | 'headTorso' | 'aim' | 'off'); sem ela, cabeça e tronco. */
 export const moveDefaultTracking = id => getMove(id)?.tracking ?? 'headTorso';
@@ -187,6 +191,7 @@ export class Character {
     this.current = null;this.layers = [];this.fade = 0;this.timer = 0;this.clock = 0;this.flightV0 = 0;this.wasFlying = false;this.lastFlight = -Infinity;
     this.transient = null;this.wasGuard = false;this.seenEvents = new WeakSet();this.statesSeen = new Set();this.preview = null;this.visualFreeze = 0;
     this.stableLoco = null;this.locoCandidate = null;this.locoCandidateAt = 0;this.prevAction = null;this.actionSerial = 0;this.log = [];this.transitions = 0;this.restartsAvoided = 0;
+    this.epilogue = null;this.epilogueInterrupt = false;   // conclusão visual independente (visual-epilogue.js): estado transitório, só visual
     this.groundCache = new Map();this.groundOffset = 0;
     this.tintClones = new Map();this.tintHex = null;
     this.root.traverse(o => {if (o.isMesh) {o.frustumCulled = false;o.castShadow = false;}});
@@ -328,7 +333,7 @@ export class Character {
     if (this.animProfile?.entries[id]?.enabled === false) return [];
     return (this.variants[id] || []).filter(i => this.clips[i] && this.clipInfo[i]?.compatible);
   }
-  refreshVisual() {if (this.current) this.current.entry = '__mapping_changed__';}
+  refreshVisual() {this.epilogue = null;if (this.current) this.current.entry = '__mapping_changed__';clearEpilogueMark(this.lastF);}
   addVariant(id, index) {if (!this.clipInfo[index]?.compatible) return false;const list = this.variants[id] ??= [];if (!list.includes(index)) list.push(index);this.refreshVisual();this.save();return true;}
   removeVariant(id, index) {this.variants[id] = (this.variants[id] || []).filter(i => i !== index);if (!this.variants[id].length) delete this.variants[id];this.refreshVisual();this.save();}
   /** Troca a variante principal (posição 0) de um estado. */
@@ -337,7 +342,7 @@ export class Character {
    * Para e descarta todas as ações do mixer (atual e camadas). Antes, trocar uma associação só esquecia a ação atual,
    * que continuava tocando com peso 1 misturada a todas as outras (“forçando” uma pose).
    */
-  resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;}
+  resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;this.epilogue = null;this.epilogueInterrupt = false;clearEpilogueMark(this.lastF);}
   moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.refreshVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
   /** Associações, velocidades e offsets em formato portátil (clipes por nome). */
@@ -438,7 +443,9 @@ export class Character {
     this.restore();return report;
   }
   speedOf(id) {return (Character.options.speed || 1) * (this.speeds[id] ?? 1);}
-  playbackOf(id, key = id) {const o = this.playback[id] || {};return {loop: o.loop ?? !(ONE_SHOT.has(key) || TIMED.has(key)), maxDuration: Math.max(0, Number(o.maxDuration) || 0)};}
+  // release_* genéricos (release_<id> dos Moves de carga) são execução única como os release_reflect/psyshock do
+  // ONE_SHOT: sem isto o laço por omissão voltava true e o epílogo de conclusão rejeitava a identidade do Move.
+  playbackOf(id, key = id) {const o = this.playback[id] || {};return {loop: o.loop ?? !(ONE_SHOT.has(key) || TIMED.has(key) || key.startsWith('release_')), maxDuration: Math.max(0, Number(o.maxDuration) || 0)};}
   /** Ação associada a um estado (primeira da ordem de preferência com variantes). */
   actionFor(stateKey) {
     if (stateKey?.startsWith?.('charge_')) {
@@ -548,8 +555,9 @@ export class Character {
     }
     if (f.action?.kind === 'recoil') return 'recoil';
     if (f.state === 'guardStun') return 'guardStun';
-    // Recuperação de Move (charge.recovery: sem Tackle nem novos Moves depois de soltar/disparar), parado e com clipe «recovery_move» próprio.
-    if ((f.moveRecovery ?? 0) > 1e-8 && !f.action && !f.guard && length(f.velocity) < .15 && this.variantsOf('recovery_move').length) return 'recovery_move';
+    // Recuperação de Move (charge.recovery: sem Tackle nem novos Moves depois de soltar/disparar), com clipe «recovery_move» próprio.
+    // Aparece também ANDANDO (o gate de velocidade era o problema A2: a recuperação sumia com o lutador em movimento).
+    if ((f.moveRecovery ?? 0) > 1e-8 && !f.action && !f.guard && this.variantsOf('recovery_move').length) return 'recovery_move';
     if (f.guard) {this.guardSeenAt = this.clock;return 'guard';}
     if (this.current?.key === 'guard' && this.clock - (this.guardSeenAt ?? -Infinity) < Character.options.guardHold * .6 && !f.action) return 'guard';
     const speed = length(f.velocity), walk = f.attributes.speed;
@@ -581,34 +589,8 @@ export class Character {
     if (key !== this.stableLoco && this.clock - this.locoCandidateAt >= Character.options.locomotionHold) this.stableLoco = key;
     return this.stableLoco;
   }
-  /** Progresso 0..1 dos estados com duração definida pela simulação. */
-  progress(f, key) {
-    const R = C.rules;
-    if (key === 'tackle' || key === 'tackle_pl2' || key === 'tackle_pl3') return f.action ? f.action.elapsed / actionDuration('tackle') : 1;
-    if (MOVE_KEYS.includes(key)) {
-      if (f.action?.kind === 'move') return f.action.elapsed / Math.max(1e-6, actionSpec(f.action).duration || .4);
-      const d = this.current?.clip.duration || .4;
-      return Math.min(1, Math.max(0, (this.clock - (this.current?.started ?? this.clock)) / Math.max(1e-4, d / this.speedOf(this.current?.id || key))));
-    }
-    // Pulo físico: o clipe de salto acompanha o tempo de voo balístico (2·impulso ÷ gravidade).
-    if (key === 'jump' && f.flight) {
-      const g = f.flight.gravity || C.rules.launchGravity;
-      const initialVy = Math.sqrt(2 * g * (C.map?.jumpHeight ?? 2.0));
-      return Math.min(1, Math.max(0, (initialVy - f.flight.vy) / Math.max(1e-4, 2 * initialVy)));
-    }
-    if (key === 'vault' && f.action?.jump) return f.action.elapsed / Math.max(.05, 2 * C.actions.dodge.vaultUp / Math.max(.1, C.actions.dodge.vaultGravity));
-    if (key.startsWith('dodge') || key === 'vault' || key === 'brake') return f.action ? f.action.elapsed / (actionDuration('dodge') * (f.action.durationScale ?? 1)) : 1;
-    if (key === 'ledge_climb') return f.ledge ? Math.min(1, f.ledge.climbT / Math.max(1e-6, C.ledge?.climbTime ?? .5)) : 1;   // acompanha a subida da simulação (a física manda no tempo)
-    if (key === 'recoil') return f.action ? f.action.elapsed / R.recoil : 1;
-    if (key === 'guardStun') { const max = f.stunMax || R.guardStun || 0.15; return Math.min(1, Math.max(0, 1 - f.stun / Math.max(1e-6, max))); }
-    if (key === 'landing') return Math.min(1, Math.max(0, 1 - (f.landingRecovery ?? f.knockRecovery) / Math.max(1e-6, f.landingRecoveryMax ?? R.landingRecovery)));
-    if (key === 'recover') return Math.min(1, Math.max(0, 1 - (f.exhaustRecovery ?? f.knockRecovery) / Math.max(1e-6, C.extras.combat.exhaustRecovery)));
-    if (key === 'hitstun') return Math.min(1, Math.max(0, 1 - (f.hitstun ?? f.knockRecovery) / Math.max(1e-6, f.hitstunMax || (R.hitstun ?? 0.2))));
-    if (key === 'stagger') { const max = f.staggerMax || f.stunMax || 0.25; const cur = (f.stagger ?? f.counterStagger ?? f.stun ?? f.knockRecovery ?? 0); return Math.min(1, Math.max(0, 1 - cur / Math.max(1e-6, max))); }
-    if (key === 'airborne' || key === 'airborne_up') return this.flightV0 > 0 ? Math.min(1, Math.max(0, (this.flightV0 - f.flight.vy) / (2 * this.flightV0))) : 0;
-    if (key === 'defeated') return Math.min(1, this.timer / 1.2);
-    return 0;
-  }
+  /** Progresso 0..1 dos estados com duração definida pela simulação (lógica em visual-epilogue.js). */
+  progress(f, key) {return progressOf(this, f, key);}
   /** Transições curtas: entrar/sair da defesa, defesa perfeita e disparo de movimentos. */
   transients(f, events) {
     for (const e of events) if (!this.seenEvents.has(e)) {
@@ -717,10 +699,11 @@ export class Character {
    */
   update(f, dt, alt, events = [], ctx = {}) {
     if (this.squashFighter !== f || (ctx.tick != null && ctx.tick < this.squashTick)) resetSquash(this.squash);
-    this.squashFighter = f;this.squashTick = ctx.tick ?? this.squashTick;
+    this.squashFighter = f;this.squashTick = ctx.tick ?? this.squashTick;this.lastF = f;   // lastF: limpeza do marcador de epílogo em refreshVisual/resetVisual
     const opt = Character.options;this.clock += dt;if (dt > 0) this.lastDt = dt;
     if (this.visualFreeze > 0) {this.visualFreeze = Math.max(0, this.visualFreeze - dt);dt = 0;}
     if (f.flight && !this.wasFlying) {this.flightV0 = f.flight.vy + C.rules.launchGravity * C.test.step;this.flightStartClock = this.clock;}
+    const landed = this.wasFlying && !f.flight;   // transição ar → chão neste quadro (síntese do pouso, problema A3)
     if (f.flight) this.lastFlight = this.clock;this.wasFlying = !!f.flight;
     this.trackAction(f);this.transients(f, events);
     let p = this.preview;if (p && !p.loop && !p.paused && this.clock - p.started >= (this.clips[p.index]?.duration || 0) / Math.max(.05, opt.speed)) {this.preview = null;p = null;}
@@ -741,11 +724,19 @@ export class Character {
       }
     }
     const raw = p ? '__preview' : mp ? (mp.phase === 'charge' ? 'charge_' + mp.moveId : 'release_' + mp.moveId) : this.transient?.key ?? this.stateKey(f);
+    // Conclusão visual independente: pouso com recuperação mecânica zero sintetiza o estado «landing» e uma
+    // execução única não concluída segue em epílogo até o fim efetivo do clipe (locomoção não corta o clipe).
+    if (landed && !p && !mp && !this.transient) synthesizeLanding(this, f, raw, ctx);
+    // Save/load e replay de quadros: personagens NOVOS restauram o epílogo do marcador gravado no lutador
+    // (o Character é estado visual e não viaja no save; o marcador é inerte para o sim e de uso único).
+    if (!this.epilogue && !p && !mp && !this.transient && f.__visualEpilogue) resumeEpilogue(this, f, ctx);
+    if (this.epilogue && stepEpilogue(this, f, raw, ctx) === 'continues') {this.epilogueFrame(f, dt, alt, p, ctx);return;}
     const key = (p || mp) ? raw : this.smoothLocomotion(raw);
     this.statesSeen.add(key);
     // Identidade da entrada: estado + número da ação/transição (X, C, transição curta ou prévia).
     const serial = p ? p.serial : mp ? mp.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : (f.hitSerial ?? 0);
     const entry = `${key}#${serial}`;
+    if (!this.epilogue && this.current && this.current.entry !== entry && tryStartEpilogue(this, f, raw, dt, ctx)) {this.epilogueFrame(f, dt, alt, p, ctx);return;}
     if (!this.current || this.current.entry !== entry) {
       const phaseMatch = !p && !mp ? /^(charge|release)_(.+)$/.exec(raw) : null;
       const liveMoveId = !p && !mp ? (f.action?.move ?? f.charge?.move ?? phaseMatch?.[2] ?? null) : null;
@@ -773,7 +764,16 @@ export class Character {
         if (index >= 0) this.enter(key, '__fallback', index, entry, f, ctx);
       }
     } else if (this.current.key !== key) this.current.key = key;
+    this.epilogueInterrupt = false;   // marcação de interrupção de epílogo só vale no quadro em que foi setada
     this.blend(f, dt, key, p);
+    this.place(f, alt, dt);
+    this.applyRigLayers(f, dt, ctx);
+  }
+  /** Quadro com epílogo ativo: a chave/entrada DO EPÍLOGO valem (locomoção/neutro/turn não trocam o clipe; sem enter()). */
+  epilogueFrame(f, dt, alt, p, ctx) {
+    this.statesSeen.add(this.epilogue.key);
+    this.blend(f, dt, this.epilogue.key, p);
+    markEpilogue(this, f);   // pós-avanço: o marcador de save/load reflete o tempo exibido neste quadro
     this.place(f, alt, dt);
     this.applyRigLayers(f, dt, ctx);
   }
@@ -817,19 +817,8 @@ export class Character {
     this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
     this.fade = 0;this.timer = 0;this.transitions++;
     if (key === 'jump_apex') this.visualFreeze = Math.max(this.visualFreeze, this.profileValue(id, 'jumpApexFreeze', clip.name) ?? 0);   // pico do salto: congelamento opcional
-    // Telemetria da troca.
-    const d = prev ? prev.clip.duration || 1 : 1, played = prev ? prev.action.time : 0, pct = prev ? Math.min(1, played / d) : 0;
-    const source = key === '__preview' ? 'prévia' : COMBAT_KEYS.has(key) || f.flight ? 'combate' : ACTION_KEYS.has(key) || key === 'guard' || key === 'guard_enter' || LOCOMOTION.has(key) || key === 'sprint' ? (ctx.source || 'jogador') : 'sistema';
-    // Fim de X/C: concluída se o último tempo visto + um quadro alcança a duração; senão foi cancelada (defesa, sprint…).
-    const seen = this.lastActionSeen, natural = !!seen && seen.elapsed + (this.lastDt || 0) * 1.05 + C.test.step >= actionDuration(seen.kind) - 1e-6;
-    const reason = key === '__preview' ? 'prévia manual' : COMBAT_KEYS.has(key) ? 'reação de combate' : prev && ACTION_KEYS.has(prev.key) && !ACTION_KEYS.has(key) && !f.action ? (natural ? 'ação concluída' : key === 'sprint' ? 'esquiva → sprint' : 'ação cancelada (defesa)')
-      : f.action?.fromCancel && key === 'tackle' ? 'cancelamento C → X' : ACTION_KEYS.has(key) ? (prev?.key === key ? 'nova ação (mesmo estado)' : 'nova ação')
-      : COMBAT_KEYS.has(key) ? 'reação de combate' : key === 'sprint' ? 'sprint' : key.endsWith('_stop') ? 'freio físico' : TRANSIENT.has(key) ? 'transição curta' : LOCOMOTION.has(key) ? 'locomoção' : key;
-    // Fim natural de ação não conta como interrupção (a última amostra pode cair um quadro antes do fim).
-    const interrupted = prev && (TIMED.has(prev.key) || ONE_SHOT.has(prev.key)) && pct < .95 && reason !== 'ação concluída';
-    this.log.push({t: +this.clock.toFixed(3), tick: ctx.tick ?? null, from: prev?.key ?? null, to: key, clipFrom: prev ? this.clips[prev.index]?.name : null, clipTo: this.clips[index].name,
-      variant: this.variantsOf(id).indexOf(index) + 1, variants: this.variantsOf(id).length, playedSeconds: +played.toFixed(3), playedPct: +(pct * 100).toFixed(1), reason, interrupted: !!interrupted, source});
-    if (this.log.length > 400) this.log.shift();
+    // Telemetria da troca (lógica em visual-epilogue.js; interrupções de epílogo saem com epilogueEnd: true).
+    logTransition(this, prev, key, id, index, f, ctx);
   }
   /** Tempo das camadas e da animação atual; fade por peso. */
   blend(f, dt, key, p) {
@@ -855,8 +844,16 @@ export class Character {
         a.time = Math.min(d, Math.max(0, p.seek));
       } else if (fx) {
         // Recorte e laço central definidos no editor de animações (só quando o perfil sobrescreve algum deles).
-        const trim = trimOf(fx), lr = loopRange(fx), run = p ? (this.clock - p.started) * Character.options.speed * (this.speeds[p.action] ?? 1) : TIMED.has(this.current.key) ? Math.max(0, this.progress(f, this.current.key)) * (trim[1] - trim[0]) * d : (this.clock - this.current.started) * s;
-        a.time = clipTimeAt({elapsed: run, duration: d, loop: p ? p.loop : playback.loop, trim, loopRange: lr});
+        const trim = trimOf(fx), lr = loopRange(fx);
+        if (this.epilogue) {
+          // Conclusão visual: relógio livre a partir de onde o clipe está (o ramo TIMED travaria em progresso 1).
+          const e = this.epilogue;
+          e.baseElapsed ??= Math.max(0, a.time - trim[0] * d);
+          a.time = Math.min(cap, clipTimeAt({elapsed: e.baseElapsed + (this.clock - e.started) * s, duration: d, loop: false, trim, loopRange: lr}));
+        } else {
+          const run = p ? (this.clock - p.started) * Character.options.speed * (this.speeds[p.action] ?? 1) : TIMED.has(this.current.key) ? Math.max(0, progressOf(this, f, this.current.key)) * (trim[1] - trim[0]) * d : (this.clock - this.current.started) * s;
+          a.time = clipTimeAt({elapsed: run, duration: d, loop: p ? p.loop : playback.loop, trim, loopRange: lr});
+        }
       } else if (p) {
         const raw = (this.clock - p.started) * Character.options.speed * (p.action ? this.speeds[p.action] ?? 1 : 1);
         a.time = p.loop ? raw % Math.max(.001, d) : Math.min(cap, raw);
@@ -872,12 +869,16 @@ export class Character {
           const loopLen = Math.max(0.02, loopEnd - loopStart);
           a.time = loopStart + ((elapsed - loopEnd) % loopLen);
         }
+      } else if (this.epilogue) {
+        // Conclusão visual: o clipe avança com relógio livre do tempo atual até o cap (não com o progresso da simulação).
+        const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s;
+        a.time = Math.min(cap, next);
       } else if (ONE_SHOT.has(this.current.key) || this.current.key.startsWith('release_')) {
         const elapsed = (this.clock - this.current.started) * s;a.time = playback.loop ? elapsed % Math.max(.001, cap) : Math.min(cap, elapsed);
       } else if (this.current.key === 'ledge_climb' && this.current.id === 'ledge_climb') {   // clipe próprio: sem reinício nem pose estalada, termina junto com a subida
-        a.time = Math.min(cap, Math.max(0, this.progress(f, 'ledge_climb')) * cap);
+        a.time = Math.min(cap, Math.max(0, progressOf(this, f, 'ledge_climb')) * cap);
       } else if (TIMED.has(this.current.key)) {
-        const timed = Math.max(0, this.progress(f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
+        const timed = Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
         const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar
       }
