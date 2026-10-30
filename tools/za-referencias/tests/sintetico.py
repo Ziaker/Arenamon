@@ -465,11 +465,13 @@ def golpe_com_cauda(amp_braco=0.6, amp_cauda=1.0):
     return esq, clipe(esq, n, mover)
 
 
-def golpe_fraco_boca_forte():
-    """Fim de ataque: a mão quase não se mexe (0,1 m) e a mandíbula, sem abrir, se desloca muito (0,6 m)."""
+def golpe_fraco_boca_forte(graus_perna=0.0):
+    """Fim de ataque: a mão quase não se mexe (0,1 m) e a mandíbula, sem abrir, se desloca muito (0,6 m).
+    graus_perna: a perna esquerda dobra antes do pico (apoio)."""
     esq = humanoide()
     n = 60
-    return esq, clipe(esq, n, {"right_hand": frente(n, 30, 0.1), "jaw": frente(n, 30, 0.6)})
+    rot = {"left_leg": giro_x(n, 26, graus_perna, largura=5.0)} if graus_perna else None
+    return esq, clipe(esq, n, {"right_hand": frente(n, 30, 0.1), "jaw": frente(n, 30, 0.6)}, rot=rot)
 
 
 def quadrupede_andando(n=60, periodo=30, amp=0.2):

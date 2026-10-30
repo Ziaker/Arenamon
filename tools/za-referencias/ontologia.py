@@ -347,7 +347,8 @@ def _papeis(clipe, esq, regs, categoria, anat, R, ocultos):
     movem = [r for r, v in vels.items() if ref > 0 and float(v["vel"].max()) >= R["limiar_movimento_frac"] * ref]
     # iniciador: só regiões motoras, na janela de preparação antes do pico do executor; o início de cada região
     # é onde a subida que leva ao pico dela (dentro da janela) cruza 20% desse pico (busca para trás)
-    t_ref = melhor[1] if executores else (int(max(vels[r]["vel"].argmax() for r in movem)) if movem else 0)
+    # sem membro dominante (dominância), a janela continua sendo a do candidato mais forte: o apoio ainda é medido
+    t_ref = melhor[1] if (executores or motivo_dom) else (int(max(vels[r]["vel"].argmax() for r in movem)) if movem else 0)
     a_jan = max(0, t_ref - R.get("janela_preparacao_q", 30))
     inicio = {}
     for r in movem:
@@ -375,7 +376,7 @@ def _papeis(clipe, esq, regs, categoria, anat, R, ocultos):
             if _familia(e["regiao"]) in ap.get("familias", []):
                 apoio.append({"regiao": e["regiao"], "status": "CANDIDATO",
                               "evidencia": {"locomocao": True, "pico_H_s": e["evidencia"]["pico_H_s"]}})
-    elif executores:
+    elif executores or motivo_dom:
         b_jan = min(clipe.quadros - 1, t_ref + R["janela_executor_q"])
         for r in sorted(presentes):
             if _familia(r) not in ap.get("familias", []) or r in exec_regs:

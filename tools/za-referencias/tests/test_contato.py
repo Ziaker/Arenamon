@@ -202,6 +202,11 @@ class TestExecutoresCorrigidosPeloGabarito(unittest.TestCase):
         self.assertEqual(r["status"], "INCONCLUSIVO")
         self.assertIn("domina", r["motivo"])
 
+    def test_sem_membro_dominante_ainda_mede_o_apoio(self):   # Sylveon e Wigglytuff
+        r = self._p(*S.golpe_fraco_boca_forte(graus_perna=25.0))
+        self.assertEqual(r["executores"], [])
+        self.assertEqual([a["regiao"] for a in r["apoio_impulso"]], ["perna_E"])
+
     def test_membro_que_domina_continua_executor(self):
         r = self._p(*S.golpe_com_antena())
         self.assertEqual([e["regiao"] for e in r["executores"]], ["braco_D"])
