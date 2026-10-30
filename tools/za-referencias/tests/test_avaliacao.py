@@ -158,6 +158,20 @@ class TestEscolherSoElegiveis(unittest.TestCase):
         self.assertTrue({l["especie"] for l in esc} <= ok)
 
 
+class TestEscolherSemRepetirClipe(unittest.TestCase):
+    def test_exclui_clipes_ja_rotulados_mas_aceita_a_especie(self):
+        import gerar_lote
+        from sintetico import c
+        banco = [c("pm0001_00_00", "00400_attack01", especie=1, status="MEDIDO", conjunto=0),
+                 c("pm0001_00_00", "00100_run01_loop", especie=1, status="MEDIDO", conjunto=0)]
+        for l in banco:
+            l["id"] = "%s/%s" % (l["modelo"], l["clipe"])
+        esc = gerar_lote.escolher_diverso(banco, excluir_ids={"pm0001_00_00/00400_attack01"})
+        ids = {l["id"] for l in esc}
+        self.assertNotIn("pm0001_00_00/00400_attack01", ids)
+        self.assertIn("pm0001_00_00/00100_run01_loop", ids)
+
+
 class TestEscolherDiverso(unittest.TestCase):
     def _banco(self):
         from sintetico import c

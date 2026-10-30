@@ -116,13 +116,13 @@ RESERVA_DIVERSO = [("attack", None, None), ("roar", None, None), ("jumpup", None
                    ("eat", None, None), ("turnmove", None, None), ("down", None, None), ("rangeattack", None, None)]
 
 
-def escolher_diverso(teste, excluir_especies=(), semente=2026, n=15, excluir_cadeias=(), so_especies=None):
+def escolher_diverso(teste, excluir_especies=(), semente=2026, n=15, excluir_cadeias=(), so_especies=None, excluir_ids=()):
     """~15 itens variados para rotular: uma espécie e uma linha evolutiva por item (nada redundante), formas comuns
     (_00_00), conjunto 0, revezando classes do corpo e categorias. Espécies de lotes anteriores ficam de fora.
     'charge' entra com e sem executor previsto, para conferir os charge sem membro que cicla."""
     rnd = random.Random(semente)
     medidos = sorted((l for l in teste if l.get("status") == "MEDIDO" and l.get("especie") not in excluir_especies
-                      and (so_especies is None or l.get("especie") in so_especies)),
+                      and (so_especies is None or l.get("especie") in so_especies) and l["id"] not in excluir_ids),
                      key=lambda l: l["id"])
     rnd.shuffle(medidos)
     base = [l for l in medidos if l.get("conjunto", 0) == 0 and l["modelo"].endswith("_00_00")]
@@ -181,6 +181,9 @@ def main():
     diverso = sys.argv[1] == "--diverso"
     if diverso:
         sys.argv.pop(1)
+    repetir = sys.argv[1] == "--repetir-especies"   # lotes anteriores só barram o MESMO clipe, não a espécie
+    if repetir:
+        sys.argv.pop(1)
     so_especies = None
     if sys.argv[1] == "--elegiveis":   # lista de elegibilidade.py: só essas espécies entram no lote
         with open(sys.argv[2], encoding="utf-8") as fh:
@@ -201,13 +204,17 @@ def main():
     os.makedirs(sistema, exist_ok=True)
     os.makedirs(saida, exist_ok=True)
     if diverso:
-        excl, excl_cad = set(), set()
+        excl, excl_cad, usados = set(), set(), set()
         for pasta in anteriores:
             with open(os.path.join(pasta, "lote.json"), encoding="utf-8") as fh:
                 ids = {it["id"] for it in json.load(fh)["itens"]}
+            usados |= ids
             excl |= {l["especie"] for l in clipes if l["id"] in ids}
             excl_cad |= {l.get("cadeia") or l["especie"] for l in clipes if l["id"] in ids}
-        lote = escolher_diverso(div["teste"], excl, excluir_cadeias=excl_cad, so_especies=so_especies)
+        if repetir:
+            excl, excl_cad = set(), set()
+        lote = escolher_diverso(div["teste"], excl, excluir_cadeias=excl_cad, so_especies=so_especies,
+                                excluir_ids=usados)
     else:
         lote = escolher(div["teste"])
     print("divisão: %d grupos, teste %.1f%%; lote %d clipes" % (div["grupos"], 100 * div["relatorio_vazamento"]["frac_teste_real"], len(lote)), flush=True)
