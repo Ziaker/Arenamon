@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..22 (22) | 24.000 FPS | 0.917 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [ALTO] f4    reversao      RightArm   inversao brusca de direcao (dot -0.79)
+  [ALTO] f4    reversao      Head       inversao brusca de direcao (dot -0.87)
+  [ALTO] f4    reversao      LeftArm    inversao brusca de direcao (dot -0.84)
+  [ALTO] f15   reversao      RightHand  inversao brusca de direcao (dot -0.89)
+  [ALTO] f15   reversao      RightLeg   inversao brusca de direcao (dot -0.93)
+  [ALTO] f15   reversao      LeftForeArm inversao brusca de direcao (dot -0.95)
+  [ALTO] f15   reversao      RightForeArm inversao brusca de direcao (dot -0.84)
+  [ALTO] f4    reversao      RightUpLeg inversao brusca de direcao (dot -0.76)
+  [ALTO] f3    penetracao    Mesh       malha 0.099 m abaixo do plano de chao
+  [ALTO] f14   penetracao    Mesh       malha 0.090 m abaixo do plano de chao
+  [ALTO] f15   penetracao    Mesh       malha 0.063 m abaixo do plano de chao
+  [MEDIO] f2    equilibrio    COM        centro aproximado 0.311 m fora do apoio simplificado
+  ... 50 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.243 m/frame em f11 | media 0.118
+  Head       pico 0.308 m/frame em f5 | media 0.155
+  LeftHand   pico 0.408 m/frame em f4 | media 0.173
+  RightHand  pico 0.452 m/frame em f6 | media 0.175
+  LeftFoot   pico 0.368 m/frame em f6 | media 0.147
+  RightFoot  pico 0.310 m/frame em f9 | media 0.134
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 3 baixos, 0 quase travados, slide max 0.034 m/frame, z<=-0.035
+  RightFoot: 10 baixos, 5 quase travados, slide max 0.040 m/frame, z<=0.012
+  Malha: z minimo -0.1387 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

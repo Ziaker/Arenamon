@@ -1,0 +1,45 @@
+{
+ "offset": 0,
+ "size": 220,
+ "armature": null,
+ "mode": "shot",
+ "action": "Dodge Right 2",
+ "views": [
+  "front",
+  "top"
+ ],
+ "modes": [
+  "solid"
+ ],
+ "align": "hips",
+ "zoom": null,
+ "zoom_radii": null,
+ "bone_cam": false,
+ "onion_step": 1,
+ "frames": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12,
+  13,
+  14,
+  15,
+  16,
+  17,
+  18,
+  19,
+  20,
+  21,
+  22
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\evidence\\eggo_dodge_lateral_final\\shot_Dodge_Right_2.tmp-21920",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\eggo dodge lateral final espelhado.blend"
+}

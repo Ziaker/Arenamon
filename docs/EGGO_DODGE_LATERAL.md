@@ -57,6 +57,16 @@ Refeita depois que o Blender travou e reabriu do autosave.
 - Arquivo: `chars/Eggo/eggo dodge lateral v3.blend` (`Dodge Left 2`, `Dodge Right 2` corrigidas; a v2 fica como histórico).
 - Folhas: `scripts/blender-vision/evidence/eggo_dodge_lateral_v3/shot_Dodge_Left_2/report.html` (33 frames, frente/topo).
 
+## Final do responsável (22 frames) e espelho
+
+O responsável retrabalhou a `Dodge Left 2` em `chars/Eggo/eggo dodge lateral final.blend` (22 frames, 13 chaves LINEAR).
+A pedido dele, a `Dodge Right 2` foi espelhada dessa versão (mesmas chaves, erro de espelho 0,0 mm) e as duas Actions
+passaram a terminar no f22. Como o Blender reiniciou e perdeu a primeira tentativa, o resultado foi gravado numa cópia:
+`chars/Eggo/eggo dodge lateral final espelhado.blend` (o arquivo `final` dele não foi sobrescrito; hash igual).
+
+- Folhas da direita: `scripts/blender-vision/evidence/eggo_dodge_lateral_final/shot_Dodge_Right_2/report.html`.
+- Motion Lens: malha abaixo do chão no f3 (−9,9 cm) e no f14 (−9,0 cm), vindo das poses editadas (pé cravando).
+
 ## Não verificado
 
 Exportação GLB, Animation Studio e Combat Lab; `perception.py investigate` (códigos de leitura); revisão humana.
