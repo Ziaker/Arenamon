@@ -1,15 +1,15 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **bloqueio v2 aguardando opinião do responsável** (31/10/2026). A v1 (4 m por pisada) foi recusada: «4 metros parece imenso, eu digo 0,8 metros». Ideia escolhida: **1 corrida para a frente** +
+Estado: **bloqueio v3 aguardando opinião do responsável** (31/10/2026). A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo sprint v2.blend` (Action `Sprint 1`).
-- Folhas dos 12 frames: `scripts/blender-vision/evidence/eggo_sprint_v2/shot_Sprint_1/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v2/motion_lens_Sprint_1/`.
-- v1 (histórico): `chars/Eggo/eggo sprint v1.blend`, evidências em `eggo_sprint_v1/`.
+- Arquivo: `chars/Eggo/eggo sprint v3.blend` (Action `Sprint 1`).
+- Folhas dos 26 frames: `scripts/blender-vision/evidence/eggo_sprint_v3/shot_Sprint_1/report.html`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v3/motion_lens_Sprint_1/`.
+- Histórico: `eggo sprint v1.blend` (4 m) e `eggo sprint v2.blend` (0,8 m com tudo mudado), evidências em `eggo_sprint_v1/` e `eggo_sprint_v2/`.
 
 ## Como foi feito
 
@@ -25,7 +25,19 @@ animação aprovada.
   ângulo e balança ±12° oposto às pernas; cotovelo ~20° mais dobrado que na idle.
 - Chaves LINEAR, 15 por osso.
 
-## v2 (0,8 m por pisada)
+## v3 (v1 mudando só a distância + pernas esticando)
+
+- Igual à v1: 26 frames, 13 por pisada, contato de 2 frames, arco de 20°, braços ±12°, tronco 20°. Só a pisada mudou:
+  **0,8 m** (arco de 20° sobre 0,8 m = 7 cm). 15 chaves por osso.
+- Pernas montadas pela **extensão** (distância quadril-tornozelo ÷ comprimento da perna, medida por frame):
+  impulso com a perna de apoio a **99%** (o quadril sobe até ela esticar: f2 e f15); perna de trás esticada para trás
+  (92–99% até f6); perna da frente esticada à frente antes do toque (99% de f19 a f25); encolhimento até 16–28%.
+  A v2 nunca passava de 94% e no impulso ficava em 71%.
+- Esta medida não existe no Motion Lens nem no Direction Lines; passou a fazer parte da verificação.
+- Motion Lens: sem deslize de pé; alertas ALTO só de reversão no recolhimento da perna (f10/f23), no estalo do
+  impulso (f15) e na mão direita (f4). Direction Lines: quadril sem retrocesso, desvio máx. 7 cm.
+
+## v2 (0,8 m por pisada, recusada)
 
 - Pisada de **0,8 m** em **6 frames**; ciclo de **12 frames** (pé esquerdo toca no f1, direito no f7); contato de 2 frames,
   voo de 5; arco de 20° sobre 0,8 m = **7 cm** de altura. 7 chaves por osso.
