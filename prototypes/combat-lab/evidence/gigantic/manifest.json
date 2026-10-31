@@ -1,0 +1,252 @@
+{
+  "p1": [
+    {
+      "file": "p1\\GIG-P1-CHARNOK-RUN-DIRECOES-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-RUN-DIRECOES-FRONT.png",
+      "width": 1774,
+      "height": 1704,
+      "size_bytes": 1829387
+    },
+    {
+      "file": "p1\\GIG-P1-CHARNOK-Run_E-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-Run_E-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 436257
+    },
+    {
+      "file": "p1\\GIG-P1-CHARNOK-Run_N-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-Run_N-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 291472
+    },
+    {
+      "file": "p1\\GIG-P1-CHARNOK-Run_N-SIDE_NX.png",
+      "filename": "GIG-P1-CHARNOK-Run_N-SIDE_NX.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 345203
+    },
+    {
+      "file": "p1\\GIG-P1-CHARNOK-Run_NE-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-Run_NE-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 326398
+    },
+    {
+      "file": "p1\\GIG-P1-CHARNOK-Run_NW-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-Run_NW-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 338948
+    },
+    {
+      "file": "p1\\GIG-P1-CHARNOK-Run_W-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-Run_W-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 449788
+    },
+    {
+      "file": "p1\\GIG-P1-PAKKO-RUN-DIRECOES-FRONT.png",
+      "filename": "GIG-P1-PAKKO-RUN-DIRECOES-FRONT.png",
+      "width": 1774,
+      "height": 1056,
+      "size_bytes": 846785
+    },
+    {
+      "file": "p1\\GIG-P1-PAKKO-Run_N-FRONT.png",
+      "filename": "GIG-P1-PAKKO-Run_N-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 255115
+    },
+    {
+      "file": "p1\\GIG-P1-PAKKO-Run_N-SIDE_NX.png",
+      "filename": "GIG-P1-PAKKO-Run_N-SIDE_NX.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 310213
+    },
+    {
+      "file": "p1\\GIG-P1-PAKKO-Run_NE-FRONT.png",
+      "filename": "GIG-P1-PAKKO-Run_NE-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 263731
+    },
+    {
+      "file": "p1\\GIG-P1-PAKKO-Run_SW-FRONT.png",
+      "filename": "GIG-P1-PAKKO-Run_SW-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 336422
+    },
+    {
+      "file": "p1\\GIG-P1-RUTGER-Run_N-FRONT.png",
+      "filename": "GIG-P1-RUTGER-Run_N-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 202843
+    },
+    {
+      "file": "p1\\GIG-P1-RUTGER-Run_N-SIDE_NX.png",
+      "filename": "GIG-P1-RUTGER-Run_N-SIDE_NX.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 297068
+    },
+    {
+      "file": "p1\\GIG-P1-TRIPP-Run_N-FRONT.png",
+      "filename": "GIG-P1-TRIPP-Run_N-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 195651
+    },
+    {
+      "file": "p1\\GIG-P1-TRIPP-Run_N-SIDE_NX.png",
+      "filename": "GIG-P1-TRIPP-Run_N-SIDE_NX.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 262113
+    },
+    {
+      "file": "p1\\GIG-P1-WU-Run_N-FRONT.png",
+      "filename": "GIG-P1-WU-Run_N-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 276049
+    },
+    {
+      "file": "p1\\GIG-P1-WU-Run_N-SIDE_NX.png",
+      "filename": "GIG-P1-WU-Run_N-SIDE_NX.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 330894
+    }
+  ],
+  "p2": [
+    {
+      "file": "p2\\GIG-P1-CHARNOK-Dodge_W-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-Dodge_W-FRONT.png",
+      "width": 1948,
+      "height": 408,
+      "size_bytes": 421392
+    },
+    {
+      "file": "p2\\GIG-P1-CHARNOK-Dodge_W-SIDE_NX.png",
+      "filename": "GIG-P1-CHARNOK-Dodge_W-SIDE_NX.png",
+      "width": 1948,
+      "height": 408,
+      "size_bytes": 313226
+    },
+    {
+      "file": "p2\\GIG-P1-CHARNOK-Skill_Breath_Start-FRONT.png",
+      "filename": "GIG-P1-CHARNOK-Skill_Breath_Start-FRONT.png",
+      "width": 1300,
+      "height": 408,
+      "size_bytes": 250348
+    },
+    {
+      "file": "p2\\GIG-P1-PAKKO-Skill_RushAttack-FRONT.png",
+      "filename": "GIG-P1-PAKKO-Skill_RushAttack-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 223380
+    },
+    {
+      "file": "p2\\GIG-P1-PAKKO-Skill_RushAttack-SIDE_NX.png",
+      "filename": "GIG-P1-PAKKO-Skill_RushAttack-SIDE_NX.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 261438
+    },
+    {
+      "file": "p2\\GIG-P1-RUTGER-Skill_Focus_Charge-FRONT.png",
+      "filename": "GIG-P1-RUTGER-Skill_Focus_Charge-FRONT.png",
+      "width": 1300,
+      "height": 408,
+      "size_bytes": 143077
+    },
+    {
+      "file": "p2\\GIG-P1-RUTGER-Skill_RushAttack-FRONT.png",
+      "filename": "GIG-P1-RUTGER-Skill_RushAttack-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 210043
+    },
+    {
+      "file": "p2\\GIG-P1-TRIPP-Dodge_E-FRONT.png",
+      "filename": "GIG-P1-TRIPP-Dodge_E-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 268982
+    },
+    {
+      "file": "p2\\GIG-P1-TRIPP-Skill_Slash_RushAttack-FRONT.png",
+      "filename": "GIG-P1-TRIPP-Skill_Slash_RushAttack-FRONT.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 181998
+    },
+    {
+      "file": "p2\\GIG-P1-TRIPP-Skill_Slash_RushAttack-SIDE_NX.png",
+      "filename": "GIG-P1-TRIPP-Skill_Slash_RushAttack-SIDE_NX.png",
+      "width": 1624,
+      "height": 408,
+      "size_bytes": 175545
+    },
+    {
+      "file": "p2\\GIG-P1-WU-Skill_RushAttack-FRONT.png",
+      "filename": "GIG-P1-WU-Skill_RushAttack-FRONT.png",
+      "width": 1948,
+      "height": 408,
+      "size_bytes": 239298
+    },
+    {
+      "file": "p2\\GIG-P1-WU-Skill_RushAttack-SIDE_NX.png",
+      "filename": "GIG-P1-WU-Skill_RushAttack-SIDE_NX.png",
+      "width": 1948,
+      "height": 408,
+      "size_bytes": 228022
+    },
+    {
+      "file": "p2\\GIG-P1-WU-Skill_TigerKick_01-FRONT.png",
+      "filename": "GIG-P1-WU-Skill_TigerKick_01-FRONT.png",
+      "width": 1300,
+      "height": 408,
+      "size_bytes": 168792
+    },
+    {
+      "file": "p2\\GIG-P2-RUSH-ATTACK-COMPARADO.png",
+      "filename": "GIG-P2-RUSH-ATTACK-COMPARADO.png",
+      "width": 2098,
+      "height": 1380,
+      "size_bytes": 867217
+    }
+  ],
+  "data": [
+    {
+      "file": "data\\analise_procrustes.json",
+      "filename": "analise_procrustes.json",
+      "size_bytes": 20797
+    },
+    {
+      "file": "data\\rootmotion_inventory.json",
+      "filename": "rootmotion_inventory.json",
+      "size_bytes": 43107
+    },
+    {
+      "file": "data\\timing_psa_vs_blend.csv",
+      "filename": "timing_psa_vs_blend.csv",
+      "size_bytes": 49688
+    },
+    {
+      "file": "data\\sheets_index.json",
+      "filename": "sheets_index.json",
+      "size_bytes": 23065
+    }
+  ]
+}

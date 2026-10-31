@@ -1,0 +1,930 @@
+{
+ "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\wu\\Wu_Animations.blend",
+ "armature": "Judo_Default_LOD0",
+ "pairs": {
+  "Run_N|Run_NE": {
+   "core_rot_max": 109.571,
+   "core_loc_max": 11.217,
+   "acc_rot_max": 109.041,
+   "core_top": [
+    [
+     "b_Knee_L",
+     109.57
+    ],
+    [
+     "b_Thigh_L",
+     109.04
+    ],
+    [
+     "b_Knee_R",
+     65.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_L",
+     109.04
+    ],
+    [
+     "b_SideSkirt01_R",
+     44.37
+    ],
+    [
+     "b_Hair01",
+     23.39
+    ]
+   ]
+  },
+  "Run_N|Run_E": {
+   "core_rot_max": 121.549,
+   "core_loc_max": 17.341,
+   "acc_rot_max": 126.913,
+   "core_top": [
+    [
+     "b_Knee_L",
+     121.55
+    ],
+    [
+     "b_Ankle_R",
+     120.27
+    ],
+    [
+     "b_Thigh_L",
+     113.57
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     126.91
+    ],
+    [
+     "b_SideSkirt01_L",
+     113.57
+    ],
+    [
+     "b_Hair03",
+     100.71
+    ]
+   ]
+  },
+  "Run_N|Run_SE": {
+   "core_rot_max": 126.667,
+   "core_loc_max": 24.568,
+   "acc_rot_max": 98.287,
+   "core_top": [
+    [
+     "b_Ankle_R",
+     126.67
+    ],
+    [
+     "b_Knee_R",
+     124.92
+    ],
+    [
+     "b_Knee_L",
+     118.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     98.29
+    ],
+    [
+     "b_SideSkirt01_L",
+     88.43
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ]
+   ]
+  },
+  "Run_N|Run_S": {
+   "core_rot_max": 126.667,
+   "core_loc_max": 24.642,
+   "acc_rot_max": 98.287,
+   "core_top": [
+    [
+     "b_Ankle_R",
+     126.67
+    ],
+    [
+     "b_Knee_R",
+     124.92
+    ],
+    [
+     "b_Knee_L",
+     118.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     98.29
+    ],
+    [
+     "b_SideSkirt01_L",
+     88.43
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ]
+   ]
+  },
+  "Run_N|Run_SW": {
+   "core_rot_max": 126.667,
+   "core_loc_max": 26.306,
+   "acc_rot_max": 98.287,
+   "core_top": [
+    [
+     "b_Ankle_R",
+     126.67
+    ],
+    [
+     "b_Knee_R",
+     124.92
+    ],
+    [
+     "b_Knee_L",
+     118.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     98.29
+    ],
+    [
+     "b_SideSkirt01_L",
+     88.43
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ]
+   ]
+  },
+  "Run_N|Run_W": {
+   "core_rot_max": 123.711,
+   "core_loc_max": 17.341,
+   "acc_rot_max": 137.153,
+   "core_top": [
+    [
+     "b_Knee_L",
+     123.71
+    ],
+    [
+     "b_ToeOutside01_L",
+     111.76
+    ],
+    [
+     "b_Knee_R",
+     106.13
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     137.15
+    ],
+    [
+     "b_Hair03",
+     102.49
+    ],
+    [
+     "b_Tail03",
+     90.84
+    ]
+   ]
+  },
+  "Run_N|Run_NW": {
+   "core_rot_max": 107.109,
+   "core_loc_max": 7.586,
+   "acc_rot_max": 106.942,
+   "core_top": [
+    [
+     "b_Knee_L",
+     107.11
+    ],
+    [
+     "b_Thigh_L",
+     106.94
+    ],
+    [
+     "b_Ankle_L",
+     76.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_L",
+     106.94
+    ],
+    [
+     "b_SideSkirt01_R",
+     23.34
+    ],
+    [
+     "b_FX_Head",
+     0.22
+    ]
+   ]
+  },
+  "Run_NE|Run_E": {
+   "core_rot_max": 117.181,
+   "core_loc_max": 10.094,
+   "acc_rot_max": 126.913,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     117.18
+    ],
+    [
+     "b_Ankle_R",
+     112.14
+    ],
+    [
+     "b_Knee_L",
+     111.89
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     126.91
+    ],
+    [
+     "b_SideSkirt01_R",
+     117.18
+    ],
+    [
+     "b_Hair03",
+     100.71
+    ]
+   ]
+  },
+  "Run_NE|Run_SE": {
+   "core_rot_max": 121.05,
+   "core_loc_max": 27.319,
+   "acc_rot_max": 111.242,
+   "core_top": [
+    [
+     "b_Knee_R",
+     121.05
+    ],
+    [
+     "b_Ankle_L",
+     114.12
+    ],
+    [
+     "b_Ankle_R",
+     112.08
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     111.24
+    ],
+    [
+     "b_SideSkirt01_L",
+     90.52
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ]
+   ]
+  },
+  "Run_NE|Run_S": {
+   "core_rot_max": 121.05,
+   "core_loc_max": 25.168,
+   "acc_rot_max": 111.242,
+   "core_top": [
+    [
+     "b_Knee_R",
+     121.05
+    ],
+    [
+     "b_Ankle_L",
+     114.12
+    ],
+    [
+     "b_Ankle_R",
+     112.08
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     111.24
+    ],
+    [
+     "b_SideSkirt01_L",
+     90.52
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ]
+   ]
+  },
+  "Run_NE|Run_SW": {
+   "core_rot_max": 121.05,
+   "core_loc_max": 24.386,
+   "acc_rot_max": 111.242,
+   "core_top": [
+    [
+     "b_Knee_R",
+     121.05
+    ],
+    [
+     "b_Ankle_L",
+     114.12
+    ],
+    [
+     "b_Ankle_R",
+     112.08
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     111.24
+    ],
+    [
+     "b_SideSkirt01_L",
+     90.52
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ]
+   ]
+  },
+  "Run_NE|Run_W": {
+   "core_rot_max": 127.049,
+   "core_loc_max": 10.094,
+   "acc_rot_max": 137.153,
+   "core_top": [
+    [
+     "b_Knee_L",
+     127.05
+    ],
+    [
+     "b_ToeOutside01_L",
+     111.76
+    ],
+    [
+     "b_Knee_R",
+     101.85
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     137.15
+    ],
+    [
+     "b_Hair03",
+     102.49
+    ],
+    [
+     "b_SideSkirt01_L",
+     94.98
+    ]
+   ]
+  },
+  "Run_NE|Run_NW": {
+   "core_rot_max": 62.74,
+   "core_loc_max": 17.843,
+   "acc_rot_max": 44.131,
+   "core_top": [
+    [
+     "b_Pelvis",
+     62.74
+    ],
+    [
+     "b_Knee_R",
+     59.69
+    ],
+    [
+     "b_Ankle_R",
+     55.76
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     44.13
+    ],
+    [
+     "b_SideSkirt01_L",
+     36.57
+    ],
+    [
+     "b_Hair01",
+     23.39
+    ]
+   ]
+  },
+  "Run_E|Run_SE": {
+   "core_rot_max": 142.731,
+   "core_loc_max": 31.453,
+   "acc_rot_max": 134.609,
+   "core_top": [
+    [
+     "b_Knee_L",
+     142.73
+    ],
+    [
+     "b_Knee_R",
+     109.26
+    ],
+    [
+     "b_Thigh_R",
+     97.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     134.61
+    ],
+    [
+     "b_SideSkirt01_R",
+     97.16
+    ],
+    [
+     "b_SideSkirt01_L",
+     83.49
+    ]
+   ]
+  },
+  "Run_E|Run_S": {
+   "core_rot_max": 142.731,
+   "core_loc_max": 28.606,
+   "acc_rot_max": 134.609,
+   "core_top": [
+    [
+     "b_Knee_L",
+     142.73
+    ],
+    [
+     "b_Knee_R",
+     109.26
+    ],
+    [
+     "b_Thigh_R",
+     97.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     134.61
+    ],
+    [
+     "b_SideSkirt01_R",
+     97.16
+    ],
+    [
+     "b_SideSkirt01_L",
+     83.49
+    ]
+   ]
+  },
+  "Run_E|Run_SW": {
+   "core_rot_max": 142.731,
+   "core_loc_max": 27.449,
+   "acc_rot_max": 134.609,
+   "core_top": [
+    [
+     "b_Knee_L",
+     142.73
+    ],
+    [
+     "b_Knee_R",
+     109.26
+    ],
+    [
+     "b_Thigh_R",
+     97.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     134.61
+    ],
+    [
+     "b_SideSkirt01_R",
+     97.16
+    ],
+    [
+     "b_SideSkirt01_L",
+     83.49
+    ]
+   ]
+  },
+  "Run_E|Run_W": {
+   "core_rot_max": 139.821,
+   "core_loc_max": 8.338,
+   "acc_rot_max": 105.864,
+   "core_top": [
+    [
+     "b_Knee_L",
+     139.82
+    ],
+    [
+     "b_Thigh_R",
+     105.86
+    ],
+    [
+     "b_Ankle_R",
+     103.37
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_R",
+     105.86
+    ],
+    [
+     "b_SideSkirt01_L",
+     100.17
+    ],
+    [
+     "b_Tail03",
+     96.91
+    ]
+   ]
+  },
+  "Run_E|Run_NW": {
+   "core_rot_max": 129.89,
+   "core_loc_max": 24.118,
+   "acc_rot_max": 126.912,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     129.89
+    ],
+    [
+     "b_Ankle_R",
+     121.54
+    ],
+    [
+     "b_Knee_L",
+     110.97
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     126.91
+    ],
+    [
+     "b_Hair03",
+     100.71
+    ],
+    [
+     "b_SideSkirt01_L",
+     98.44
+    ]
+   ]
+  },
+  "Run_SE|Run_S": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 5.572,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_ToeInside02_R",
+     0.01
+    ],
+    [
+     "b_ToeInside03_R",
+     0.01
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     30.0
+    ],
+    [
+     "b_Index03_L",
+     0.01
+    ],
+    [
+     "b_Index02_L",
+     0.01
+    ]
+   ]
+  },
+  "Run_SE|Run_SW": {
+   "core_rot_max": 60.0,
+   "core_loc_max": 10.765,
+   "acc_rot_max": 60.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     60.0
+    ],
+    [
+     "b_ToeInside02_R",
+     0.01
+    ],
+    [
+     "b_ToeInside03_R",
+     0.01
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     60.0
+    ],
+    [
+     "b_Index02_L",
+     0.01
+    ],
+    [
+     "b_Index03_L",
+     0.01
+    ]
+   ]
+  },
+  "Run_SE|Run_W": {
+   "core_rot_max": 142.731,
+   "core_loc_max": 31.453,
+   "acc_rot_max": 149.348,
+   "core_top": [
+    [
+     "b_Knee_L",
+     142.73
+    ],
+    [
+     "b_Ankle_R",
+     122.21
+    ],
+    [
+     "b_Knee_R",
+     120.98
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     149.35
+    ],
+    [
+     "b_SideSkirt01_L",
+     114.84
+    ],
+    [
+     "b_SideSkirt01_R",
+     98.95
+    ]
+   ]
+  },
+  "Run_SE|Run_NW": {
+   "core_rot_max": 128.498,
+   "core_loc_max": 24.642,
+   "acc_rot_max": 97.363,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     128.5
+    ],
+    [
+     "b_Ankle_R",
+     126.13
+    ],
+    [
+     "b_Knee_R",
+     123.03
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_L",
+     97.36
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ],
+    [
+     "b_SideSkirt01_R",
+     84.15
+    ]
+   ]
+  },
+  "Run_S|Run_SW": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 5.572,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_ToeEnd02_R",
+     0.01
+    ],
+    [
+     "b_ToeEnd_R",
+     0.01
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     30.0
+    ],
+    [
+     "b_Mouth_BottomOutside_R",
+     0.0
+    ],
+    [
+     "b_Collar_R",
+     0.0
+    ]
+   ]
+  },
+  "Run_S|Run_W": {
+   "core_rot_max": 142.731,
+   "core_loc_max": 28.606,
+   "acc_rot_max": 149.348,
+   "core_top": [
+    [
+     "b_Knee_L",
+     142.73
+    ],
+    [
+     "b_Ankle_R",
+     122.21
+    ],
+    [
+     "b_Knee_R",
+     120.98
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     149.35
+    ],
+    [
+     "b_SideSkirt01_L",
+     114.84
+    ],
+    [
+     "b_SideSkirt01_R",
+     98.95
+    ]
+   ]
+  },
+  "Run_S|Run_NW": {
+   "core_rot_max": 128.498,
+   "core_loc_max": 26.306,
+   "acc_rot_max": 97.363,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     128.5
+    ],
+    [
+     "b_Ankle_R",
+     126.13
+    ],
+    [
+     "b_Knee_R",
+     123.03
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_L",
+     97.36
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ],
+    [
+     "b_SideSkirt01_R",
+     84.15
+    ]
+   ]
+  },
+  "Run_SW|Run_W": {
+   "core_rot_max": 142.731,
+   "core_loc_max": 27.449,
+   "acc_rot_max": 149.348,
+   "core_top": [
+    [
+     "b_Knee_L",
+     142.73
+    ],
+    [
+     "b_Ankle_R",
+     122.21
+    ],
+    [
+     "b_Knee_R",
+     120.98
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     149.35
+    ],
+    [
+     "b_SideSkirt01_L",
+     114.84
+    ],
+    [
+     "b_SideSkirt01_R",
+     98.95
+    ]
+   ]
+  },
+  "Run_SW|Run_NW": {
+   "core_rot_max": 128.498,
+   "core_loc_max": 28.9,
+   "acc_rot_max": 97.363,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     128.5
+    ],
+    [
+     "b_Ankle_R",
+     126.13
+    ],
+    [
+     "b_Knee_R",
+     123.03
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_SideSkirt01_L",
+     97.36
+    ],
+    [
+     "b_LoinCloth",
+     85.0
+    ],
+    [
+     "b_SideSkirt01_R",
+     84.15
+    ]
+   ]
+  },
+  "Run_W|Run_NW": {
+   "core_rot_max": 113.517,
+   "core_loc_max": 24.118,
+   "acc_rot_max": 137.152,
+   "core_top": [
+    [
+     "b_Knee_L",
+     113.52
+    ],
+    [
+     "b_ToeOutside01_L",
+     111.76
+    ],
+    [
+     "b_Ankle_L",
+     108.22
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hair04",
+     137.15
+    ],
+    [
+     "b_Hair03",
+     102.49
+    ],
+    [
+     "b_SideSkirt01_L",
+     96.88
+    ]
+   ]
+  }
+ }
+}

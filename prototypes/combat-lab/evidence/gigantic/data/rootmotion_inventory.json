@@ -1,0 +1,2032 @@
+{
+ "charnok": [
+  {
+   "action": "Dodge_E",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 399.6,
+   "root_net_disp": 399.6,
+   "root_range_x": 399.6,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 399.6,
+   "root_net_disp": 399.6,
+   "root_range_x": 399.6,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 367.514,
+   "root_net_disp": 367.514,
+   "root_range_x": 0.0,
+   "root_range_y": 367.514,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_E_Air",
+   "frame_range": [
+    0.0,
+    22.0
+   ],
+   "frames": 23,
+   "seconds_at_scene_fps": 0.73333,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 296.2777,
+   "root_net_disp": 296.2777,
+   "root_range_x": 296.2777,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S_Air",
+   "frame_range": [
+    0.0,
+    22.0
+   ],
+   "frames": 23,
+   "seconds_at_scene_fps": 0.73333,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 294.9005,
+   "root_net_disp": 294.9005,
+   "root_range_x": 0.0,
+   "root_range_y": 294.9005,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_W_Air",
+   "frame_range": [
+    0.0,
+    45.0
+   ],
+   "frames": 46,
+   "seconds_at_scene_fps": 1.5,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 294.6921,
+   "root_net_disp": 294.6921,
+   "root_range_x": 294.6921,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Exhausted",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 260.0,
+   "root_net_disp": 260.0,
+   "root_range_x": 260.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W_Exhausted",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.0,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 260.0,
+   "root_net_disp": 260.0,
+   "root_range_x": 260.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S_Exhausted",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 208.0,
+   "root_net_disp": 208.0,
+   "root_range_x": 0.0,
+   "root_range_y": 208.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Jump_Land_Hard_N",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 160.0,
+   "root_net_disp": 160.0,
+   "root_range_x": 0.0,
+   "root_range_y": 160.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "React_Launched_End",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 68.3384,
+   "root_net_disp": 68.3384,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 68.3384
+  },
+  {
+   "action": "React_Pulled_End",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 68.3384,
+   "root_net_disp": 68.3384,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 68.3384
+  },
+  {
+   "action": "React_Pulled_Start",
+   "frame_range": [
+    0.0,
+    15.0
+   ],
+   "frames": 16,
+   "seconds_at_scene_fps": 0.5,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 68.3384,
+   "root_net_disp": 68.3384,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 68.3384
+  },
+  {
+   "action": "React_Launched_Down",
+   "frame_range": [
+    0.0,
+    10.0
+   ],
+   "frames": 11,
+   "seconds_at_scene_fps": 0.33333,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 60.0362,
+   "root_net_disp": 60.0362,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 65.4816
+  },
+  {
+   "action": "React_Launched_Up",
+   "frame_range": [
+    0.0,
+    5.0
+   ],
+   "frames": 6,
+   "seconds_at_scene_fps": 0.16667,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 60.0362,
+   "root_net_disp": 60.0362,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 60.0362
+  },
+  {
+   "action": "React_Pulled_Up",
+   "frame_range": [
+    0.0,
+    5.0
+   ],
+   "frames": 6,
+   "seconds_at_scene_fps": 0.16667,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 39.0585,
+   "root_net_disp": 39.0585,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 39.0585
+  },
+  {
+   "action": "React_Pulled_Down",
+   "frame_range": [
+    0.0,
+    10.0
+   ],
+   "frames": 11,
+   "seconds_at_scene_fps": 0.33333,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 29.2798,
+   "root_net_disp": 29.2798,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 29.2798
+  },
+  {
+   "action": "Jump_Airship_Up",
+   "frame_range": [
+    0.0,
+    45.0
+   ],
+   "frames": 46,
+   "seconds_at_scene_fps": 1.5,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 19.8002,
+   "root_net_disp": 9.6914,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 37.7249
+  },
+  {
+   "action": "Jump_Up",
+   "frame_range": [
+    0.0,
+    45.0
+   ],
+   "frames": 46,
+   "seconds_at_scene_fps": 1.5,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 19.8002,
+   "root_net_disp": 9.6914,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 37.7249
+  },
+  {
+   "action": "Skill_Detonate_Explode_Land",
+   "frame_range": [
+    0.0,
+    76.0
+   ],
+   "frames": 77,
+   "seconds_at_scene_fps": 2.53333,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 12.5344,
+   "root_net_disp": 0.0,
+   "root_range_x": 7.2065,
+   "root_range_y": 0.0,
+   "root_range_z": 10.3067
+  },
+  {
+   "action": "Jump_Down",
+   "frame_range": [
+    0.0,
+    14.0
+   ],
+   "frames": 15,
+   "seconds_at_scene_fps": 0.46667,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 6.5329,
+   "root_net_disp": 6.5329,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 6.5329
+  },
+  {
+   "action": "Skill_Detonate_AllowChain_Transition",
+   "frame_range": [
+    0.0,
+    44.0
+   ],
+   "frames": 45,
+   "seconds_at_scene_fps": 1.46667,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 4.3808,
+   "root_net_disp": 0.0,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 4.6546
+  },
+  {
+   "action": "Skill_Detonate_Transition",
+   "frame_range": [
+    0.0,
+    44.0
+   ],
+   "frames": 45,
+   "seconds_at_scene_fps": 1.46667,
+   "n_fcurves": 651,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 186,
+   "bone_paths": 93,
+   "root_max_disp": 4.3808,
+   "root_net_disp": 0.0,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 4.6546
+  }
+ ],
+ "pakko": [
+  {
+   "action": "Skill_RushAttack",
+   "frame_range": [
+    0.0,
+    22.0
+   ],
+   "frames": 23,
+   "seconds_at_scene_fps": 0.73333,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 400.0,
+   "root_net_disp": 400.0,
+   "root_range_x": 0.0,
+   "root_range_y": 400.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_E",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 352.7077,
+   "root_net_disp": 352.7077,
+   "root_range_x": 352.7077,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 352.7077,
+   "root_net_disp": 352.7077,
+   "root_range_x": 352.7077,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S",
+   "frame_range": [
+    0.0,
+    27.0
+   ],
+   "frames": 28,
+   "seconds_at_scene_fps": 0.9,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 299.5514,
+   "root_net_disp": 299.5514,
+   "root_range_x": 0.0,
+   "root_range_y": 299.5514,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_E_Exhausted",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 260.0,
+   "root_net_disp": 260.0,
+   "root_range_x": 260.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W_Exhausted",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 260.0,
+   "root_net_disp": 260.0,
+   "root_range_x": 260.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W_Air",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 225.009,
+   "root_net_disp": 225.009,
+   "root_range_x": 225.009,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Air",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 225.0088,
+   "root_net_disp": 225.0088,
+   "root_range_x": 225.0088,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S_Air",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 225.0088,
+   "root_net_disp": 225.0088,
+   "root_range_x": 0.0,
+   "root_range_y": 225.0088,
+   "root_range_z": 0.0327
+  },
+  {
+   "action": "Dodge_S_Exhausted",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 208.0,
+   "root_net_disp": 208.0,
+   "root_range_x": 0.0,
+   "root_range_y": 208.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Jump_Land_Hard_N",
+   "frame_range": [
+    0.0,
+    30.0
+   ],
+   "frames": 31,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 176.6626,
+   "root_net_disp": 176.6626,
+   "root_range_x": 0.0,
+   "root_range_y": 176.6626,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Slide_Combo_Loop",
+   "frame_range": [
+    0.0,
+    53.0
+   ],
+   "frames": 54,
+   "seconds_at_scene_fps": 1.76667,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 70.3394,
+   "root_net_disp": 0.0,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 70.3394
+  },
+  {
+   "action": "JumpPad_Up_LONG",
+   "frame_range": [
+    0.0,
+    40.0
+   ],
+   "frames": 41,
+   "seconds_at_scene_fps": 1.33333,
+   "n_fcurves": 581,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 166,
+   "bone_paths": 83,
+   "root_max_disp": 24.44,
+   "root_net_disp": 0.0,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 24.44
+  }
+ ],
+ "rutger": [
+  {
+   "action": "Skill_Focus_Charge",
+   "frame_range": [
+    0.0,
+    91.0
+   ],
+   "frames": 92,
+   "seconds_at_scene_fps": 3.03333,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 2550.4788,
+   "root_net_disp": 2550.4788,
+   "root_range_x": 0.0,
+   "root_range_y": 2550.4788,
+   "root_range_z": 0.0005
+  },
+  {
+   "action": "Skill_Focus_End",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.0,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 2550.4788,
+   "root_net_disp": 2550.4788,
+   "root_range_x": 0.0,
+   "root_range_y": 2550.4788,
+   "root_range_z": 0.0005
+  },
+  {
+   "action": "Skill_RushAttack",
+   "frame_range": [
+    0.0,
+    37.0
+   ],
+   "frames": 38,
+   "seconds_at_scene_fps": 1.23333,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 400.0,
+   "root_net_disp": 400.0,
+   "root_range_x": 0.0,
+   "root_range_y": 400.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Jump_Land_Hard_N",
+   "frame_range": [
+    0.0,
+    29.0
+   ],
+   "frames": 30,
+   "seconds_at_scene_fps": 0.96667,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 338.3574,
+   "root_net_disp": 338.3574,
+   "root_range_x": 0.0,
+   "root_range_y": 338.3574,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_W",
+   "frame_range": [
+    0.0,
+    28.0
+   ],
+   "frames": 29,
+   "seconds_at_scene_fps": 0.93333,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 313.3142,
+   "root_net_disp": 313.0,
+   "root_range_x": 313.3142,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E",
+   "frame_range": [
+    0.0,
+    28.0
+   ],
+   "frames": 29,
+   "seconds_at_scene_fps": 0.93333,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 313.0,
+   "root_net_disp": 313.0,
+   "root_range_x": 313.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Air",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 287.0,
+   "root_net_disp": 287.0,
+   "root_range_x": 287.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W_Air",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 287.0,
+   "root_net_disp": 287.0,
+   "root_range_x": 287.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S_Air",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 263.1598,
+   "root_net_disp": 263.1598,
+   "root_range_x": 0.0,
+   "root_range_y": 263.1598,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S",
+   "frame_range": [
+    0.0,
+    28.0
+   ],
+   "frames": 29,
+   "seconds_at_scene_fps": 0.93333,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 262.92,
+   "root_net_disp": 262.92,
+   "root_range_x": 0.0,
+   "root_range_y": 262.92,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Exhausted",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 213.3333,
+   "root_net_disp": 213.3333,
+   "root_range_x": 213.3333,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W_Exhausted",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 213.3333,
+   "root_net_disp": 213.3333,
+   "root_range_x": 213.3333,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S_Exhausted",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 854,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 244,
+   "bone_paths": 122,
+   "root_max_disp": 173.3333,
+   "root_net_disp": 173.3333,
+   "root_range_x": 0.0,
+   "root_range_y": 173.3333,
+   "root_range_z": 0.0
+  }
+ ],
+ "wu": [
+  {
+   "action": "Skill_CounterAttack",
+   "frame_range": [
+    0.0,
+    34.0
+   ],
+   "frames": 35,
+   "seconds_at_scene_fps": 1.13333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 500.0,
+   "root_net_disp": 500.0,
+   "root_range_x": 0.0,
+   "root_range_y": 500.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Skill_RushAttack",
+   "frame_range": [
+    0.0,
+    40.0
+   ],
+   "frames": 41,
+   "seconds_at_scene_fps": 1.33333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 400.475,
+   "root_net_disp": 400.0,
+   "root_range_x": 0.0,
+   "root_range_y": 400.475,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Skill_TigerKick_01",
+   "frame_range": [
+    0.0,
+    42.0
+   ],
+   "frames": 43,
+   "seconds_at_scene_fps": 1.4,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 384.9108,
+   "root_net_disp": 384.9108,
+   "root_range_x": 0.0,
+   "root_range_y": 384.9108,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_E",
+   "frame_range": [
+    0.0,
+    34.0
+   ],
+   "frames": 35,
+   "seconds_at_scene_fps": 1.13333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 350.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Exhausted",
+   "frame_range": [
+    0.0,
+    37.0
+   ],
+   "frames": 38,
+   "seconds_at_scene_fps": 1.23333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 350.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S",
+   "frame_range": [
+    0.0,
+    37.0
+   ],
+   "frames": 38,
+   "seconds_at_scene_fps": 1.23333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 0.0,
+   "root_range_y": 350.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_S_Exhausted",
+   "frame_range": [
+    0.0,
+    43.0
+   ],
+   "frames": 44,
+   "seconds_at_scene_fps": 1.43333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 0.0,
+   "root_range_y": 350.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_W",
+   "frame_range": [
+    0.0,
+    37.0
+   ],
+   "frames": 38,
+   "seconds_at_scene_fps": 1.23333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 350.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W_Exhausted",
+   "frame_range": [
+    0.0,
+    44.0
+   ],
+   "frames": 45,
+   "seconds_at_scene_fps": 1.46667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 350.0,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S_Air",
+   "frame_range": [
+    0.0,
+    12.0
+   ],
+   "frames": 13,
+   "seconds_at_scene_fps": 0.4,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 349.137,
+   "root_net_disp": 349.137,
+   "root_range_x": 0.0,
+   "root_range_y": 349.137,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_W_Air",
+   "frame_range": [
+    0.0,
+    12.0
+   ],
+   "frames": 13,
+   "seconds_at_scene_fps": 0.4,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 349.0855,
+   "root_net_disp": 349.0855,
+   "root_range_x": 349.0855,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Air",
+   "frame_range": [
+    0.0,
+    12.0
+   ],
+   "frames": 13,
+   "seconds_at_scene_fps": 0.4,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 347.4782,
+   "root_net_disp": 347.4782,
+   "root_range_x": 347.4782,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_TigerKick_02",
+   "frame_range": [
+    0.0,
+    36.0
+   ],
+   "frames": 37,
+   "seconds_at_scene_fps": 1.2,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 338.8611,
+   "root_net_disp": 338.7817,
+   "root_range_x": 0.0,
+   "root_range_y": 338.8611,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Skill_Focus",
+   "frame_range": [
+    0.0,
+    43.0
+   ],
+   "frames": 44,
+   "seconds_at_scene_fps": 1.43333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 314.8462,
+   "root_net_disp": 314.8462,
+   "root_range_x": 0.0,
+   "root_range_y": 314.8462,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Skill_Combo_02_End",
+   "frame_range": [
+    0.0,
+    42.0
+   ],
+   "frames": 43,
+   "seconds_at_scene_fps": 1.4,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 275.2659,
+   "root_net_disp": 275.2659,
+   "root_range_x": 0.0,
+   "root_range_y": 275.2659,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Skill_DragonPunch",
+   "frame_range": [
+    0.0,
+    33.0
+   ],
+   "frames": 34,
+   "seconds_at_scene_fps": 1.1,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 270.7369,
+   "root_net_disp": 270.5384,
+   "root_range_x": 0.0,
+   "root_range_y": 270.7369,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Focus_Uppercut",
+   "frame_range": [
+    0.0,
+    35.0
+   ],
+   "frames": 36,
+   "seconds_at_scene_fps": 1.16667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 270.1976,
+   "root_net_disp": 270.0,
+   "root_range_x": 0.0,
+   "root_range_y": 270.1976,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Combo_06_End",
+   "frame_range": [
+    0.0,
+    20.0
+   ],
+   "frames": 21,
+   "seconds_at_scene_fps": 0.66667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 266.67,
+   "root_net_disp": 266.67,
+   "root_range_x": 0.0,
+   "root_range_y": 266.67,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_CounterArea_Loop",
+   "frame_range": [
+    0.0,
+    15.0
+   ],
+   "frames": 16,
+   "seconds_at_scene_fps": 0.5,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 266.67,
+   "root_net_disp": 266.67,
+   "root_range_x": 0.0,
+   "root_range_y": 266.67,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Waves_Roll_Loop",
+   "frame_range": [
+    0.0,
+    15.0
+   ],
+   "frames": 16,
+   "seconds_at_scene_fps": 0.5,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 266.67,
+   "root_net_disp": 266.67,
+   "root_range_x": 0.0,
+   "root_range_y": 266.67,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_TigerKick_03",
+   "frame_range": [
+    0.0,
+    29.0
+   ],
+   "frames": 30,
+   "seconds_at_scene_fps": 0.96667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 234.3669,
+   "root_net_disp": 234.3669,
+   "root_range_x": 0.0,
+   "root_range_y": 234.3669,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Jump_Land_Hard_N",
+   "frame_range": [
+    0.0,
+    41.0
+   ],
+   "frames": 42,
+   "seconds_at_scene_fps": 1.36667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 211.6843,
+   "root_net_disp": 211.6843,
+   "root_range_x": 0.0,
+   "root_range_y": 211.6843,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_CollectPowerOrb_End",
+   "frame_range": [
+    0.0,
+    31.0
+   ],
+   "frames": 32,
+   "seconds_at_scene_fps": 1.03333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 137.4358,
+   "root_net_disp": 0.1875,
+   "root_range_x": 4.9719,
+   "root_range_y": 51.1029,
+   "root_range_z": 129.094
+  },
+  {
+   "action": "Skill_SummonMinion_End",
+   "frame_range": [
+    0.0,
+    31.0
+   ],
+   "frames": 32,
+   "seconds_at_scene_fps": 1.03333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 137.4358,
+   "root_net_disp": 0.1875,
+   "root_range_x": 4.9719,
+   "root_range_y": 51.1029,
+   "root_range_z": 129.094
+  },
+  {
+   "action": "Skill_Combo_End_01",
+   "frame_range": [
+    0.0,
+    37.0
+   ],
+   "frames": 38,
+   "seconds_at_scene_fps": 1.23333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 99.7001,
+   "root_net_disp": 99.7001,
+   "root_range_x": 0.0,
+   "root_range_y": 99.7001,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_CounterLeap_End",
+   "frame_range": [
+    0.0,
+    15.0
+   ],
+   "frames": 16,
+   "seconds_at_scene_fps": 0.5,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 51.5044,
+   "root_net_disp": 51.5044,
+   "root_range_x": 0.0,
+   "root_range_y": 51.5044,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_AirAttack_Land",
+   "frame_range": [
+    0.0,
+    31.0
+   ],
+   "frames": 32,
+   "seconds_at_scene_fps": 1.03333,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 47.9807,
+   "root_net_disp": 47.2217,
+   "root_range_x": 47.9541,
+   "root_range_y": 1.5959,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_AirAttack_Up",
+   "frame_range": [
+    0.0,
+    8.0
+   ],
+   "frames": 9,
+   "seconds_at_scene_fps": 0.26667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 47.2217,
+   "root_net_disp": 47.2217,
+   "root_range_x": 47.1955,
+   "root_range_y": 1.5706,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_AirAttack_Loop",
+   "frame_range": [
+    0.0,
+    63.0
+   ],
+   "frames": 64,
+   "seconds_at_scene_fps": 2.1,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 45.3335,
+   "root_net_disp": 45.1926,
+   "root_range_x": 45.3085,
+   "root_range_y": 1.5078,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Jump_PreLand",
+   "frame_range": [
+    0.0,
+    5.0
+   ],
+   "frames": 6,
+   "seconds_at_scene_fps": 0.16667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 33.1338,
+   "root_net_disp": 33.1338,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 33.1338
+  },
+  {
+   "action": "Jump_Airship_Up",
+   "frame_range": [
+    0.0,
+    17.0
+   ],
+   "frames": 18,
+   "seconds_at_scene_fps": 0.56667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 29.9674,
+   "root_net_disp": 29.9674,
+   "root_range_x": 0.0,
+   "root_range_y": 0.3844,
+   "root_range_z": 29.9674
+  },
+  {
+   "action": "Jump_Up",
+   "frame_range": [
+    0.0,
+    17.0
+   ],
+   "frames": 18,
+   "seconds_at_scene_fps": 0.56667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 29.9674,
+   "root_net_disp": 29.9674,
+   "root_range_x": 0.0,
+   "root_range_y": 0.3844,
+   "root_range_z": 29.9674
+  },
+  {
+   "action": "Jump_Down",
+   "frame_range": [
+    0.0,
+    5.0
+   ],
+   "frames": 6,
+   "seconds_at_scene_fps": 0.16667,
+   "n_fcurves": 889,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 254,
+   "bone_paths": 127,
+   "root_max_disp": 9.6042,
+   "root_net_disp": 9.6042,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 9.6042
+  }
+ ],
+ "pilot": [
+  {
+   "action": "Skill_RushAttack",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.5,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 400.0,
+   "root_net_disp": 400.0,
+   "root_range_x": 0.0,
+   "root_range_y": 400.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_W",
+   "frame_range": [
+    0.0,
+    38.0
+   ],
+   "frames": 39,
+   "seconds_at_scene_fps": 1.58333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 388.1082,
+   "root_net_disp": 347.116,
+   "root_range_x": 388.2181,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_W_Air",
+   "frame_range": [
+    0.0,
+    38.0
+   ],
+   "frames": 39,
+   "seconds_at_scene_fps": 1.58333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 388.1082,
+   "root_net_disp": 347.116,
+   "root_range_x": 388.2181,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S",
+   "frame_range": [
+    0.0,
+    38.0
+   ],
+   "frames": 39,
+   "seconds_at_scene_fps": 1.58333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 0.0,
+   "root_range_y": 350.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_S_Air",
+   "frame_range": [
+    0.0,
+    38.0
+   ],
+   "frames": 39,
+   "seconds_at_scene_fps": 1.58333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 350.0,
+   "root_net_disp": 350.0,
+   "root_range_x": 0.0,
+   "root_range_y": 350.0,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_E",
+   "frame_range": [
+    0.0,
+    38.0
+   ],
+   "frames": 39,
+   "seconds_at_scene_fps": 1.58333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 347.1163,
+   "root_net_disp": 347.1163,
+   "root_range_x": 347.1163,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Air",
+   "frame_range": [
+    0.0,
+    38.0
+   ],
+   "frames": 39,
+   "seconds_at_scene_fps": 1.58333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 347.1163,
+   "root_net_disp": 347.1163,
+   "root_range_x": 347.1163,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Slash_RushAttack",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.5,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 310.0084,
+   "root_net_disp": 309.9538,
+   "root_range_x": 0.0,
+   "root_range_y": 310.0084,
+   "root_range_z": 0.0001
+  },
+  {
+   "action": "Dodge_W_Exhausted",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.5,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 220.924,
+   "root_net_disp": 220.924,
+   "root_range_x": 220.924,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Slash_Spike",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.5,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 220.0,
+   "root_net_disp": 220.0,
+   "root_range_x": 0.0,
+   "root_range_y": 220.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_E_Exhausted",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.5,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 216.67,
+   "root_net_disp": 216.67,
+   "root_range_x": 216.67,
+   "root_range_y": 0.0,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Dodge_S_Exhausted",
+   "frame_range": [
+    0.0,
+    60.0
+   ],
+   "frames": 61,
+   "seconds_at_scene_fps": 2.5,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 216.67,
+   "root_net_disp": 216.67,
+   "root_range_x": 0.0,
+   "root_range_y": 216.67,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Jump_Land_Hard_N",
+   "frame_range": [
+    0.0,
+    25.0
+   ],
+   "frames": 26,
+   "seconds_at_scene_fps": 1.04167,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 153.7132,
+   "root_net_disp": 153.6981,
+   "root_range_x": 0.0,
+   "root_range_y": 153.7132,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Slide_DoubleKick_Up",
+   "frame_range": [
+    0.0,
+    40.0
+   ],
+   "frames": 41,
+   "seconds_at_scene_fps": 1.66667,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 120.335,
+   "root_net_disp": 0.0,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 120.335
+  },
+  {
+   "action": "Skill_Slide_Kick_Up",
+   "frame_range": [
+    0.0,
+    11.0
+   ],
+   "frames": 12,
+   "seconds_at_scene_fps": 0.45833,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 120.335,
+   "root_net_disp": 102.4187,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 120.335
+  },
+  {
+   "action": "Skill_Slash_AirAttack_Land",
+   "frame_range": [
+    0.0,
+    36.0
+   ],
+   "frames": 37,
+   "seconds_at_scene_fps": 1.5,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 72.7266,
+   "root_net_disp": 72.7266,
+   "root_range_x": 0.0,
+   "root_range_y": 72.7266,
+   "root_range_z": 0.0
+  },
+  {
+   "action": "Skill_Slide_Punch_Loop",
+   "frame_range": [
+    0.0,
+    86.0
+   ],
+   "frames": 87,
+   "seconds_at_scene_fps": 3.58333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 36.7162,
+   "root_net_disp": 14.6438,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 43.6534
+  },
+  {
+   "action": "Skill_Slide_Punch_Up",
+   "frame_range": [
+    0.0,
+    24.0
+   ],
+   "frames": 25,
+   "seconds_at_scene_fps": 1.0,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 23.1773,
+   "root_net_disp": 8.5526,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 23.1773
+  },
+  {
+   "action": "Skill_Slide_Kick_Loop",
+   "frame_range": [
+    0.0,
+    200.0
+   ],
+   "frames": 201,
+   "seconds_at_scene_fps": 8.33333,
+   "n_fcurves": 560,
+   "has_root_loc": true,
+   "has_root_rot": true,
+   "has_pelvis_loc": true,
+   "paths": 160,
+   "bone_paths": 80,
+   "root_max_disp": 19.4734,
+   "root_net_disp": 4.2794,
+   "root_range_x": 0.0,
+   "root_range_y": 0.0,
+   "root_range_z": 19.4734
+  }
+ ]
+}

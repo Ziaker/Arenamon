@@ -1,0 +1,37 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..5 (5) | 24.000 FPS | 0.208 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [MEDIO] f4    equilibrio    COM        centro aproximado 0.264 m fora do apoio simplificado
+  [MEDIO] f3    equilibrio    COM        centro aproximado 0.264 m fora do apoio simplificado
+  [MEDIO] f2    deslizamento  LeftFoot   0.047 m entre frames baixos consecutivos
+  [BAIXO] f3    tangente      LeftFoot   mudanca de velocidade 91% junto a chave
+  [BAIXO] f5    arco          RightHand  quebra de curvatura 83.3 graus
+  [BAIXO] f4    tangente      Head       mudanca de velocidade 80% junto a chave
+  [BAIXO] f5    arco          LeftHand   quebra de curvatura 79.0 graus
+  [BAIXO] f2    equilibrio    COM        centro aproximado 0.145 m fora do apoio simplificado
+  [BAIXO] f4    tangente      RightHand  mudanca de velocidade 74% junto a chave
+  [BAIXO] f4    tangente      LeftHand   mudanca de velocidade 73% junto a chave
+  [BAIXO] f2    deslizamento  RightFoot  0.027 m entre frames baixos consecutivos
+  [BAIXO] f3    arco          LeftHand   quebra de curvatura 67.2 graus
+
+RESUMO POR JUNTA
+  Hips       pico 0.015 m/frame em f2 | media 0.007
+  Head       pico 0.031 m/frame em f3 | media 0.017
+  LeftHand   pico 0.027 m/frame em f4 | media 0.019
+  RightHand  pico 0.026 m/frame em f3 | media 0.018
+  LeftFoot   pico 0.059 m/frame em f3 | media 0.031
+  RightFoot  pico 0.028 m/frame em f2 | media 0.019
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 2 baixos, 1 quase travados, slide max 0.047 m/frame, z<=0.227
+  RightFoot: 4 baixos, 2 quase travados, slide max 0.027 m/frame, z<=0.247
+  Malha: z minimo 0.1035 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

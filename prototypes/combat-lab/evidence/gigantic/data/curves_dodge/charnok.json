@@ -1,0 +1,1194 @@
+{
+ "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+ "armature": "Bombard_Default_LOD0",
+ "pairs": {
+  "Dodge_E|Dodge_W": {
+   "core_rot_max": 179.997,
+   "core_loc_max": 799.2,
+   "acc_rot_max": 177.964,
+   "core_top": [
+    [
+     "b_Pelvis",
+     180.0
+    ],
+    [
+     "b_Wrist_L",
+     149.4
+    ],
+    [
+     "b_Thigh_L",
+     113.48
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail04",
+     177.96
+    ],
+    [
+     "b_Tail05",
+     176.17
+    ],
+    [
+     "b_ForeLeg01_R",
+     154.71
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_S": {
+   "core_rot_max": 145.121,
+   "core_loc_max": 542.906,
+   "acc_rot_max": 177.456,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     145.12
+    ],
+    [
+     "b_Bicep_L",
+     100.71
+    ],
+    [
+     "b_Pelvis",
+     94.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     177.46
+    ],
+    [
+     "b_Tail04",
+     155.74
+    ],
+    [
+     "b_ForeLeg01_L",
+     123.1
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_E_Air": {
+   "core_rot_max": 169.055,
+   "core_loc_max": 103.322,
+   "acc_rot_max": 179.457,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     169.05
+    ],
+    [
+     "b_Thigh_L",
+     142.16
+    ],
+    [
+     "b_Pelvis",
+     109.47
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     179.46
+    ],
+    [
+     "b_Tail04",
+     174.8
+    ],
+    [
+     "b_ForeLeg01_R",
+     123.64
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_W_Air": {
+   "core_rot_max": 176.275,
+   "core_loc_max": 694.292,
+   "acc_rot_max": 176.42,
+   "core_top": [
+    [
+     "b_Pelvis",
+     176.28
+    ],
+    [
+     "b_Wrist_L",
+     142.78
+    ],
+    [
+     "b_Foot_R",
+     141.22
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     176.42
+    ],
+    [
+     "b_Tail04",
+     174.56
+    ],
+    [
+     "b_ForeLeg03_R",
+     160.06
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_S_Air": {
+   "core_rot_max": 129.851,
+   "core_loc_max": 496.635,
+   "acc_rot_max": 164.059,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     129.85
+    ],
+    [
+     "b_Pelvis",
+     109.47
+    ],
+    [
+     "b_Bicep_L",
+     108.97
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail04",
+     164.06
+    ],
+    [
+     "b_Tail05",
+     156.1
+    ],
+    [
+     "b_ForeLeg03_L",
+     147.63
+    ]
+   ]
+  },
+  "Dodge_E|Sprint_N": {
+   "core_rot_max": 144.192,
+   "core_loc_max": 399.6,
+   "acc_rot_max": 169.972,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     144.19
+    ],
+    [
+     "b_Thigh_R",
+     126.52
+    ],
+    [
+     "b_Pelvis",
+     108.86
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     169.97
+    ],
+    [
+     "b_Tail04",
+     162.49
+    ],
+    [
+     "b_ForeLeg01_R",
+     114.68
+    ]
+   ]
+  },
+  "Dodge_E|Sprint_NE": {
+   "core_rot_max": 144.194,
+   "core_loc_max": 399.6,
+   "acc_rot_max": 169.974,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     144.19
+    ],
+    [
+     "b_Thigh_R",
+     126.5
+    ],
+    [
+     "b_Pelvis",
+     108.87
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     169.97
+    ],
+    [
+     "b_Tail04",
+     162.48
+    ],
+    [
+     "b_ForeLeg01_R",
+     114.69
+    ]
+   ]
+  },
+  "Dodge_E|Sprint_NW": {
+   "core_rot_max": 144.194,
+   "core_loc_max": 399.6,
+   "acc_rot_max": 169.974,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     144.19
+    ],
+    [
+     "b_Thigh_R",
+     126.5
+    ],
+    [
+     "b_Pelvis",
+     108.87
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     169.97
+    ],
+    [
+     "b_Tail04",
+     162.48
+    ],
+    [
+     "b_ForeLeg01_R",
+     114.69
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_S": {
+   "core_rot_max": 177.898,
+   "core_loc_max": 542.906,
+   "acc_rot_max": 147.827,
+   "core_top": [
+    [
+     "b_Pelvis",
+     177.9
+    ],
+    [
+     "b_Bicep_L",
+     150.87
+    ],
+    [
+     "b_Wrist_L",
+     114.27
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     147.83
+    ],
+    [
+     "b_ForeLeg01_R",
+     138.08
+    ],
+    [
+     "b_ForeLeg03_L",
+     135.7
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_E_Air": {
+   "core_rot_max": 178.995,
+   "core_loc_max": 695.878,
+   "acc_rot_max": 157.139,
+   "core_top": [
+    [
+     "b_Pelvis",
+     179.0
+    ],
+    [
+     "b_Thigh_R",
+     170.62
+    ],
+    [
+     "b_Thigh_L",
+     146.0
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     157.14
+    ],
+    [
+     "b_Tail05",
+     143.0
+    ],
+    [
+     "b_ForeLeg02_R",
+     140.49
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_W_Air": {
+   "core_rot_max": 142.789,
+   "core_loc_max": 104.908,
+   "acc_rot_max": 154.587,
+   "core_top": [
+    [
+     "b_Bicep_L",
+     142.79
+    ],
+    [
+     "b_Foot_R",
+     140.58
+    ],
+    [
+     "b_Thigh_R",
+     135.19
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     154.59
+    ],
+    [
+     "b_ForeLeg02_R",
+     130.62
+    ],
+    [
+     "b_ForeLeg03_R",
+     127.72
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_S_Air": {
+   "core_rot_max": 179.565,
+   "core_loc_max": 496.635,
+   "acc_rot_max": 156.025,
+   "core_top": [
+    [
+     "b_Pelvis",
+     179.57
+    ],
+    [
+     "b_Bicep_L",
+     151.68
+    ],
+    [
+     "b_Wrist_L",
+     139.87
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     156.02
+    ],
+    [
+     "b_ForeLeg03_L",
+     135.7
+    ],
+    [
+     "b_ForeLeg02_R",
+     130.94
+    ]
+   ]
+  },
+  "Dodge_W|Sprint_N": {
+   "core_rot_max": 157.923,
+   "core_loc_max": 399.6,
+   "acc_rot_max": 124.262,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     157.92
+    ],
+    [
+     "b_Thigh_R",
+     147.11
+    ],
+    [
+     "b_Bicep_L",
+     139.7
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     124.26
+    ],
+    [
+     "b_ForeLeg02_L",
+     102.58
+    ],
+    [
+     "b_ForeLeg01_L",
+     101.8
+    ]
+   ]
+  },
+  "Dodge_W|Sprint_NE": {
+   "core_rot_max": 157.924,
+   "core_loc_max": 399.6,
+   "acc_rot_max": 124.266,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     157.92
+    ],
+    [
+     "b_Thigh_R",
+     147.1
+    ],
+    [
+     "b_Bicep_L",
+     139.7
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     124.27
+    ],
+    [
+     "b_ForeLeg02_L",
+     102.58
+    ],
+    [
+     "b_ForeLeg01_L",
+     101.81
+    ]
+   ]
+  },
+  "Dodge_W|Sprint_NW": {
+   "core_rot_max": 157.924,
+   "core_loc_max": 399.6,
+   "acc_rot_max": 124.266,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     157.92
+    ],
+    [
+     "b_Thigh_R",
+     147.1
+    ],
+    [
+     "b_Bicep_L",
+     139.7
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     124.27
+    ],
+    [
+     "b_ForeLeg02_L",
+     102.58
+    ],
+    [
+     "b_ForeLeg01_L",
+     101.81
+    ]
+   ]
+  },
+  "Dodge_S|Dodge_E_Air": {
+   "core_rot_max": 173.499,
+   "core_loc_max": 472.067,
+   "acc_rot_max": 142.823,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     173.5
+    ],
+    [
+     "b_Thigh_R",
+     138.17
+    ],
+    [
+     "b_Knee_L",
+     128.93
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     142.82
+    ],
+    [
+     "b_ForeLeg02_R",
+     140.49
+    ],
+    [
+     "b_Tail04",
+     135.7
+    ]
+   ]
+  },
+  "Dodge_S|Dodge_W_Air": {
+   "core_rot_max": 177.445,
+   "core_loc_max": 471.073,
+   "acc_rot_max": 177.068,
+   "core_top": [
+    [
+     "b_Pelvis",
+     177.44
+    ],
+    [
+     "b_Foot_R",
+     139.8
+    ],
+    [
+     "b_Bicep_L",
+     128.89
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     177.07
+    ],
+    [
+     "b_ForeLeg03_R",
+     176.39
+    ],
+    [
+     "b_Tail05",
+     164.1
+    ]
+   ]
+  },
+  "Dodge_S|Dodge_S_Air": {
+   "core_rot_max": 101.43,
+   "core_loc_max": 72.614,
+   "acc_rot_max": 147.463,
+   "core_top": [
+    [
+     "b_Elbow_R",
+     101.43
+    ],
+    [
+     "b_Bicep_R",
+     98.8
+    ],
+    [
+     "b_Foot_L",
+     89.55
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     147.46
+    ],
+    [
+     "b_ForeLeg02_L",
+     143.82
+    ],
+    [
+     "b_ForeLeg02_R",
+     128.43
+    ]
+   ]
+  },
+  "Dodge_S|Sprint_N": {
+   "core_rot_max": 143.278,
+   "core_loc_max": 367.514,
+   "acc_rot_max": 144.062,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     143.28
+    ],
+    [
+     "b_Pelvis",
+     112.86
+    ],
+    [
+     "b_Bicep_R",
+     109.38
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     144.06
+    ],
+    [
+     "b_ForeLeg01_R",
+     127.53
+    ],
+    [
+     "b_ForeLeg02_L",
+     122.8
+    ]
+   ]
+  },
+  "Dodge_S|Sprint_NE": {
+   "core_rot_max": 143.278,
+   "core_loc_max": 367.514,
+   "acc_rot_max": 144.035,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     143.28
+    ],
+    [
+     "b_Pelvis",
+     112.86
+    ],
+    [
+     "b_Bicep_R",
+     109.38
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     144.04
+    ],
+    [
+     "b_ForeLeg01_R",
+     127.54
+    ],
+    [
+     "b_ForeLeg02_L",
+     122.8
+    ]
+   ]
+  },
+  "Dodge_S|Sprint_NW": {
+   "core_rot_max": 143.278,
+   "core_loc_max": 367.514,
+   "acc_rot_max": 144.035,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     143.28
+    ],
+    [
+     "b_Pelvis",
+     112.86
+    ],
+    [
+     "b_Bicep_R",
+     109.38
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     144.04
+    ],
+    [
+     "b_ForeLeg01_R",
+     127.54
+    ],
+    [
+     "b_ForeLeg02_L",
+     122.8
+    ]
+   ]
+  },
+  "Dodge_E_Air|Dodge_W_Air": {
+   "core_rot_max": 178.073,
+   "core_loc_max": 590.97,
+   "acc_rot_max": 176.652,
+   "core_top": [
+    [
+     "b_Pelvis",
+     178.07
+    ],
+    [
+     "b_Foot_R",
+     162.01
+    ],
+    [
+     "b_Wrist_L",
+     151.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     176.65
+    ],
+    [
+     "b_ForeLeg03_R",
+     176.61
+    ],
+    [
+     "b_ForeLeg01_R",
+     176.41
+    ]
+   ]
+  },
+  "Dodge_E_Air|Dodge_S_Air": {
+   "core_rot_max": 150.955,
+   "core_loc_max": 418.027,
+   "acc_rot_max": 142.874,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     150.95
+    ],
+    [
+     "b_Thigh_R",
+     139.52
+    ],
+    [
+     "b_Foot_L",
+     139.14
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     142.87
+    ],
+    [
+     "b_Tail04",
+     135.38
+    ],
+    [
+     "b_ForeLeg02_L",
+     126.35
+    ]
+   ]
+  },
+  "Dodge_E_Air|Sprint_N": {
+   "core_rot_max": 161.175,
+   "core_loc_max": 296.278,
+   "acc_rot_max": 157.146,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     161.18
+    ],
+    [
+     "b_Thigh_L",
+     117.0
+    ],
+    [
+     "b_Knee_L",
+     115.66
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     157.15
+    ],
+    [
+     "b_Tail04",
+     137.27
+    ],
+    [
+     "b_ForeLeg02_R",
+     132.27
+    ]
+   ]
+  },
+  "Dodge_E_Air|Sprint_NE": {
+   "core_rot_max": 161.172,
+   "core_loc_max": 296.278,
+   "acc_rot_max": 157.146,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     161.17
+    ],
+    [
+     "b_Thigh_L",
+     116.99
+    ],
+    [
+     "b_Knee_L",
+     115.66
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     157.15
+    ],
+    [
+     "b_Tail04",
+     137.27
+    ],
+    [
+     "b_ForeLeg02_R",
+     132.27
+    ]
+   ]
+  },
+  "Dodge_E_Air|Sprint_NW": {
+   "core_rot_max": 161.172,
+   "core_loc_max": 296.278,
+   "acc_rot_max": 157.146,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     161.17
+    ],
+    [
+     "b_Thigh_L",
+     116.99
+    ],
+    [
+     "b_Knee_L",
+     115.66
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     157.15
+    ],
+    [
+     "b_Tail04",
+     137.27
+    ],
+    [
+     "b_ForeLeg02_R",
+     132.27
+    ]
+   ]
+  },
+  "Dodge_W_Air|Dodge_S_Air": {
+   "core_rot_max": 177.296,
+   "core_loc_max": 416.905,
+   "acc_rot_max": 179.373,
+   "core_top": [
+    [
+     "b_Pelvis",
+     177.3
+    ],
+    [
+     "b_Foot_R",
+     162.8
+    ],
+    [
+     "b_Bicep_L",
+     152.8
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     179.37
+    ],
+    [
+     "b_ForeLeg03_R",
+     177.94
+    ],
+    [
+     "b_ForeLeg01_L",
+     145.03
+    ]
+   ]
+  },
+  "Dodge_W_Air|Sprint_N": {
+   "core_rot_max": 164.909,
+   "core_loc_max": 294.692,
+   "acc_rot_max": 147.504,
+   "core_top": [
+    [
+     "b_Foot_R",
+     164.91
+    ],
+    [
+     "b_Thigh_R",
+     141.26
+    ],
+    [
+     "b_Wrist_L",
+     140.04
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     147.5
+    ],
+    [
+     "b_ForeLeg03_R",
+     139.09
+    ],
+    [
+     "b_Tail05",
+     135.13
+    ]
+   ]
+  },
+  "Dodge_W_Air|Sprint_NE": {
+   "core_rot_max": 164.909,
+   "core_loc_max": 294.692,
+   "acc_rot_max": 147.507,
+   "core_top": [
+    [
+     "b_Foot_R",
+     164.91
+    ],
+    [
+     "b_Thigh_R",
+     141.25
+    ],
+    [
+     "b_Wrist_L",
+     140.04
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     147.51
+    ],
+    [
+     "b_ForeLeg03_R",
+     139.1
+    ],
+    [
+     "b_Tail05",
+     135.13
+    ]
+   ]
+  },
+  "Dodge_W_Air|Sprint_NW": {
+   "core_rot_max": 164.909,
+   "core_loc_max": 294.692,
+   "acc_rot_max": 147.507,
+   "core_top": [
+    [
+     "b_Foot_R",
+     164.91
+    ],
+    [
+     "b_Thigh_R",
+     141.25
+    ],
+    [
+     "b_Wrist_L",
+     140.04
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     147.51
+    ],
+    [
+     "b_ForeLeg03_R",
+     139.1
+    ],
+    [
+     "b_Tail05",
+     135.13
+    ]
+   ]
+  },
+  "Dodge_S_Air|Sprint_N": {
+   "core_rot_max": 112.859,
+   "core_loc_max": 294.9,
+   "acc_rot_max": 144.062,
+   "core_top": [
+    [
+     "b_Pelvis",
+     112.86
+    ],
+    [
+     "b_Thigh_L",
+     110.55
+    ],
+    [
+     "b_Bicep_R",
+     108.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     144.06
+    ],
+    [
+     "b_ForeLeg02_R",
+     132.2
+    ],
+    [
+     "b_ForeLeg01_R",
+     121.85
+    ]
+   ]
+  },
+  "Dodge_S_Air|Sprint_NE": {
+   "core_rot_max": 112.861,
+   "core_loc_max": 294.9,
+   "acc_rot_max": 144.035,
+   "core_top": [
+    [
+     "b_Pelvis",
+     112.86
+    ],
+    [
+     "b_Thigh_L",
+     110.55
+    ],
+    [
+     "b_Bicep_R",
+     108.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     144.04
+    ],
+    [
+     "b_ForeLeg02_R",
+     132.2
+    ],
+    [
+     "b_ForeLeg01_R",
+     121.85
+    ]
+   ]
+  },
+  "Dodge_S_Air|Sprint_NW": {
+   "core_rot_max": 112.861,
+   "core_loc_max": 294.9,
+   "acc_rot_max": 144.035,
+   "core_top": [
+    [
+     "b_Pelvis",
+     112.86
+    ],
+    [
+     "b_Thigh_L",
+     110.55
+    ],
+    [
+     "b_Bicep_R",
+     108.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     144.04
+    ],
+    [
+     "b_ForeLeg02_R",
+     132.2
+    ],
+    [
+     "b_ForeLeg01_R",
+     121.85
+    ]
+   ]
+  },
+  "Sprint_N|Sprint_NE": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 0.007,
+   "acc_rot_max": 30.005,
+   "core_top": [
+    [
+     "b_Root",
+     30.0
+    ],
+    [
+     "b_Spine04",
+     0.59
+    ],
+    [
+     "b_Spine02",
+     0.55
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     30.01
+    ],
+    [
+     "b_Backpack01",
+     0.27
+    ],
+    [
+     "b_ForeLeg01_L",
+     0.22
+    ]
+   ]
+  },
+  "Sprint_N|Sprint_NW": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 0.008,
+   "acc_rot_max": 29.999,
+   "core_top": [
+    [
+     "b_Root",
+     30.0
+    ],
+    [
+     "b_Spine04",
+     0.61
+    ],
+    [
+     "b_Spine02",
+     0.56
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     30.0
+    ],
+    [
+     "b_Backpack01",
+     0.27
+    ],
+    [
+     "b_ForeLeg01_L",
+     0.22
+    ]
+   ]
+  },
+  "Sprint_NE|Sprint_NW": {
+   "core_rot_max": 60.0,
+   "core_loc_max": 0.01,
+   "acc_rot_max": 60.001,
+   "core_top": [
+    [
+     "b_Root",
+     60.0
+    ],
+    [
+     "b_Spine04",
+     1.15
+    ],
+    [
+     "b_Spine02",
+     1.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     60.0
+    ],
+    [
+     "b_Backpack01",
+     0.54
+    ],
+    [
+     "b_Ring02_L",
+     0.01
+    ]
+   ]
+  }
+ }
+}

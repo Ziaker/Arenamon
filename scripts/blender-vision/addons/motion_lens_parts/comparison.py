@@ -23,6 +23,7 @@ def compare_actions(context=None, action_a=None, action_b=None, sample_count=41,
     if arm.animation_data is None:
         arm.animation_data_create()
     original = arm.animation_data.action
+    original_slot = arm.animation_data.action_slot
     roles = {r: _resolve_bone(arm, r) for r in ("Hips", "Head", "LeftHand", "RightHand", "LeftFoot", "RightFoot")}
     roles = {r: pb for r, pb in roles.items() if pb}
     def sample(action):
@@ -43,6 +44,8 @@ def compare_actions(context=None, action_a=None, action_b=None, sample_count=41,
             pa, pb = sample(a), sample(b)
         finally:
             arm.animation_data.action = original
+            if original_slot is not None:
+                arm.animation_data.action_slot = original_slot
     lines = ["COMPARACAO NORMALIZADA: %s x %s (%d amostras)" % (a.name, b.name, sample_count)]
     for role in roles:
         distances = [(x - y).length for x, y in zip(pa[role], pb[role])]
@@ -92,6 +95,7 @@ def compare_actions_data(context=None, action_a=None, action_b=None, sample_coun
     if arm.animation_data is None:
         arm.animation_data_create()
     original = arm.animation_data.action
+    original_slot = arm.animation_data.action_slot
     mapping = _parse_mapping(scene.motion_lens_bone_map)
     roles = {}
     for role in DEFAULT_ROLES + EXTRA_ROLES:
@@ -104,6 +108,8 @@ def compare_actions_data(context=None, action_a=None, action_b=None, sample_coun
             b, _ = _sample_action(context, arm, second, sample_count, roles)
         finally:
             arm.animation_data.action = original
+            if original_slot is not None:
+                arm.animation_data.action_slot = original_slot
     result = {"action_a": first.name, "action_b": second.name, "samples": sample_count, "bones": {}}
     for role in roles:
         positional, angular = [], []
@@ -182,12 +188,15 @@ def render_reference_overlay_sheet(
     if not 1 <= sample_count <= 16:
         raise RuntimeError("Use entre 1 e 16 amostras")
     original = arm.animation_data.action
+    original_slot = arm.animation_data.action_slot
     with _restore_frame(scene):
         try:
             _, current_segments = _sample_action(context, arm, current, sample_count, segments=True)
             _, reference_segments = _sample_action(context, arm, reference, sample_count, segments=True)
         finally:
             arm.animation_data.action = original
+            if original_slot is not None:
+                arm.animation_data.action_slot = original_slot
     views = ("FRONT", "SIDE", "TOP")
     width, height = cell_size * sample_count, cell_size * len(views)
     pixels = [0.035, 0.035, 0.045, 1.0] * (width * height)

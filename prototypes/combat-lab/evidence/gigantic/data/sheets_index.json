@@ -1,0 +1,703 @@
+[
+ {
+  "code": "GIG-P1-CHARNOK-Run_N-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Run_N-FRONT.png",
+  "hero": "charnok",
+  "action": "Run_N",
+  "view": "front",
+  "frames": [
+   0,
+   3,
+   6,
+   10,
+   13
+  ],
+  "span": 139.54,
+  "frame_range": [
+   0,
+   13
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Run_N-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Run_N-SIDE_NX.png",
+  "hero": "charnok",
+  "action": "Run_N",
+  "view": "side_nX",
+  "frames": [
+   0,
+   3,
+   6,
+   10,
+   13
+  ],
+  "span": 139.54,
+  "frame_range": [
+   0,
+   13
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Run_E-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Run_E-FRONT.png",
+  "hero": "charnok",
+  "action": "Run_E",
+  "view": "front",
+  "frames": [
+   0,
+   3,
+   6,
+   10,
+   13
+  ],
+  "span": 107.84,
+  "frame_range": [
+   0,
+   13
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Run_W-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Run_W-FRONT.png",
+  "hero": "charnok",
+  "action": "Run_W",
+  "view": "front",
+  "frames": [
+   0,
+   3,
+   6,
+   10,
+   13
+  ],
+  "span": 102.82,
+  "frame_range": [
+   0,
+   13
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Run_NE-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Run_NE-FRONT.png",
+  "hero": "charnok",
+  "action": "Run_NE",
+  "view": "front",
+  "frames": [
+   0,
+   3,
+   6,
+   10,
+   13
+  ],
+  "span": 128.35,
+  "frame_range": [
+   0,
+   13
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Run_NW-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Run_NW-FRONT.png",
+  "hero": "charnok",
+  "action": "Run_NW",
+  "view": "front",
+  "frames": [
+   0,
+   3,
+   6,
+   10,
+   13
+  ],
+  "span": 129.76,
+  "frame_range": [
+   0,
+   13
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Dodge_W-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Dodge_W-FRONT.png",
+  "hero": "charnok",
+  "action": "Dodge_W",
+  "view": "front",
+  "frames": [
+   0,
+   6,
+   12,
+   18,
+   24,
+   30
+  ],
+  "span": 155.35,
+  "frame_range": [
+   0,
+   30
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Dodge_W-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Dodge_W-SIDE_NX.png",
+  "hero": "charnok",
+  "action": "Dodge_W",
+  "view": "side_nX",
+  "frames": [
+   0,
+   6,
+   12,
+   18,
+   24,
+   30
+  ],
+  "span": 155.35,
+  "frame_range": [
+   0,
+   30
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-PAKKO-Run_N-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-PAKKO-Run_N-FRONT.png",
+  "hero": "pakko",
+  "action": "Run_N",
+  "view": "front",
+  "frames": [
+   0,
+   6,
+   11,
+   16,
+   22
+  ],
+  "span": 216.22,
+  "frame_range": [
+   0,
+   22
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pakko\\Pakko_Animations.blend",
+  "blend_sha256": "b9bc2695b2988b0d22a3ab81957e3e60575c9027358a7b899562b2646c4ca62b",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-PAKKO-Run_N-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-PAKKO-Run_N-SIDE_NX.png",
+  "hero": "pakko",
+  "action": "Run_N",
+  "view": "side_nX",
+  "frames": [
+   0,
+   6,
+   11,
+   16,
+   22
+  ],
+  "span": 216.22,
+  "frame_range": [
+   0,
+   22
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pakko\\Pakko_Animations.blend",
+  "blend_sha256": "b9bc2695b2988b0d22a3ab81957e3e60575c9027358a7b899562b2646c4ca62b",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-PAKKO-Run_NE-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-PAKKO-Run_NE-FRONT.png",
+  "hero": "pakko",
+  "action": "Run_NE",
+  "view": "front",
+  "frames": [
+   0,
+   6,
+   11,
+   16,
+   22
+  ],
+  "span": 209.43,
+  "frame_range": [
+   0,
+   22
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pakko\\Pakko_Animations.blend",
+  "blend_sha256": "b9bc2695b2988b0d22a3ab81957e3e60575c9027358a7b899562b2646c4ca62b",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-PAKKO-Run_SW-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-PAKKO-Run_SW-FRONT.png",
+  "hero": "pakko",
+  "action": "Run_SW",
+  "view": "front",
+  "frames": [
+   0,
+   6,
+   11,
+   16,
+   22
+  ],
+  "span": 156.88,
+  "frame_range": [
+   0,
+   22
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pakko\\Pakko_Animations.blend",
+  "blend_sha256": "b9bc2695b2988b0d22a3ab81957e3e60575c9027358a7b899562b2646c4ca62b",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-RUTGER-Run_N-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-RUTGER-Run_N-FRONT.png",
+  "hero": "rutger",
+  "action": "Run_N",
+  "view": "front",
+  "frames": [
+   0,
+   5,
+   10,
+   14,
+   19
+  ],
+  "span": 269.67,
+  "frame_range": [
+   0,
+   19
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\rutger\\Rutger_Animations.blend",
+  "blend_sha256": "076d89168a90927d1d8f34aaccde507078c095b8c8da0eee2ba25dc07d6b6ac1",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-RUTGER-Run_N-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-RUTGER-Run_N-SIDE_NX.png",
+  "hero": "rutger",
+  "action": "Run_N",
+  "view": "side_nX",
+  "frames": [
+   0,
+   5,
+   10,
+   14,
+   19
+  ],
+  "span": 269.67,
+  "frame_range": [
+   0,
+   19
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\rutger\\Rutger_Animations.blend",
+  "blend_sha256": "076d89168a90927d1d8f34aaccde507078c095b8c8da0eee2ba25dc07d6b6ac1",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-WU-Run_N-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-WU-Run_N-FRONT.png",
+  "hero": "wu",
+  "action": "Run_N",
+  "view": "front",
+  "frames": [
+   0,
+   3,
+   6,
+   9,
+   12
+  ],
+  "span": 122.31,
+  "frame_range": [
+   0,
+   12
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\wu\\Wu_Animations.blend",
+  "blend_sha256": "bb32e226cbba41dbb6c87638b0e545bf22391ff4733394cb7ed07868d38069ab",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-WU-Run_N-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-WU-Run_N-SIDE_NX.png",
+  "hero": "wu",
+  "action": "Run_N",
+  "view": "side_nX",
+  "frames": [
+   0,
+   3,
+   6,
+   9,
+   12
+  ],
+  "span": 122.31,
+  "frame_range": [
+   0,
+   12
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\wu\\Wu_Animations.blend",
+  "blend_sha256": "bb32e226cbba41dbb6c87638b0e545bf22391ff4733394cb7ed07868d38069ab",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-TRIPP-Run_N-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-TRIPP-Run_N-FRONT.png",
+  "hero": "pilot",
+  "action": "Run_N",
+  "view": "front",
+  "frames": [
+   0,
+   8,
+   16,
+   24,
+   32
+  ],
+  "span": 90.65,
+  "frame_range": [
+   0,
+   32
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pilot\\Rogue_study.blend",
+  "blend_sha256": "5f4c85e44c9ac94b432a08196bb12c97af65228400522af608b7d9f252194d79",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-TRIPP-Run_N-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-TRIPP-Run_N-SIDE_NX.png",
+  "hero": "pilot",
+  "action": "Run_N",
+  "view": "side_nX",
+  "frames": [
+   0,
+   8,
+   16,
+   24,
+   32
+  ],
+  "span": 90.65,
+  "frame_range": [
+   0,
+   32
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pilot\\Rogue_study.blend",
+  "blend_sha256": "5f4c85e44c9ac94b432a08196bb12c97af65228400522af608b7d9f252194d79",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-PAKKO-Skill_RushAttack-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-PAKKO-Skill_RushAttack-FRONT.png",
+  "hero": "pakko",
+  "action": "Skill_RushAttack",
+  "view": "front",
+  "frames": [
+   0,
+   6,
+   11,
+   16,
+   22
+  ],
+  "span": 245.05,
+  "frame_range": [
+   0,
+   22
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pakko\\Pakko_Animations.blend",
+  "blend_sha256": "b9bc2695b2988b0d22a3ab81957e3e60575c9027358a7b899562b2646c4ca62b",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-PAKKO-Skill_RushAttack-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-PAKKO-Skill_RushAttack-SIDE_NX.png",
+  "hero": "pakko",
+  "action": "Skill_RushAttack",
+  "view": "side_nX",
+  "frames": [
+   0,
+   6,
+   11,
+   16,
+   22
+  ],
+  "span": 245.05,
+  "frame_range": [
+   0,
+   22
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pakko\\Pakko_Animations.blend",
+  "blend_sha256": "b9bc2695b2988b0d22a3ab81957e3e60575c9027358a7b899562b2646c4ca62b",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-WU-Skill_RushAttack-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-WU-Skill_RushAttack-FRONT.png",
+  "hero": "wu",
+  "action": "Skill_RushAttack",
+  "view": "front",
+  "frames": [
+   0,
+   8,
+   16,
+   24,
+   32,
+   40
+  ],
+  "span": 185.56,
+  "frame_range": [
+   0,
+   40
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\wu\\Wu_Animations.blend",
+  "blend_sha256": "bb32e226cbba41dbb6c87638b0e545bf22391ff4733394cb7ed07868d38069ab",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-WU-Skill_RushAttack-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-WU-Skill_RushAttack-SIDE_NX.png",
+  "hero": "wu",
+  "action": "Skill_RushAttack",
+  "view": "side_nX",
+  "frames": [
+   0,
+   8,
+   16,
+   24,
+   32,
+   40
+  ],
+  "span": 185.56,
+  "frame_range": [
+   0,
+   40
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\wu\\Wu_Animations.blend",
+  "blend_sha256": "bb32e226cbba41dbb6c87638b0e545bf22391ff4733394cb7ed07868d38069ab",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-RUTGER-Skill_RushAttack-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-RUTGER-Skill_RushAttack-FRONT.png",
+  "hero": "rutger",
+  "action": "Skill_RushAttack",
+  "view": "front",
+  "frames": [
+   0,
+   9,
+   18,
+   28,
+   37
+  ],
+  "span": 291.72,
+  "frame_range": [
+   0,
+   37
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\rutger\\Rutger_Animations.blend",
+  "blend_sha256": "076d89168a90927d1d8f34aaccde507078c095b8c8da0eee2ba25dc07d6b6ac1",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-TRIPP-Skill_Slash_RushAttack-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-TRIPP-Skill_Slash_RushAttack-FRONT.png",
+  "hero": "pilot",
+  "action": "Skill_Slash_RushAttack",
+  "view": "front",
+  "frames": [
+   0,
+   15,
+   30,
+   45,
+   60
+  ],
+  "span": 115.32,
+  "frame_range": [
+   0,
+   60
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pilot\\Rogue_study.blend",
+  "blend_sha256": "5f4c85e44c9ac94b432a08196bb12c97af65228400522af608b7d9f252194d79",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-TRIPP-Skill_Slash_RushAttack-SIDE_NX",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-TRIPP-Skill_Slash_RushAttack-SIDE_NX.png",
+  "hero": "pilot",
+  "action": "Skill_Slash_RushAttack",
+  "view": "side_nX",
+  "frames": [
+   0,
+   15,
+   30,
+   45,
+   60
+  ],
+  "span": 115.32,
+  "frame_range": [
+   0,
+   60
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pilot\\Rogue_study.blend",
+  "blend_sha256": "5f4c85e44c9ac94b432a08196bb12c97af65228400522af608b7d9f252194d79",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-TRIPP-Dodge_E-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-TRIPP-Dodge_E-FRONT.png",
+  "hero": "pilot",
+  "action": "Dodge_E",
+  "view": "front",
+  "frames": [
+   0,
+   10,
+   19,
+   28,
+   38
+  ],
+  "span": 75.15,
+  "frame_range": [
+   0,
+   38
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pilot\\Rogue_study.blend",
+  "blend_sha256": "5f4c85e44c9ac94b432a08196bb12c97af65228400522af608b7d9f252194d79",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-RUTGER-Skill_Focus_Charge-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-RUTGER-Skill_Focus_Charge-FRONT.png",
+  "hero": "rutger",
+  "action": "Skill_Focus_Charge",
+  "view": "front",
+  "frames": [
+   0,
+   30,
+   61,
+   91
+  ],
+  "span": 370.31,
+  "frame_range": [
+   0,
+   91
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\rutger\\Rutger_Animations.blend",
+  "blend_sha256": "076d89168a90927d1d8f34aaccde507078c095b8c8da0eee2ba25dc07d6b6ac1",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-WU-Skill_TigerKick_01-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-WU-Skill_TigerKick_01-FRONT.png",
+  "hero": "wu",
+  "action": "Skill_TigerKick_01",
+  "view": "front",
+  "frames": [
+   0,
+   14,
+   28,
+   42
+  ],
+  "span": 166.14,
+  "frame_range": [
+   0,
+   42
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\wu\\Wu_Animations.blend",
+  "blend_sha256": "bb32e226cbba41dbb6c87638b0e545bf22391ff4733394cb7ed07868d38069ab",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-Skill_Breath_Start-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-Skill_Breath_Start-FRONT.png",
+  "hero": "charnok",
+  "action": "Skill_Breath_Start",
+  "view": "front",
+  "frames": [
+   0,
+   3,
+   5,
+   8
+  ],
+  "span": 149.3,
+  "frame_range": [
+   0,
+   8
+  ],
+  "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+  "blend_sha256": "742f3e7ef0eff7dceb401260db700d501028ae56d54d411aaf7090c62d51ce4a",
+  "camera_policy": "segue o centro horizontal do corpo; altura fixa (zmid); escala fixa por acao e vista",
+  "desvio_ferramenta": "render proprio: vision.py corta rigs em cm (clip_end=200) e exige ossos 'Hips'/'LeftFoot'"
+ },
+ {
+  "code": "GIG-P1-CHARNOK-RUN-DIRECOES-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-CHARNOK-RUN-DIRECOES-FRONT.png",
+  "rows": [
+   "charnok/Run_N/front",
+   "charnok/Run_E/front",
+   "charnok/Run_W/front",
+   "charnok/Run_NE/front",
+   "charnok/Run_NW/front"
+  ],
+  "n_cols": 5
+ },
+ {
+  "code": "GIG-P1-PAKKO-RUN-DIRECOES-FRONT",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P1-PAKKO-RUN-DIRECOES-FRONT.png",
+  "rows": [
+   "pakko/Run_N/front",
+   "pakko/Run_NE/front",
+   "pakko/Run_SW/front"
+  ],
+  "n_cols": 5
+ },
+ {
+  "code": "GIG-P2-RUSH-ATTACK-COMPARADO",
+  "file": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\sheets\\GIG-P2-RUSH-ATTACK-COMPARADO.png",
+  "rows": [
+   "pakko/Skill_RushAttack/side_nX",
+   "wu/Skill_RushAttack/side_nX",
+   "pilot/Skill_Slash_RushAttack/side_nX",
+   "rutger/Skill_RushAttack/front"
+  ],
+  "n_cols": 6
+ }
+]

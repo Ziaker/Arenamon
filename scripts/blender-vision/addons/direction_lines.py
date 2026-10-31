@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Direction Lines (Arenamon)",
     "author": "Arenamon",
-    "version": (0, 1, 0),
+    "version": (0, 1, 2),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Direction Lines",
     "description": "Linhas de acao e linhas de movimento editaveis, que a IA le e compara com a animacao",
@@ -41,6 +41,8 @@ def _coll(scene):
 
 
 def _make_curve(scene, name, pts, kind, color, **props):
+    if len(pts) < 2:
+        raise ValueError("Uma linha precisa de pelo menos dois pontos")
     cu = bpy.data.curves.new(name, 'CURVE')
     cu.dimensions = '3D'
     cu.bevel_depth = 0.008
@@ -117,6 +119,9 @@ class DL_OT_new_motion(bpy.types.Operator):
             self.report({'ERROR'}, "Osso nao encontrado")
             return {'CANCELLED'}
         f0, f1 = sc.dl_f0, sc.dl_f1
+        if f1 <= f0:
+            self.report({'ERROR'}, "O frame final precisa ser maior que o inicial")
+            return {'CANCELLED'}
         keep = sc.frame_current
         n = max(4, min(9, (f1 - f0) // 2 + 1))
         frames = [round(f0 + (f1 - f0) * i / (n - 1)) for i in range(n)]
@@ -140,6 +145,7 @@ class DL_OT_new_action(bpy.types.Operator):
         sc = context.scene
         arm = _arm(context)
         if arm is None:
+            self.report({'ERROR'}, "Selecione um armature")
             return {'CANCELLED'}
         pts = []
         for n in SPINE:
@@ -149,6 +155,9 @@ class DL_OT_new_action(bpy.types.Operator):
         hd = _bone(arm, "Head")
         if hd:
             pts.append(arm.matrix_world @ hd.tail)
+        if len(pts) < 2:
+            self.report({'ERROR'}, "A coluna precisa ter pelo menos dois pontos reconhecidos")
+            return {'CANCELLED'}
         ob = _make_curve(sc, "DL_action_f%d" % sc.frame_current, pts, "ACTION", (0.1, 0.9, 1.0), dl_frame=sc.frame_current)
         context.view_layer.objects.active = ob
         self.report({'INFO'}, "Linha de acao criada para o frame %d" % sc.frame_current)
@@ -176,6 +185,8 @@ def dump_guides(n=24):
         return out
     for ob in c.objects:
         poly = sample_guide(ob)
+        if len(poly) < 2:
+            continue
         L = _length(poly)
         samp = []
         acc, i = 0.0, 0
@@ -192,7 +203,7 @@ def dump_guides(n=24):
     return out
 
 
-def compare(context):
+def _compare(context):
     sc = context.scene
     arm = _arm(context)
     c = bpy.data.collections.get(COLL)
@@ -203,9 +214,22 @@ def compare(context):
     for ob in c.objects:
         kind = ob.get("dl_kind")
         poly = sample_guide(ob)
+        if len(poly) < 2:
+            L.append("")
+            L.append("%s: ignorada; guia com menos de dois pontos" % ob.name)
+            continue
         total = _length(poly)
         if kind == "MOTION":
-            b = _bone(arm, ob["dl_bone"])
+            if arm is None:
+                L.append("")
+                L.append("%s: ignorada; nenhum armature selecionado ou unico na cena" % ob.name)
+                continue
+            bone_name = ob.get("dl_bone")
+            b = _bone(arm, bone_name) if bone_name else None
+            if b is None:
+                L.append("")
+                L.append("%s: ignorada; osso %s nao encontrado" % (ob.name, bone_name or "nao informado"))
+                continue
             f0, f1 = int(ob["dl_f0"]), int(ob["dl_f1"])
             rows = []
             prog = []
@@ -229,6 +253,10 @@ def compare(context):
             L.append("  pior(es) frame(s): " + ", ".join("%d (%.2f m)" % (f, d) for f, d in worst))
             L.append("  retrocessos ao longo da guia: %d" % back)
         elif kind == "ACTION":
+            if arm is None:
+                L.append("")
+                L.append("%s: ignorada; nenhum armature selecionado ou unico na cena" % ob.name)
+                continue
             f = int(ob.get("dl_frame", keep))
             sc.frame_set(f)
             pts = []
@@ -239,6 +267,10 @@ def compare(context):
             hd = _bone(arm, "Head")
             if hd:
                 pts.append(arm.matrix_world @ hd.tail)
+            if len(pts) < 2:
+                L.append("")
+                L.append("%s: ignorada; coluna com menos de dois pontos reconhecidos" % ob.name)
+                continue
             ds = [_nearest(poly, p)[0] for p in pts]
             body = (pts[-1] - pts[0]).normalized()
             gdir = (poly[-1] - poly[0]).normalized()
@@ -257,6 +289,17 @@ def compare(context):
             L.append("  curvatura (desvio maximo da corda): personagem %.3f m, guia %.3f m" % (bulge(pts), bulge([Vector(p) for p in poly])))
     sc.frame_set(keep)
     return "\n".join(L)
+
+
+def compare(context):
+    """Compara as guias e restaura o frame mesmo quando a amostragem falha."""
+    sc = context.scene
+    keep = sc.frame_current
+    keep_subframe = sc.frame_subframe
+    try:
+        return _compare(context)
+    finally:
+        sc.frame_set(keep, subframe=keep_subframe)
 
 
 class DL_OT_compare(bpy.types.Operator):

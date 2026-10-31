@@ -1,0 +1,501 @@
+{
+ "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pilot\\Rogue_study.blend",
+ "armature": "Rogue_Default_LOD0",
+ "pairs": {
+  "Dodge_E|Dodge_W": {
+   "core_rot_max": 141.746,
+   "core_loc_max": 739.65,
+   "acc_rot_max": 158.768,
+   "core_top": [
+    [
+     "b_head",
+     141.75
+    ],
+    [
+     "b_Pelvis",
+     137.06
+    ],
+    [
+     "b_Neck",
+     113.44
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     158.77
+    ],
+    [
+     "b_Pants02",
+     111.14
+    ],
+    [
+     "b_Hood_Front02_L",
+     71.53
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_S": {
+   "core_rot_max": 179.484,
+   "core_loc_max": 494.833,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     179.48
+    ],
+    [
+     "b_Pelvis",
+     179.12
+    ],
+    [
+     "b_Ankle_R",
+     152.4
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_Pants02",
+     175.98
+    ],
+    [
+     "b_FX_Head",
+     157.84
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_E_Air": {
+   "core_rot_max": 0.0,
+   "core_loc_max": 0.0,
+   "acc_rot_max": 0.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     0.0
+    ],
+    [
+     "b_Spine02",
+     0.0
+    ],
+    [
+     "b_Spine03",
+     0.0
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Middle01_L",
+     0.0
+    ],
+    [
+     "b_Hood_Front02_L",
+     0.0
+    ],
+    [
+     "b_Hood_Top",
+     0.0
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_W_Air": {
+   "core_rot_max": 141.746,
+   "core_loc_max": 739.65,
+   "acc_rot_max": 158.768,
+   "core_top": [
+    [
+     "b_head",
+     141.75
+    ],
+    [
+     "b_Pelvis",
+     137.06
+    ],
+    [
+     "b_Neck",
+     113.44
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     158.77
+    ],
+    [
+     "b_Pants02",
+     111.14
+    ],
+    [
+     "b_Hood_Front02_L",
+     71.53
+    ]
+   ]
+  },
+  "Dodge_E|Dodge_S_Air": {
+   "core_rot_max": 179.484,
+   "core_loc_max": 494.833,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     179.48
+    ],
+    [
+     "b_Pelvis",
+     179.12
+    ],
+    [
+     "b_Ankle_R",
+     152.4
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_Pants02",
+     175.98
+    ],
+    [
+     "b_FX_Head",
+     157.84
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_S": {
+   "core_rot_max": 177.735,
+   "core_loc_max": 523.911,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Pelvis",
+     177.73
+    ],
+    [
+     "b_Ankle_R",
+     171.95
+    ],
+    [
+     "b_head",
+     151.84
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_FX_Head",
+     175.1
+    ],
+    [
+     "b_Pants02",
+     152.59
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_E_Air": {
+   "core_rot_max": 141.746,
+   "core_loc_max": 739.65,
+   "acc_rot_max": 158.768,
+   "core_top": [
+    [
+     "b_head",
+     141.75
+    ],
+    [
+     "b_Pelvis",
+     137.06
+    ],
+    [
+     "b_Neck",
+     113.44
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     158.77
+    ],
+    [
+     "b_Pants02",
+     111.14
+    ],
+    [
+     "b_Hood_Front02_L",
+     71.53
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_W_Air": {
+   "core_rot_max": 0.0,
+   "core_loc_max": 0.0,
+   "acc_rot_max": 0.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     0.0
+    ],
+    [
+     "b_Spine01",
+     0.0
+    ],
+    [
+     "b_Spine02",
+     0.0
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Thumb01_L",
+     0.0
+    ],
+    [
+     "b_Thumb02_L",
+     0.0
+    ],
+    [
+     "b_Thumb03_L",
+     0.0
+    ]
+   ]
+  },
+  "Dodge_W|Dodge_S_Air": {
+   "core_rot_max": 177.735,
+   "core_loc_max": 523.911,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Pelvis",
+     177.73
+    ],
+    [
+     "b_Ankle_R",
+     171.95
+    ],
+    [
+     "b_head",
+     151.84
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_FX_Head",
+     175.1
+    ],
+    [
+     "b_Pants02",
+     152.59
+    ]
+   ]
+  },
+  "Dodge_S|Dodge_E_Air": {
+   "core_rot_max": 179.484,
+   "core_loc_max": 494.833,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     179.48
+    ],
+    [
+     "b_Pelvis",
+     179.12
+    ],
+    [
+     "b_Ankle_R",
+     152.4
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_Pants02",
+     175.98
+    ],
+    [
+     "b_FX_Head",
+     157.84
+    ]
+   ]
+  },
+  "Dodge_S|Dodge_W_Air": {
+   "core_rot_max": 177.735,
+   "core_loc_max": 523.911,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Pelvis",
+     177.73
+    ],
+    [
+     "b_Ankle_R",
+     171.95
+    ],
+    [
+     "b_head",
+     151.84
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_FX_Head",
+     175.1
+    ],
+    [
+     "b_Pants02",
+     152.59
+    ]
+   ]
+  },
+  "Dodge_S|Dodge_S_Air": {
+   "core_rot_max": 0.0,
+   "core_loc_max": 0.0,
+   "acc_rot_max": 0.0,
+   "core_top": [
+    [
+     "b_Spine02",
+     0.0
+    ],
+    [
+     "b_Spine03",
+     0.0
+    ],
+    [
+     "b_WristTwist_L",
+     0.0
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Ring02_L",
+     0.0
+    ],
+    [
+     "b_Middle01_L",
+     0.0
+    ],
+    [
+     "b_Index01_L",
+     0.0
+    ]
+   ]
+  },
+  "Dodge_E_Air|Dodge_W_Air": {
+   "core_rot_max": 141.746,
+   "core_loc_max": 739.65,
+   "acc_rot_max": 158.768,
+   "core_top": [
+    [
+     "b_head",
+     141.75
+    ],
+    [
+     "b_Pelvis",
+     137.06
+    ],
+    [
+     "b_Neck",
+     113.44
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Head",
+     158.77
+    ],
+    [
+     "b_Pants02",
+     111.14
+    ],
+    [
+     "b_Hood_Front02_L",
+     71.53
+    ]
+   ]
+  },
+  "Dodge_E_Air|Dodge_S_Air": {
+   "core_rot_max": 179.484,
+   "core_loc_max": 494.833,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     179.48
+    ],
+    [
+     "b_Pelvis",
+     179.12
+    ],
+    [
+     "b_Ankle_R",
+     152.4
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_Pants02",
+     175.98
+    ],
+    [
+     "b_FX_Head",
+     157.84
+    ]
+   ]
+  },
+  "Dodge_W_Air|Dodge_S_Air": {
+   "core_rot_max": 177.735,
+   "core_loc_max": 523.911,
+   "acc_rot_max": 179.027,
+   "core_top": [
+    [
+     "b_Pelvis",
+     177.73
+    ],
+    [
+     "b_Ankle_R",
+     171.95
+    ],
+    [
+     "b_head",
+     151.84
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_WeaponGrip_R",
+     179.03
+    ],
+    [
+     "b_FX_Head",
+     175.1
+    ],
+    [
+     "b_Pants02",
+     152.59
+    ]
+   ]
+  }
+ }
+}

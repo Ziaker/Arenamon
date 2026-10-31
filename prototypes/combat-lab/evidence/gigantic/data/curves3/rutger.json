@@ -1,0 +1,930 @@
+{
+ "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\rutger\\Rutger_Animations.blend",
+ "armature": "Stoneskin_Default_LOD0",
+ "pairs": {
+  "Run_N|Run_NE": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 4.57,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_Spine02",
+     1.23
+    ],
+    [
+     "b_Spine01",
+     0.68
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_TunicSplit01",
+     0.13
+    ],
+    [
+     "b_Plate_Base",
+     0.13
+    ]
+   ]
+  },
+  "Run_N|Run_E": {
+   "core_rot_max": 164.066,
+   "core_loc_max": 17.044,
+   "acc_rot_max": 176.223,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     164.07
+    ],
+    [
+     "b_Thigh_L",
+     142.08
+    ],
+    [
+     "b_Thigh_R",
+     108.21
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ShinPlateBotHinge01_L",
+     176.22
+    ],
+    [
+     "b_ShinPlate01_L",
+     176.22
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     114.05
+    ]
+   ]
+  },
+  "Run_N|Run_SE": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 26.508,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.83
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.83
+    ]
+   ]
+  },
+  "Run_N|Run_S": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 26.508,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.83
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.83
+    ]
+   ]
+  },
+  "Run_N|Run_SW": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 27.676,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.84
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.84
+    ]
+   ]
+  },
+  "Run_N|Run_W": {
+   "core_rot_max": 112.751,
+   "core_loc_max": 30.418,
+   "acc_rot_max": 122.501,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     112.75
+    ],
+    [
+     "b_Thigh_L",
+     104.39
+    ],
+    [
+     "b_Ankle_L",
+     84.34
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     122.5
+    ],
+    [
+     "b_ShinPlateBotHinge01_L",
+     115.4
+    ],
+    [
+     "b_ShinPlate01_L",
+     115.4
+    ]
+   ]
+  },
+  "Run_N|Run_NW": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 4.57,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_Spine02",
+     1.21
+    ],
+    [
+     "b_Spine01",
+     0.69
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_TunicSplit01",
+     0.15
+    ],
+    [
+     "b_Plate_Base",
+     0.15
+    ]
+   ]
+  },
+  "Run_NE|Run_E": {
+   "core_rot_max": 164.066,
+   "core_loc_max": 17.044,
+   "acc_rot_max": 176.223,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     164.07
+    ],
+    [
+     "b_Thigh_L",
+     142.08
+    ],
+    [
+     "b_Thigh_R",
+     108.21
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ShinPlateBotHinge01_L",
+     176.22
+    ],
+    [
+     "b_ShinPlate01_L",
+     176.22
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     114.05
+    ]
+   ]
+  },
+  "Run_NE|Run_SE": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 26.508,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.83
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.83
+    ]
+   ]
+  },
+  "Run_NE|Run_S": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 26.508,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.83
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.83
+    ]
+   ]
+  },
+  "Run_NE|Run_SW": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 26.508,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.84
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.84
+    ]
+   ]
+  },
+  "Run_NE|Run_W": {
+   "core_rot_max": 112.751,
+   "core_loc_max": 30.418,
+   "acc_rot_max": 122.501,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     112.75
+    ],
+    [
+     "b_Thigh_L",
+     104.39
+    ],
+    [
+     "b_Ankle_L",
+     84.34
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     122.5
+    ],
+    [
+     "b_ShinPlateBotHinge01_L",
+     115.4
+    ],
+    [
+     "b_ShinPlate01_L",
+     115.4
+    ]
+   ]
+  },
+  "Run_NE|Run_NW": {
+   "core_rot_max": 60.0,
+   "core_loc_max": 8.83,
+   "acc_rot_max": 60.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     60.0
+    ],
+    [
+     "b_Spine02",
+     2.44
+    ],
+    [
+     "b_Spine01",
+     1.37
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     60.0
+    ],
+    [
+     "b_TunicSplit01",
+     0.27
+    ],
+    [
+     "b_Plate_Base",
+     0.27
+    ]
+   ]
+  },
+  "Run_E|Run_SE": {
+   "core_rot_max": 172.209,
+   "core_loc_max": 22.069,
+   "acc_rot_max": 142.809,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     172.21
+    ],
+    [
+     "b_Ankle_L",
+     162.33
+    ],
+    [
+     "b_Thigh_R",
+     113.81
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ShinPlateBotHinge01_L",
+     142.81
+    ],
+    [
+     "b_ShinPlate01_L",
+     142.81
+    ],
+    [
+     "b_Plate_Bot02",
+     131.86
+    ]
+   ]
+  },
+  "Run_E|Run_S": {
+   "core_rot_max": 172.209,
+   "core_loc_max": 21.162,
+   "acc_rot_max": 142.809,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     172.21
+    ],
+    [
+     "b_Ankle_L",
+     162.33
+    ],
+    [
+     "b_Thigh_R",
+     113.81
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ShinPlateBotHinge01_L",
+     142.81
+    ],
+    [
+     "b_ShinPlate01_L",
+     142.81
+    ],
+    [
+     "b_Plate_Bot02",
+     131.86
+    ]
+   ]
+  },
+  "Run_E|Run_SW": {
+   "core_rot_max": 172.209,
+   "core_loc_max": 20.68,
+   "acc_rot_max": 142.809,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     172.21
+    ],
+    [
+     "b_Ankle_L",
+     162.33
+    ],
+    [
+     "b_Thigh_R",
+     113.81
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ShinPlateBotHinge01_L",
+     142.81
+    ],
+    [
+     "b_ShinPlate01_L",
+     142.81
+    ],
+    [
+     "b_Plate_Bot02",
+     131.86
+    ]
+   ]
+  },
+  "Run_E|Run_W": {
+   "core_rot_max": 172.546,
+   "core_loc_max": 33.487,
+   "acc_rot_max": 172.56,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     172.55
+    ],
+    [
+     "b_Thigh_L",
+     158.95
+    ],
+    [
+     "b_Thigh_R",
+     103.16
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ShinPlateBotHinge01_L",
+     172.56
+    ],
+    [
+     "b_ShinPlate01_L",
+     172.56
+    ],
+    [
+     "b_Plate_Bot02",
+     118.59
+    ]
+   ]
+  },
+  "Run_E|Run_NW": {
+   "core_rot_max": 164.066,
+   "core_loc_max": 17.044,
+   "acc_rot_max": 176.218,
+   "core_top": [
+    [
+     "b_Ankle_L",
+     164.07
+    ],
+    [
+     "b_Thigh_L",
+     142.08
+    ],
+    [
+     "b_Thigh_R",
+     108.21
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ShinPlateBotHinge01_L",
+     176.22
+    ],
+    [
+     "b_ShinPlate01_L",
+     176.22
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     114.05
+    ]
+   ]
+  },
+  "Run_SE|Run_S": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 7.375,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_Spine02",
+     1.04
+    ],
+    [
+     "b_Spine01",
+     0.6
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_TunicSplit01",
+     0.14
+    ],
+    [
+     "b_Plate_Base",
+     0.14
+    ]
+   ]
+  },
+  "Run_SE|Run_SW": {
+   "core_rot_max": 60.0,
+   "core_loc_max": 14.247,
+   "acc_rot_max": 60.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     60.0
+    ],
+    [
+     "b_Spine02",
+     1.98
+    ],
+    [
+     "b_Spine01",
+     1.1
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     60.0
+    ],
+    [
+     "b_TunicSplit01",
+     0.27
+    ],
+    [
+     "b_Plate_Base",
+     0.27
+    ]
+   ]
+  },
+  "Run_SE|Run_W": {
+   "core_rot_max": 88.072,
+   "core_loc_max": 21.698,
+   "acc_rot_max": 97.661,
+   "core_top": [
+    [
+     "b_Knee_R",
+     88.07
+    ],
+    [
+     "b_Thigh_R",
+     87.69
+    ],
+    [
+     "b_Ankle_L",
+     83.6
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     97.66
+    ],
+    [
+     "b_Tail01",
+     76.46
+    ],
+    [
+     "b_Index01_R",
+     70.07
+    ]
+   ]
+  },
+  "Run_SE|Run_NW": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 26.508,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.83
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.83
+    ]
+   ]
+  },
+  "Run_S|Run_SW": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 7.375,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_Spine02",
+     1.05
+    ],
+    [
+     "b_Spine01",
+     0.58
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_TunicSplit01",
+     0.14
+    ],
+    [
+     "b_Plate_Base",
+     0.13
+    ]
+   ]
+  },
+  "Run_S|Run_W": {
+   "core_rot_max": 88.072,
+   "core_loc_max": 21.698,
+   "acc_rot_max": 97.661,
+   "core_top": [
+    [
+     "b_Knee_R",
+     88.07
+    ],
+    [
+     "b_Thigh_R",
+     87.69
+    ],
+    [
+     "b_Ankle_L",
+     83.6
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     97.66
+    ],
+    [
+     "b_Tail01",
+     76.46
+    ],
+    [
+     "b_Index01_R",
+     70.07
+    ]
+   ]
+  },
+  "Run_S|Run_NW": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 27.676,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.83
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.83
+    ]
+   ]
+  },
+  "Run_SW|Run_W": {
+   "core_rot_max": 88.072,
+   "core_loc_max": 21.698,
+   "acc_rot_max": 97.661,
+   "core_top": [
+    [
+     "b_Knee_R",
+     88.07
+    ],
+    [
+     "b_Thigh_R",
+     87.69
+    ],
+    [
+     "b_Ankle_L",
+     83.6
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     97.66
+    ],
+    [
+     "b_Tail01",
+     76.46
+    ],
+    [
+     "b_Index01_R",
+     70.07
+    ]
+   ]
+  },
+  "Run_SW|Run_NW": {
+   "core_rot_max": 129.845,
+   "core_loc_max": 29.648,
+   "acc_rot_max": 131.605,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     129.84
+    ],
+    [
+     "b_Thigh_L",
+     125.88
+    ],
+    [
+     "b_Knee_L",
+     96.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     131.61
+    ],
+    [
+     "b_ShinPlate01_R",
+     100.84
+    ],
+    [
+     "b_ShinPlateBotHinge01_R",
+     100.84
+    ]
+   ]
+  },
+  "Run_W|Run_NW": {
+   "core_rot_max": 112.751,
+   "core_loc_max": 30.418,
+   "acc_rot_max": 122.501,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     112.75
+    ],
+    [
+     "b_Thigh_L",
+     104.39
+    ],
+    [
+     "b_Ankle_L",
+     84.34
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Plate_Bot02",
+     122.5
+    ],
+    [
+     "b_ShinPlateBotHinge01_L",
+     115.4
+    ],
+    [
+     "b_ShinPlate01_L",
+     115.4
+    ]
+   ]
+  }
+ }
+}

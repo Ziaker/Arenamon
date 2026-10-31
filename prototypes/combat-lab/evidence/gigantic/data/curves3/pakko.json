@@ -1,0 +1,930 @@
+{
+ "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\pakko\\Pakko_Animations.blend",
+ "armature": "Frosty_Default_LOD0",
+ "pairs": {
+  "Run_N|Run_NE": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 12.424,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_Spine02",
+     0.6
+    ],
+    [
+     "b_Spine01",
+     0.3
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_Backpack",
+     0.3
+    ],
+    [
+     "b_Tongue02",
+     0.01
+    ]
+   ]
+  },
+  "Run_N|Run_E": {
+   "core_rot_max": 141.139,
+   "core_loc_max": 28.983,
+   "acc_rot_max": 104.965,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     141.14
+    ],
+    [
+     "b_Bicep_R",
+     102.14
+    ],
+    [
+     "b_Ankle_R",
+     100.64
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tongue02",
+     104.96
+    ],
+    [
+     "b_Backpack",
+     69.83
+    ],
+    [
+     "b_Hips",
+     63.32
+    ]
+   ]
+  },
+  "Run_N|Run_SE": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 35.917,
+   "acc_rot_max": 126.947,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.95
+    ],
+    [
+     "b_Tail02",
+     84.72
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_N|Run_S": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 33.104,
+   "acc_rot_max": 126.943,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.94
+    ],
+    [
+     "b_Tail02",
+     84.7
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_N|Run_SW": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 39.647,
+   "acc_rot_max": 126.899,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.9
+    ],
+    [
+     "b_Tail02",
+     84.59
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_N|Run_W": {
+   "core_rot_max": 118.23,
+   "core_loc_max": 26.699,
+   "acc_rot_max": 116.317,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     118.23
+    ],
+    [
+     "b_Knee_R",
+     110.21
+    ],
+    [
+     "b_Ankle_L",
+     103.44
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tongue02",
+     116.32
+    ],
+    [
+     "b_Backpack",
+     67.32
+    ],
+    [
+     "b_Index01_L",
+     58.18
+    ]
+   ]
+  },
+  "Run_N|Run_NW": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 12.424,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_Spine02",
+     0.61
+    ],
+    [
+     "b_Spine01",
+     0.3
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_Backpack",
+     0.3
+    ],
+    [
+     "b_Tail_Horn_Side_R",
+     0.0
+    ]
+   ]
+  },
+  "Run_NE|Run_E": {
+   "core_rot_max": 141.139,
+   "core_loc_max": 28.467,
+   "acc_rot_max": 104.965,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     141.14
+    ],
+    [
+     "b_Bicep_R",
+     102.14
+    ],
+    [
+     "b_Ankle_R",
+     100.64
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tongue02",
+     104.96
+    ],
+    [
+     "b_Backpack",
+     69.73
+    ],
+    [
+     "b_Hips",
+     63.32
+    ]
+   ]
+  },
+  "Run_NE|Run_SE": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 40.134,
+   "acc_rot_max": 126.947,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.95
+    ],
+    [
+     "b_Tail02",
+     84.72
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_NE|Run_S": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 35.917,
+   "acc_rot_max": 126.943,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.94
+    ],
+    [
+     "b_Tail02",
+     84.7
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_NE|Run_SW": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 33.104,
+   "acc_rot_max": 126.899,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.9
+    ],
+    [
+     "b_Tail02",
+     84.59
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_NE|Run_W": {
+   "core_rot_max": 118.23,
+   "core_loc_max": 30.255,
+   "acc_rot_max": 116.317,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     118.23
+    ],
+    [
+     "b_Knee_R",
+     110.21
+    ],
+    [
+     "b_Ankle_L",
+     103.44
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tongue02",
+     116.32
+    ],
+    [
+     "b_Backpack",
+     67.31
+    ],
+    [
+     "b_Index01_L",
+     58.18
+    ]
+   ]
+  },
+  "Run_NE|Run_NW": {
+   "core_rot_max": 60.0,
+   "core_loc_max": 24.001,
+   "acc_rot_max": 60.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     60.0
+    ],
+    [
+     "b_Spine02",
+     1.18
+    ],
+    [
+     "b_Spine03",
+     0.59
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     60.0
+    ],
+    [
+     "b_Backpack",
+     0.59
+    ],
+    [
+     "b_Tongue02",
+     0.01
+    ]
+   ]
+  },
+  "Run_E|Run_SE": {
+   "core_rot_max": 126.088,
+   "core_loc_max": 31.039,
+   "acc_rot_max": 128.717,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     126.09
+    ],
+    [
+     "b_Bicep_R",
+     88.86
+    ],
+    [
+     "b_Bicep_L",
+     78.04
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     128.72
+    ],
+    [
+     "b_Tongue02",
+     98.9
+    ],
+    [
+     "b_Tail02",
+     77.62
+    ]
+   ]
+  },
+  "Run_E|Run_S": {
+   "core_rot_max": 126.088,
+   "core_loc_max": 30.126,
+   "acc_rot_max": 128.7,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     126.09
+    ],
+    [
+     "b_Bicep_R",
+     88.86
+    ],
+    [
+     "b_Bicep_L",
+     78.04
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     128.7
+    ],
+    [
+     "b_Tongue02",
+     98.9
+    ],
+    [
+     "b_Tail02",
+     77.66
+    ]
+   ]
+  },
+  "Run_E|Run_SW": {
+   "core_rot_max": 126.088,
+   "core_loc_max": 30.126,
+   "acc_rot_max": 128.647,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     126.09
+    ],
+    [
+     "b_Bicep_R",
+     88.86
+    ],
+    [
+     "b_Bicep_L",
+     78.04
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     128.65
+    ],
+    [
+     "b_Tongue02",
+     98.9
+    ],
+    [
+     "b_Tail02",
+     77.61
+    ]
+   ]
+  },
+  "Run_E|Run_W": {
+   "core_rot_max": 115.524,
+   "core_loc_max": 19.542,
+   "acc_rot_max": 98.905,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     115.52
+    ],
+    [
+     "b_Bicep_L",
+     115.52
+    ],
+    [
+     "b_Clavicle_L",
+     114.88
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Hips",
+     98.9
+    ],
+    [
+     "b_Tongue02",
+     86.21
+    ],
+    [
+     "b_Backpack",
+     84.85
+    ]
+   ]
+  },
+  "Run_E|Run_NW": {
+   "core_rot_max": 141.139,
+   "core_loc_max": 32.952,
+   "acc_rot_max": 104.965,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     141.14
+    ],
+    [
+     "b_Bicep_R",
+     102.14
+    ],
+    [
+     "b_Ankle_R",
+     100.65
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tongue02",
+     104.96
+    ],
+    [
+     "b_Backpack",
+     69.98
+    ],
+    [
+     "b_Hips",
+     63.32
+    ]
+   ]
+  },
+  "Run_SE|Run_S": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 10.601,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_head",
+     15.35
+    ],
+    [
+     "b_Spine02",
+     0.55
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_Tail02",
+     0.3
+    ],
+    [
+     "b_Backpack",
+     0.28
+    ]
+   ]
+  },
+  "Run_SE|Run_SW": {
+   "core_rot_max": 60.0,
+   "core_loc_max": 20.479,
+   "acc_rot_max": 60.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     60.0
+    ],
+    [
+     "b_head",
+     30.35
+    ],
+    [
+     "b_Spine02",
+     1.06
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     60.0
+    ],
+    [
+     "b_Tail02",
+     0.63
+    ],
+    [
+     "b_Tail03",
+     0.54
+    ]
+   ]
+  },
+  "Run_SE|Run_W": {
+   "core_rot_max": 124.649,
+   "core_loc_max": 31.84,
+   "acc_rot_max": 120.277,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     124.65
+    ],
+    [
+     "b_Ankle_R",
+     115.96
+    ],
+    [
+     "b_Elbow_R",
+     108.48
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     120.28
+    ],
+    [
+     "b_Tongue02",
+     98.9
+    ],
+    [
+     "b_Tail02",
+     90.88
+    ]
+   ]
+  },
+  "Run_SE|Run_NW": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 33.104,
+   "acc_rot_max": 126.947,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.95
+    ],
+    [
+     "b_Tail02",
+     84.72
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_S|Run_SW": {
+   "core_rot_max": 30.0,
+   "core_loc_max": 10.601,
+   "acc_rot_max": 30.0,
+   "core_top": [
+    [
+     "b_Pelvis",
+     30.0
+    ],
+    [
+     "b_head",
+     15.0
+    ],
+    [
+     "b_Spine02",
+     0.55
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_FX_Aim",
+     30.0
+    ],
+    [
+     "b_Tail02",
+     0.34
+    ],
+    [
+     "b_Tail03",
+     0.31
+    ]
+   ]
+  },
+  "Run_S|Run_W": {
+   "core_rot_max": 124.649,
+   "core_loc_max": 30.126,
+   "acc_rot_max": 120.291,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     124.65
+    ],
+    [
+     "b_Ankle_R",
+     115.96
+    ],
+    [
+     "b_Elbow_R",
+     108.48
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     120.29
+    ],
+    [
+     "b_Tongue02",
+     98.9
+    ],
+    [
+     "b_Tail02",
+     90.62
+    ]
+   ]
+  },
+  "Run_S|Run_NW": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 39.647,
+   "acc_rot_max": 126.943,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.94
+    ],
+    [
+     "b_Tail02",
+     84.7
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_SW|Run_W": {
+   "core_rot_max": 124.649,
+   "core_loc_max": 30.126,
+   "acc_rot_max": 120.264,
+   "core_top": [
+    [
+     "b_Bicep_R",
+     124.65
+    ],
+    [
+     "b_Ankle_R",
+     115.96
+    ],
+    [
+     "b_Elbow_R",
+     108.48
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     120.26
+    ],
+    [
+     "b_Tongue02",
+     98.9
+    ],
+    [
+     "b_Tail02",
+     90.4
+    ]
+   ]
+  },
+  "Run_SW|Run_NW": {
+   "core_rot_max": 116.92,
+   "core_loc_max": 43.524,
+   "acc_rot_max": 126.899,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     116.92
+    ],
+    [
+     "b_Ankle_R",
+     114.18
+    ],
+    [
+     "b_Ankle_L",
+     104.11
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail01",
+     126.9
+    ],
+    [
+     "b_Tail02",
+     84.59
+    ],
+    [
+     "b_Ring01_R",
+     64.3
+    ]
+   ]
+  },
+  "Run_W|Run_NW": {
+   "core_rot_max": 118.23,
+   "core_loc_max": 29.614,
+   "acc_rot_max": 116.317,
+   "core_top": [
+    [
+     "b_Thigh_R",
+     118.23
+    ],
+    [
+     "b_Knee_R",
+     110.21
+    ],
+    [
+     "b_Ankle_L",
+     103.44
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tongue02",
+     116.32
+    ],
+    [
+     "b_Backpack",
+     67.42
+    ],
+    [
+     "b_Index01_L",
+     58.18
+    ]
+   ]
+  }
+ }
+}

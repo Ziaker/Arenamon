@@ -1,0 +1,27 @@
+{
+ "offset": 0,
+ "size": 200,
+ "armature": null,
+ "mode": "shot",
+ "action": "Jump Start 1",
+ "views": [
+  "side_nX",
+  "front"
+ ],
+ "modes": [
+  "solid"
+ ],
+ "align": "root",
+ "zoom": null,
+ "zoom_radii": null,
+ "bone_cam": false,
+ "onion_step": 1,
+ "frames": [
+  1,
+  2,
+  3,
+  4
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\evidence\\eggo_pulos_v4\\shot_Jump_Start_1.tmp-17684",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\eggo pulos v4.blend"
+}

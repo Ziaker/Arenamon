@@ -1,0 +1,12 @@
+{
+ "mode": "dense",
+ "action": "Dodge Left 1",
+ "offset": 0,
+ "armature": null,
+ "ref_action": null,
+ "impact_window": null,
+ "ref_profile": null,
+ "criteria": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\criteria\\corpus_envelope.json",
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\evidence\\eggo_dodge_lateral\\dense_Dodge_Left_1.tmp-16136",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\eggo dodge lateral v1.blend"
+}
