@@ -1,14 +1,15 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **v5 aguardando opinião do responsável** (31/10/2026). Pedido da v5: braços consistentemente atrás, o tombo de 5° de verdade (corpo inteiro) e um pouco mais rápido. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
+Estado: **v6 aguardando opinião do responsável** (31/10/2026). A v6 parte da v5 com a pose do f5 feita pelo responsável, espelhada na segunda pisada. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo sprint v5.blend` (Action `Sprint 1`).
-- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v5/shot_Sprint_1/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v5/motion_lens_Sprint_1/`.
+- Arquivo: `chars/Eggo/eggo sprint v6.blend` (Action `Sprint 1`).
+- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v6/shot_Sprint_1/report.html`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v6/motion_lens_Sprint_1/`.
+- A edição do responsável no f5, intacta, antes de qualquer mudança minha: `chars/Eggo/eggo sprint v5 com f5 do usuario.blend`.
 - Histórico: `eggo sprint v1.blend` (4 m), `v2` (0,8 m com tudo mudado), `v3` (26 f, LINEAR) e `v4` (40 f), evidências em `eggo_sprint_v1/` a `v4/`.
 
 ## Como foi feito
@@ -24,6 +25,18 @@ animação aprovada.
 - Braços: o braço do Eggo aponta para trás; ao inclinar o tronco ele levantaria, então gira para a frente o mesmo
   ângulo e balança ±12° oposto às pernas; cotovelo ~20° mais dobrado que na idle.
 - Chaves LINEAR, 15 por osso.
+
+## v6 (pose do f5 do responsável nas duas pisadas)
+
+- O responsável editou o f5 (8 ossos): braços levantados para trás até a horizontal (−3° / −13°), cotovelos mais
+  abertos, ombro direito acompanhando, coluna 6° mais à frente, coxa esquerda 10° e perna direita (a da frente) reta.
+  As chaves do f5 **não foram tocadas**.
+- **Espelho na segunda pisada:** a diferença do f5 (pose dele − v5) foi espelhada (esquerda↔direita) e aplicada no f21.
+- **Volta dos braços sem estalo:** a pose dos braços fica de f5 a f7 (e f21 a f23) e volta para a v5 em 4 frames (até f11
+  / f27). Antes, só o f5 mudava: as mãos iam a 17–20 cm/frame com reversão ALTO no f6; agora o pico é 16 cm/frame e as
+  reversões das mãos sumiram.
+- Motion Lens: resta 1 alerta ALTO, pé direito arrastando 11 cm no f20 (na v5 era 7,5 cm, MEDIO; a coxa espelhada no f21
+  aumentou). Direction Lines: nenhum retrocesso no quadril, desvio máx. 5 cm.
 
 ## v5 (braços atrás, tombo no corpo inteiro, 32 frames)
 
