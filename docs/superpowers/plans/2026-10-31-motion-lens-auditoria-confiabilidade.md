@@ -59,4 +59,4 @@
 - [x] Rodar testes específicos no Blender 5.2.2.
 - [x] Rodar `npm run verificar:tamanho` e `npm run rapido:build`.
 - [x] Comparar inventário antes/depois e confirmar nenhuma remoção.
-- [ ] Commitar apenas os arquivos desta tarefa, enviar e comparar HEAD local/remoto.
+- [x] Commitar apenas os arquivos desta tarefa, enviar e comparar HEAD local/remoto.
