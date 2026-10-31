@@ -19,8 +19,10 @@ from agent_report import (
     AgentReportError,
     build_agent_report,
     compute_file_sha256,
+    create_minimal_valid_png,
     validate_agent_report,
 )
+from rig_map import build_rig_map
 
 
 class TestF15AgentReport(unittest.TestCase):
@@ -35,11 +37,11 @@ class TestF15AgentReport(unittest.TestCase):
             "fps": 24.0,
             "unit_system": "METRIC_METERS"
         }
-        self.valid_rig_map = {
-            "schema": "arenamon.rig-map/1",
-            "rig_id": "eggo_alien",
-            "detected_template": "ALIEN_RIG"
-        }
+        self.valid_rig_map = build_rig_map(
+            bone_names=["Root", "Hips", "Spine", "Head", "LeftFoot", "RightFoot"],
+            rig_id="eggo_alien",
+            armature_name="AlienRig"
+        )
         self.valid_measurements = [
             {
                 "metric": "root_motion_x_meters",
@@ -148,9 +150,9 @@ class TestF15AgentReport(unittest.TestCase):
             )
 
     def test_visual_evidence_sha256_verification(self):
-        """Cria um arquivo temporário com hash conhecido e testa verificação no disco."""
+        """Cria um arquivo PNG válido real com hash conhecido e testa verificação no disco."""
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp:
-            tmp.write(b"MOCK_PNG_IMAGE_DATA_123456")
+            tmp.write(create_minimal_valid_png(width=32, height=32, rgb=(80, 180, 120)))
             tmp_path = tmp.name
 
         try:

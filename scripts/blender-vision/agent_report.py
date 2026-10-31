@@ -17,9 +17,13 @@ import hashlib
 import json
 import os
 import re
+import struct
 import time
+import zlib
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+from rig_map import RigMapError, validate_rig_map
 
 SCHEMA_NAME = "arenamon.agent-report/1"
 
@@ -105,6 +109,35 @@ def compute_file_sha256(path: str) -> Optional[str]:
     return h.hexdigest()
 
 
+def create_minimal_valid_png(width: int = 16, height: int = 16, rgb: Tuple[int, int, int] = (100, 150, 240)) -> bytes:
+    """Gera o binário de uma imagem PNG real e válida (cabeçalho, IHDR, IDAT comprimido e IEND)."""
+    # Assinatura PNG
+    png_signature = b"\x89PNG\r\n\x1a\n"
+
+    # Chunk IHDR: width(4), height(4), bit_depth(1=8), color_type(1=2 Truecolor), compression(0), filter(0), interlace(0)
+    ihdr_data = struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0)
+    ihdr_crc = struct.pack(">I", zlib.crc32(b"IHDR" + ihdr_data) & 0xFFFFFFFF)
+    ihdr_chunk = struct.pack(">I", len(ihdr_data)) + b"IHDR" + ihdr_data + ihdr_crc
+
+    # Chunk IDAT: dados da imagem desinterlaçados (filtro 0 por linha + bytes RGB)
+    raw_scanlines = bytearray()
+    r, g, b = rgb
+    line_bytes = bytes([r, g, b]) * width
+    for _ in range(height):
+        raw_scanlines.append(0)  # Filter type 0 (None)
+        raw_scanlines.extend(line_bytes)
+
+    compressed_idat = zlib.compress(bytes(raw_scanlines), level=6)
+    idat_crc = struct.pack(">I", zlib.crc32(b"IDAT" + compressed_idat) & 0xFFFFFFFF)
+    idat_chunk = struct.pack(">I", len(compressed_idat)) + b"IDAT" + compressed_idat + idat_crc
+
+    # Chunk IEND
+    iend_crc = struct.pack(">I", zlib.crc32(b"IEND") & 0xFFFFFFFF)
+    iend_chunk = struct.pack(">I", 0) + b"IEND" + iend_crc
+
+    return png_signature + ihdr_chunk + idat_chunk + iend_chunk
+
+
 def build_agent_report(
     report_id: str,
     target: Dict[str, Any],
@@ -125,6 +158,7 @@ def build_agent_report(
     if fps <= 0:
         raise AgentReportError("FPS deve ser estritamente positivo.")
     duration = round(f_count / fps, 3)
+    time_span = round((f_end - f_start) / fps, 3)
 
     target_data = {
         "source_file": target["source_file"],
@@ -135,6 +169,7 @@ def build_agent_report(
         "frame_count": f_count,
         "fps": fps,
         "duration_seconds": duration,
+        "time_span_seconds": time_span,
         "unit_system": target.get("unit_system", "METRIC_METERS"),
     }
 
@@ -229,6 +264,7 @@ def validate_agent_report(
         fc = target.get("frame_count")
         fps = target.get("fps")
         dur = target.get("duration_seconds")
+        span = target.get("time_span_seconds")
 
         if isinstance(fr, (list, tuple)) and len(fr) == 2:
             calc_count = fr[1] - fr[0] + 1
@@ -238,21 +274,38 @@ def validate_agent_report(
                 expected_dur = round(calc_count / fps, 3)
                 if dur is not None and abs(dur - expected_dur) > 0.02:
                     errors.append(f"duration_seconds inconsistente: {dur} s vs esperado {expected_dur} s")
+                if span is not None:
+                    expected_span = round((calc_count - 1) / fps, 3)
+                    if abs(span - expected_span) > 0.02:
+                        errors.append(f"time_span_seconds inconsistente: {span} s vs esperado {expected_span} s")
         else:
             errors.append("frame_range deve ser uma lista ou tupla com [start_frame, end_frame]")
 
-    # 2. Validação do Rig Mapping F03
+    # 2. Validação profunda do Rig Mapping F03
     rig_m = data.get("rig_mapping", {})
     if isinstance(rig_m, dict):
-        if "schema" in rig_m and rig_m["schema"] != "arenamon.rig-map/1":
-            errors.append(f"rig_mapping schema inválido: '{rig_m.get('schema')}'")
+        try:
+            validate_rig_map(rig_m)
+        except RigMapError as e:
+            errors.append(f"rig_mapping F03 inválido: {e}")
     else:
-        errors.append("rig_mapping deve ser um objeto.")
+        errors.append("rig_mapping deve ser um objeto compatível com arenamon.rig-map/1.")
 
     # 3. Validação de Medições
     meas = data.get("measurements", [])
+    mapped_roles_available = set(rig_m.get("roles", {}).keys()) if isinstance(rig_m, dict) else set()
     if isinstance(meas, list):
         for idx, m in enumerate(meas):
+            if not isinstance(m, dict):
+                errors.append(f"Medição #{idx} não é um objeto.")
+                continue
+            for mf in ("metric", "value", "unit", "method"):
+                if mf not in m:
+                    errors.append(f"Medição #{idx} ausente de '{mf}'")
+            # Se a medição referencia um papel anatômico, verifica se existe no rig_mapping
+            trole = m.get("target_role")
+            if trole and mapped_roles_available and trole not in mapped_roles_available:
+                errors.append(f"Medição #{idx} referencia target_role '{trole}' inexistente no rig_mapping.")
             if not isinstance(m, dict):
                 errors.append(f"Medição #{idx} não é um objeto.")
                 continue

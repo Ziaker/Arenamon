@@ -88,37 +88,45 @@ KNOWN_TEMPLATES: Dict[str, Dict[str, Sequence[str]]] = {
     "GIGANTIC_UNREAL": {
         "root": ("b_Root", "Root", "root"),
         "pelvis": ("b_Pelvis", "b_Hips", "Pelvis"),
-        "spine_lower": ("b_Spine", "b_Spine1"),
-        "spine_middle": ("b_Spine1", "b_Spine2"),
-        "spine_upper": ("b_Spine2", "b_Spine3", "b_Ribcage"),
+        "spine_lower": ("b_Spine01", "b_Spine", "b_Spine1"),
+        "spine_middle": ("b_Spine02", "b_Spine1", "b_Spine2"),
+        "spine_upper": ("b_Spine03", "b_Spine2", "b_Spine3", "b_Ribcage"),
         "neck": ("b_Neck", "b_Neck1"),
-        "head": ("b_Head",),
-        "left_clavicle": ("b_LeftClavicle", "b_LeftShoulder"),
-        "left_upper_arm": ("b_LeftUpperArm", "b_LeftArm"),
-        "left_forearm": ("b_LeftForeArm",),
-        "left_hand": ("b_LeftHand",),
-        "right_clavicle": ("b_RightClavicle", "b_RightShoulder"),
-        "right_upper_arm": ("b_RightUpperArm", "b_RightArm"),
-        "right_forearm": ("b_RightForeArm",),
-        "right_hand": ("b_RightHand",),
-        "left_thigh": ("b_LeftUpLeg", "b_LeftThigh"),
-        "left_calf": ("b_LeftLeg", "b_LeftCalf"),
-        "left_foot": ("b_LeftFoot",),
-        "left_toe": ("b_LeftToeBase", "b_LeftToe"),
-        "right_thigh": ("b_RightUpLeg", "b_RightThigh"),
-        "right_calf": ("b_RightLeg", "b_RightCalf"),
-        "right_foot": ("b_RightFoot",),
-        "right_toe": ("b_RightToeBase", "b_RightToe"),
+        "head": ("b_head", "b_Head"),
+        "jaw": ("b_Jaw",),
+        "left_clavicle": ("b_Clavicle_L", "b_LeftClavicle", "b_LeftShoulder"),
+        "left_upper_arm": ("b_Bicep_L", "b_LeftUpperArm", "b_LeftArm"),
+        "left_forearm": ("b_Elbow_L", "b_LeftForeArm"),
+        "left_hand": ("b_Wrist_L", "b_LeftHand"),
+        "right_clavicle": ("b_Clavicle_R", "b_RightClavicle", "b_RightShoulder"),
+        "right_upper_arm": ("b_Bicep_R", "b_RightUpperArm", "b_RightArm"),
+        "right_forearm": ("b_Elbow_R", "b_RightForeArm"),
+        "right_hand": ("b_Wrist_R", "b_RightHand"),
+        "left_thigh": ("b_Thigh_L", "b_LeftUpLeg", "b_LeftThigh"),
+        "left_calf": ("b_Knee_L", "b_LeftLeg", "b_LeftCalf"),
+        "left_foot": ("b_Ankle_L", "b_Foot_L", "b_LeftFoot"),
+        "left_toe": ("b_Toe_Mid_L", "b_LeftToeBase", "b_LeftToe"),
+        "right_thigh": ("b_Thigh_R", "b_RightUpLeg", "b_RightThigh"),
+        "right_calf": ("b_Knee_R", "b_RightLeg", "b_RightCalf"),
+        "right_foot": ("b_Ankle_R", "b_Foot_R", "b_RightFoot"),
+        "right_toe": ("b_Toe_Mid_R", "b_RightToeBase", "b_RightToe"),
+        "tail_base": ("b_Tail01", "b_Tail_01"),
+        "tail_mid": ("b_Tail02", "b_Tail_02"),
+        "tail_tip": ("b_Tail03", "b_Tail_03"),
     },
     "ALIEN_RIG": {
         "root": ("Root", "root"),
         "pelvis": ("Hips", "pelvis"),
         "spine_lower": ("Spine",),
         "spine_middle": ("Spine1",),
+        "chest": ("Chest",),
+        "neck": ("Neck",),
         "head": ("Head",),
+        "left_clavicle": ("LeftShoulder",),
         "left_upper_arm": ("LeftArm",),
         "left_forearm": ("LeftForeArm",),
         "left_hand": ("LeftHand",),
+        "right_clavicle": ("RightShoulder",),
         "right_upper_arm": ("RightArm",),
         "right_forearm": ("RightForeArm",),
         "right_hand": ("RightHand",),
@@ -210,10 +218,14 @@ def _tokenize(name: str) -> List[str]:
     return [t.lower() for t in clean.split() if t]
 
 
-def _detect_template(bone_names: Sequence[str]) -> Tuple[str, float]:
+def _detect_template(bone_names: Sequence[str], armature_name: str = "") -> Tuple[str, float]:
     """Retorna o template mais aderente e a fração de matches de papéis-chave."""
     bones_set = set(bone_names)
     scores: Dict[str, float] = {}
+
+    arm_lower = armature_name.lower()
+    has_mixamo_prefix = any(b.lower().startswith("mixamorig:") for b in bone_names)
+    has_b_prefix = any(b.lower().startswith("b_") for b in bone_names)
 
     for t_name, mapping in KNOWN_TEMPLATES.items():
         matched = 0
@@ -222,13 +234,33 @@ def _detect_template(bone_names: Sequence[str]) -> Tuple[str, float]:
             total += 1
             if any(c in bones_set for c in candidates):
                 matched += 1
-        scores[t_name] = matched / max(1, total)
+        base_score = matched / max(1, total)
+
+        # Ajuste por pistas contextuais de nomenclatura
+        if t_name == "MIXAMO" and has_mixamo_prefix:
+            base_score += 0.20
+        elif t_name == "MIXAMO" and not has_mixamo_prefix and any(b in ("Root", "root") for b in bones_set):
+            # Mixamo autêntico não tem bone 'Root'; rigs com Root no solo são Game/Alien rigs
+            base_score -= 0.15
+
+        if t_name == "GIGANTIC_UNREAL" and has_b_prefix:
+            base_score += 0.25
+
+        if t_name == "ALIEN_RIG" and ("alien" in arm_lower or "eggo" in arm_lower):
+            base_score += 0.20
+        elif t_name == "ALIEN_RIG" and any(b in ("Root", "root") for b in bones_set) and "Hips" in bones_set:
+            base_score += 0.10
+
+        if t_name == "POKEMON_ZA" and any(b.startswith("pm") for b in bone_names):
+            base_score += 0.20
+
+        scores[t_name] = base_score
 
     best_template = max(scores, key=lambda k: scores[k])
     best_score = scores[best_template]
 
     if best_score >= 0.40:
-        return best_template, round(best_score, 3)
+        return best_template, round(min(1.0, best_score), 3)
     return "CUSTOM", round(best_score, 3)
 
 
@@ -244,12 +276,12 @@ def _heuristic_match_role(role: str, bone_names: Sequence[str], assigned_bones: 
         "neck": ({"neck"}, set()),
         "head": ({"head"}, set()),
         "left_clavicle": ({"clavicle", "shoulder"}, {"l", "left"}),
-        "left_upper_arm": ({"arm", "upperarm"}, {"l", "left"}),
-        "left_forearm": ({"forearm", "arm2"}, {"l", "left"}),
+        "left_upper_arm": ({"arm", "upperarm", "bicep"}, {"l", "left"}),
+        "left_forearm": ({"forearm", "arm2", "elbow"}, {"l", "left"}),
         "left_hand": ({"hand", "wrist"}, {"l", "left"}),
         "right_clavicle": ({"clavicle", "shoulder"}, {"r", "right"}),
-        "right_upper_arm": ({"arm", "upperarm"}, {"r", "right"}),
-        "right_forearm": ({"forearm", "arm2"}, {"r", "right"}),
+        "right_upper_arm": ({"arm", "upperarm", "bicep"}, {"r", "right"}),
+        "right_forearm": ({"forearm", "arm2", "elbow"}, {"r", "right"}),
         "right_hand": ({"hand", "wrist"}, {"r", "right"}),
         "left_thigh": ({"thigh", "upleg", "leg"}, {"l", "left"}),
         "left_calf": ({"calf", "shin", "knee", "leg2"}, {"l", "left"}),
@@ -355,7 +387,7 @@ def build_rig_map(
         if bname is not None and bname not in bones_set:
             raise RigMapError(f"Osso do override '{bname}' não existe no armature.")
 
-    template_name, template_fit = _detect_template(unique_bones)
+    template_name, template_fit = _detect_template(unique_bones, armature_name)
     template_data = KNOWN_TEMPLATES.get(template_name, {})
 
     assigned_bones: Set[str] = set()

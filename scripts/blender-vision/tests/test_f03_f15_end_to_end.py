@@ -16,6 +16,7 @@ from agent_report import (
     AgentReportError,
     build_agent_report,
     compute_file_sha256,
+    create_minimal_valid_png,
     validate_agent_report,
 )
 from rig_map import (
@@ -29,22 +30,22 @@ from rig_map import (
 class TestF03F15EndToEnd(unittest.TestCase):
 
     def test_complete_synthetic_pipeline(self):
-        # 1. RIG DE ORIGEM (Simulando personagem bípede sintético com cauda opcional ausente)
+        # 1. RIG DE ORIGEM (com a nomenclatura real exata dos assets de Gigantic: Bicep, Elbow, Wrist, Thigh, Knee, Ankle)
         rig_source_bones = [
-            "b_Root", "b_Pelvis", "b_Spine", "b_Spine1", "b_Head",
-            "b_LeftUpperArm", "b_LeftForeArm", "b_LeftHand",
-            "b_RightUpperArm", "b_RightForeArm", "b_RightHand",
-            "b_LeftUpLeg", "b_LeftLeg", "b_LeftFoot",
-            "b_RightUpLeg", "b_RightLeg", "b_RightFoot",
-            "b_Sword_Slot"
+            "b_Root", "b_Pelvis", "b_Spine01", "b_Spine02", "b_head",
+            "b_Bicep_L", "b_Elbow_L", "b_Wrist_L",
+            "b_Bicep_R", "b_Elbow_R", "b_Wrist_R",
+            "b_Thigh_L", "b_Knee_L", "b_Ankle_L",
+            "b_Thigh_R", "b_Knee_R", "b_Ankle_R",
+            "b_Weapon_Slot"
         ]
 
         # 2. ETAPA F03: MAPEAMENTO ANATÔMICO SEMÂNTICO
         rig_map = build_rig_map(
             bone_names=rig_source_bones,
-            rig_id="synth_warrior_01",
-            armature_name="Armature_Synth",
-            overrides={"prop": "b_Sword_Slot"},
+            rig_id="gigantic_real_nomenclature",
+            armature_name="Armature_Wu",
+            overrides={"prop": "b_Weapon_Slot"},
             absent_roles=["tail_base", "tail_mid", "tail_tip", "left_wing", "right_wing"]
         )
 
@@ -53,13 +54,18 @@ class TestF03F15EndToEnd(unittest.TestCase):
         self.assertEqual(rig_map["detected_template"], "GIGANTIC_UNREAL")
         self.assertEqual(rig_map["roles"]["root"]["bone_name"], "b_Root")
         self.assertEqual(rig_map["roles"]["pelvis"]["bone_name"], "b_Pelvis")
-        self.assertEqual(rig_map["roles"]["prop"]["bone_name"], "b_Sword_Slot")
+        self.assertEqual(rig_map["roles"]["left_upper_arm"]["bone_name"], "b_Bicep_L")
+        self.assertEqual(rig_map["roles"]["left_forearm"]["bone_name"], "b_Elbow_L")
+        self.assertEqual(rig_map["roles"]["left_hand"]["bone_name"], "b_Wrist_L")
+        self.assertEqual(rig_map["roles"]["left_thigh"]["bone_name"], "b_Thigh_L")
+        self.assertEqual(rig_map["roles"]["left_calf"]["bone_name"], "b_Knee_L")
+        self.assertEqual(rig_map["roles"]["left_foot"]["bone_name"], "b_Ankle_L")
+        self.assertEqual(rig_map["roles"]["prop"]["bone_name"], "b_Weapon_Slot")
         self.assertEqual(rig_map["roles"]["tail_base"]["status"], STATUS_ABSENT)
 
-        # 3. ETAPA DE DIAGNÓSTICO (Simulando leitura de F-Curves da Action sintética 'Dodge_Backward')
-        # Criação temporária de folha de evidência sintética para teste com hash real
+        # 3. ETAPA DE DIAGNÓSTICO (com folha de evidência PNG binária autêntica e válida)
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_img:
-            tmp_img.write(b"SYNTHETIC_ORTHO_CONTACT_SHEET_DATA_VISTA_FRONTAL")
+            tmp_img.write(create_minimal_valid_png(width=64, height=64, rgb=(200, 100, 50)))
             tmp_img_path = tmp_img.name
 
         try:
