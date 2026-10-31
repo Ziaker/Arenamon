@@ -1,6 +1,6 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **v9 aguardando opinião do responsável** (31/10/2026). Pedido: 4 pulinhos nos mesmos 32 frames, com pisada forte e impacto. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
+Estado: **v9 APROVADA pelo responsável** (31/10/2026). Pedido: 4 pulinhos nos mesmos 32 frames, com pisada forte e impacto. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
