@@ -32,7 +32,7 @@ Esta auditoria constitui o estudo definitivo e exaustivo das famílias de locomo
 4. **Esquivas (P2) São Estritamente Tridirecionais e Uniaxiais:**
    - O sistema de esquivas de Gigantic é composto exclusivamente pela tríade `{Dodge_E, Dodge_W, Dodge_S}` multiplicada pelos estados `{Solo, Ar, Esgotado}` (9 ações por herói).
    - **Não existe Dodge frontal (`Dodge_N`) nem esquivas diagonais em nenhum herói do corpus.**
-   - O deslocamento no solo é puramente uniaxial (apenas no eixo da esquiva, com outros eixos travados em $0,0\text{ cm}$) e normalizado por design entre **3,1 m e 4,0 m** (313 cm a 400 cm), independentemente da envergadura do personagem.
+   - O deslocamento no solo é puramente uniaxial (apenas no eixo da esquiva, com outros eixos travados em $0,0\text{ cm}$) e padronizado entre **2,63 m e 4,00 m** (263 cm a 400 cm) nas esquivas normais (com variantes esgotadas descendo a 2,08 m – 2,60 m), independentemente da envergadura do personagem.
 
 5. **O Avanço Frontal de Evasão é o Golpe Ofensivo `Skill_RushAttack`:**
    - O jogador que comanda uma esquiva para a frente executa uma ação de ataque físico de investida (`Skill_RushAttack`), e não uma esquiva defensiva.
@@ -67,11 +67,15 @@ O corpus em `C:\Users\zerke\Downloads\gigas` compreende **940 arquivos** totaliz
 
 ### 1.3 Protocolo Perceptual Visual no Blender 5.2.2 LTS
 
-Para eliminar suposições abstratas e assegurar evidências irrefutáveis, cada clipe foi inspecionado em ambiente de execução headless do Blender 5.2.2 LTS (`blender.exe -b ...`) com base nos protocolos do **Animation Witness** e **Blender Vision**:
-1. **Critério de Independência Visual ($\ge 35^\circ$):** Cada ação foi registrada em duas vistas ortográficas simultâneas:
-   - `FRONT`: Vetor diretor visual apontando para $(0, -1, 0)$ (eixo de visão perpendicular à frente do modelo).
-   - `SIDE_NX`: Vetor diretor visual apontando para $(-1, 0, 0)$ (eixo de visão perpendicular ao flanco direito do modelo).
-   - **Separação Angular:** Rigorosamente **$90,0^\circ$**, ultrapassando a exigência normativa mínima de $35,0^\circ$ do `MANUAL_BLENDER_AGENTES.md`.
+Para fundamentar as observações em evidências empíricas de render, os clipes foram inspecionados em ambiente de execução headless do Blender 5.2.2 LTS (`blender.exe -b ...`) com base nos princípios do **Animation Witness** e **Blender Vision**:
+1. **Critério de Cobertura Visual e Vistas Independentes ($\ge 35^\circ$):**
+   - **Vistas Utilizadas:**
+     - `FRONT`: Vetor diretor visual apontando para $(0, -1, 0)$ (eixo de visão perpendicular à frente do modelo).
+     - `SIDE_NX`: Vetor diretor visual apontando para $(-1, 0, 0)$ (eixo de visão perpendicular ao flanco direito do modelo).
+     - **Separação Angular:** Rigorosamente **$90,0^\circ$**, ultrapassando a exigência normativa mínima de $35,0^\circ$ do `MANUAL_BLENDER_AGENTES.md`.
+   - **Distribuição das 32 Folhas Renderizadas:**
+     - 9 ações prioritárias de locomoção e manobra possuem **cobertura dual completa em pares FRONT + SIDE_NX**, permitindo correlação tridimensional simultânea de silhueta e profundidade.
+     - 22 ações possuem folhas em vista FRONTAL para análise detalhada de amplitude e pés, além de 1 folha composta em visão de órbita multi-direcional.
 2. **Câmera Ortográfica Sem Distorção:** Desativação de projeção de perspectiva (`type = 'ORTHO'`), garantindo que proporções, distâncias ao solo e alinhamentos de membros sejam preservados milimetricamente ao longo de todo o percurso temporal.
 3. **Resolução de Quirk de Escala da Unreal Engine:**
    - Os modelos do Gigantic utilizam o sistema métrico da Unreal Engine ($1\text{ unidade} = 1\text{ cm}$), com spans verticais de $150\text{ cm}$ a $250\text{ cm}$.
@@ -81,9 +85,9 @@ Para eliminar suposições abstratas e assegurar evidências irrefutáveis, cada
 
 ### 1.4 Classificação Epistêmica Tripartite
 
-Para assegurar rigor científico absoluto, todas as conclusões desta auditoria são categorizadas conforme a seguinte taxonomia epistêmica:
+Para assegurar rigor científico e distinguir fatos geométricos de hipóteses, todas as conclusões desta auditoria são categorizadas conforme a seguinte taxonomia epistêmica:
 - **[EVIDÊNCIA DIRETA]:** Afirmação comprovada por leitura direta de F-Curves, quaternions de pose, valores numéricos de translação de vértices ou registro visual em folhas de contato PNG renderizadas.
-- **[INFERÊNCIA TÉCNICA]:** Conclusão lógica derivada do comportamento dos dados em face da arquitetura de engines 3D comerciais (ex.: deduzir que a ausência de Dodge_N no arquivo implica que o runtime dispara `Skill_RushAttack` ou corrida rápida ao pressionar a tecla de evasão para a frente).
+- **[INFERÊNCIA TÉCNICA]:** Conclusão ou hipótese derivada do comportamento geométrico dos dados em face da arquitetura de engines 3D comerciais (ex.: sugerir que o motor combina clipes cardeais com rotação de pelve ou blend spaces para obter diagonais; notar que a ausência de Dodge_N no arquivo coincide com a existência de `Skill_RushAttack` para avanço frontal).
 - **[NÃO-VERIFICÁVEL NO ASSET]:** Comportamento que reside exclusivamente no código C++ da engine compilada (`RxGame.exe`), nas árvores de comportamento de IA ou nas tabelas de propriedades do servidor, inatingível pela mera análise das malhas e arquivos `.psa`/`.blend`.
 
 ### 1.5 Pipeline de Evidências em `prototypes/combat-lab/evidence/gigantic/`
@@ -94,12 +98,11 @@ O pipeline de geração de evidências foi executado em cópias temporárias des
   - `p2/`: 14 folhas compostas em PNG cobrindo esquivas, investidas (`Skill_RushAttack`), avanço com foco e comparativo panorâmico multi-herói.
   - `data/`: Datasets numéricos contendo a matriz Procrustes de resíduos rotacionais (`analise_procrustes.json`), inventário vetorial de curvas de raiz (`rootmotion_inventory.json`), tabela de confronto de taxas de quadros (`timing_psa_vs_blend.csv`), índice de folhas compostas (`sheets_index.json`), e varreduras completas de canais em subpastas dedicadas (`curves3/`, `curves_dodge/`, `scan/`).
 
-### 1.6 Protocolo de Witness e Tokens de Rastreamento (`LEITURA XXXXX`)
+### 1.6 Rastreabilidade e Identificadores Semânticos
 
-Para garantir que nenhuma folha de evidência seja citada sem inspeção visual real:
-- O pipeline incorpora o protocolo **Animation Witness** (`witness.py` / `witness_utility.py`), no qual cada folha de contato composta recebe uma estampagem criptográfica no canto inferior direito contendo o código de leitura (`LEITURA XXXXX`).
-- O código de 5 caracteres alfanuméricos é derivado do hash SHA-256 do buffer de pixels brutos da imagem combinada, tornando impossível falsificar ou pré-computar o token sem renderizar o arquivo no Blender.
-- As 32 folhas compostas gravadas em `prototypes/combat-lab/evidence/gigantic/` possuem seus tokens registrados em `data/sheets_index.json`, servindo como prova irrefutável de verificação visual pelo auditor de integridade.
+Para garantir rastreabilidade estrita entre as conclusões e os renders gerados:
+- O acervo adota nomenclatura semântica unificada no campo `code` de cada folha (`GIG-P1-<HEROI>-<ACAO>-<VISTA>`), vinculando a ação, herói, vista de câmera e intervalo de frames.
+- Cada folha possui metadados e hash de integridade registrados em `manifest.json` e `data/sheets_index.json`. Esses metadados asseguram proveniência e reprodutibilidade do render no Blender, servindo como base de verificação documental (sem pretensão de substituir a avaliação qualitativa ou a percepção visual do diretor humano).
 
 ---
 
@@ -998,6 +1001,7 @@ Tabela de integridade dos arquivos `.blend` inspecionados:
 | Deslocamento de 400,0 cm em −Y no Skill_RushAttack | **EVIDÊNCIA DIRETA** | Curvas de translação de `b_Root` em Pakko, Rutger, Wu e Tripp convergindo exatamente para 400,00 cm. |
 | Ausência de variantes planares 8-way em habilidades de ataque | **EVIDÊNCIA DIRETA** | Varredura exaustiva do inventário `INDICE_ACOES.csv`. |
 | Desaceleração de 2× a 2,6× no playback do Blender | **EVIDÊNCIA DIRETA** | Confronto entre cabeçalho `ANIMINFO` das PSAs e timeline do Blender documentado em `timing_psa_vs_blend.csv`. |
+| Dedução de blend spaces / rotação procedural em runtime para diagonais | **INFERÊNCIA TÉCNICA** | Hipótese apoiada na identidade geométrica quase perfeita das poses esqueléticas sob rotação da pelve. |
 | Motivação de design da exclusão de Dodge_N | **INFERÊNCIA TÉCNICA** | Dedução a partir de mecânicas de hero-shooter para evitar início ofensivo com invulnerabilidade (i-frames). |
 | Implementação do dash pelo motor de jogo da Unreal Engine | **NÃO-VERIFICÁVEL NO ASSET** | O código-fonte C++ do motor e as árvores de script da engine residem em binários compilados (`RxGame.exe`), inatingíveis pelos assets esqueléticos. |
 
