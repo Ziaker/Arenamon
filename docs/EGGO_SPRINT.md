@@ -1,15 +1,15 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **bloqueio v3 aguardando opinião do responsável** (31/10/2026). A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
+Estado: **v4 aguardando opinião do responsável** (31/10/2026). Pedido da v4: mais suave, 40 frames, volta das pernas mais suave e inclinar 5° para o lado da perna. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo sprint v3.blend` (Action `Sprint 1`).
-- Folhas dos 26 frames: `scripts/blender-vision/evidence/eggo_sprint_v3/shot_Sprint_1/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v3/motion_lens_Sprint_1/`.
-- Histórico: `eggo sprint v1.blend` (4 m) e `eggo sprint v2.blend` (0,8 m com tudo mudado), evidências em `eggo_sprint_v1/` e `eggo_sprint_v2/`.
+- Arquivo: `chars/Eggo/eggo sprint v4.blend` (Action `Sprint 1`).
+- Folhas dos 40 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v4/shot_Sprint_1/report.html`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v4/motion_lens_Sprint_1/`.
+- Histórico: `eggo sprint v1.blend` (4 m), `v2` (0,8 m com tudo mudado) e `v3` (26 f, LINEAR), evidências em `eggo_sprint_v1/` a `v3/`.
 
 ## Como foi feito
 
@@ -24,6 +24,21 @@ animação aprovada.
 - Braços: o braço do Eggo aponta para trás; ao inclinar o tronco ele levantaria, então gira para a frente o mesmo
   ângulo e balança ±12° oposto às pernas; cotovelo ~20° mais dobrado que na idle.
 - Chaves LINEAR, 15 por osso.
+
+## v4 (40 frames, suave, inclinação lateral)
+
+- Ciclo de **40 frames** (20 por pisada; pé esquerdo toca no f1, direito no f21), tempos da v3 escalados; contato de
+  3 frames; 0,8 m por pisada e arco de 20° mantidos. 15 chaves por osso.
+- Chaves **BEZIER** (auto-clamped, cíclicas); só o avanço do Root e o trecho de contato das pernas ficam LINEAR
+  (velocidade constante e pé parado no chão).
+- **Volta das pernas suave:** o chute para trás é espalhado em 6 frames (sem tranco: pé no máximo 0,11 m/frame, antes
+  0,37) e a perna dobra devagar até ~45% em 12 frames, em vez de 82% → 18% em 3 frames.
+- **Joelho estável:** o eixo do joelho passou a ser o eixo lateral fixo do corpo. Antes o polo frente/cima ficava quase
+  oposto à perna esticada para trás e a canela girava 180° no meio da interpolação.
+- **Inclinação lateral:** 5° para o lado da perna de apoio (tronco medido do quadril ao peito: +5° no toque esquerdo,
+  −5° no direito, em relação à pose neutra), dividida entre quadril, coluna e peito.
+- Extensão: impulso 99–100%, perna da frente 99–100% antes do toque, dobra mínima ~44%.
+- Motion Lens: **nenhum alerta ALTO**, sem deslize de pé; Direction Lines: nenhum retrocesso, desvio máx. 7,5 cm.
 
 ## v3 (v1 mudando só a distância + pernas esticando)
 
