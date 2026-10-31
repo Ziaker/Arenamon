@@ -15,7 +15,16 @@ animação aprovada.
   só a cabeça olha por cima do ombro. Quem já tem clipes direcionais (ex.: Wookada) continua igual.
 - Código: `prototypes/combat-lab/src/view/sprint-turn.js` (+ `applyTwist` em `rig-layers.js`); teste:
   `prototypes/combat-lab/test/sprint-turn.test.mjs`.
-- Não verificado: o Eggo ainda não está exportado (GLB) nem importado no jogo, então o giro não foi visto com ele.
+- **Eggo no jogo (v1.49.17):** `chars/Eggo/eggo.glb` vem embutido no `JOGAR_ARENAMON.html` (como o Wookada) e aparece
+  nos seletores de personagem do Azul/Vermelho como **eggo.glb**. Tem só as 13 animações aprovadas, já com os nomes que o
+  jogo reconhece: `idle`, `walk`, `sprint`, `dodge forward/back/left/right`, `jump`, `jump start/rise/apex/fall`, `land`.
+  Exportado de `chars/Eggo/eggo sprint v9.blend` por `scripts/blender-vision/exportar_eggo_glb.py` (Blender em segundo
+  plano; o .blend não é alterado). Teste: `prototypes/combat-lab/test/eggo-sprint-turn.browser.mjs` (13 animações
+  reconhecidas; para o lado o corpo gira 90° e a cabeça fica a −3° do rival; de costas, corpo 180°, tronco solto e
+  cabeça a 45°).
+- O pulinho de 7 cm do sprint só aparece com **«Trava ao chão» desligada** para a animação `sprint` (editor de animação,
+  grupo Movimento); com ela ligada (padrão) o jogo apoia o pé no chão e o sobe-desce some.
+- Não verificado: jogar com o Eggo de verdade (só testes automáticos); o Eggo ainda não tem ataque, dano, defesa etc.
 
 ## Onde abrir
 
