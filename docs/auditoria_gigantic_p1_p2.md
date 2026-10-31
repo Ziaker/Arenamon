@@ -24,10 +24,10 @@ Esta auditoria constitui o estudo definitivo e exaustivo das famílias de locomo
 
 2. **O Fenômeno do Colapso por Rotação da Pelve (`b_Pelvis`):**
    - Com exceção de Charnok (cujo design exigiu 8 ciclos corporais autorais), os heróis do Gigantic **não possuem 8 animações distintas de corrida**.
-   - A cobertura direcional é obtida por colapso rígido de **4 a 6 clipes base**, nos quais as diagonais são derivadas por rotações angulares discretas ($\pm 30,00^\circ$ e $\pm 60,00^\circ$) injetadas no osso `b_Pelvis`, com resíduos de Procrustes entre $0,000\text{ cm}$ e $0,150\text{ cm}$ e variação angular dos demais 80 a 126 ossos do corpo de rigorosamente $0,00^\circ$ a $0,01^\circ$.
+   - A cobertura direcional apresenta dados compatíveis com uma base de **4 a 6 clipes-chave**, nos quais as poses diagonais exibem quase identidade com as cardeais sob rotações angulares discretas ($\pm 30,00^\circ$ e $\pm 60,00^\circ$) na pelve (`b_Pelvis`), com resíduos de Procrustes entre $0,000\text{ cm}$ e $0,150\text{ cm}$ e variação angular residual dos demais 80 a 126 ossos do corpo de apenas $0,00^\circ$ a $0,01^\circ$.
 
 3. **Inexistência Absoluta de Espelhamento Bilateral (Mirroring Refutado):**
-   - O teste sistemático de Procrustes com inversão de simetria lateral ($X \to -X$) revelou resíduos massivos entre **5,9 cm e 26,5 cm**. O estúdio optou categoricamente por animações autorais independentes para as laterais (`Run_E` e `Run_W`), preservando a assimetria visual de armas, mochilas e postura de combate, repudiando o espelhamento artificial.
+   - O teste sistemático de Procrustes com inversão de simetria lateral ($X \to -X$) revelou resíduos massivos entre **5,9 cm e 26,5 cm**, indicando que os dados contêm clipes autorais independentes para as laterais (`Run_E` e `Run_W`), preservando a assimetria visual de armas, mochilas e postura de combate em vez de recorrer a espelhamento geométrico simples.
 
 4. **Esquivas (P2) São Estritamente Tridirecionais e Uniaxiais:**
    - O sistema de esquivas de Gigantic é composto exclusivamente pela tríade `{Dodge_E, Dodge_W, Dodge_S}` multiplicada pelos estados `{Solo, Ar, Esgotado}` (9 ações por herói).
@@ -102,7 +102,10 @@ O pipeline de geração de evidências foi executado em cópias temporárias des
 
 Para garantir rastreabilidade estrita entre as conclusões e os renders gerados:
 - O acervo adota nomenclatura semântica unificada no campo `code` de cada folha (`GIG-P1-<HEROI>-<ACAO>-<VISTA>`), vinculando a ação, herói, vista de câmera e intervalo de frames.
-- Cada folha possui metadados e hash de integridade registrados em `manifest.json` e `data/sheets_index.json`. Esses metadados asseguram proveniência e reprodutibilidade do render no Blender, servindo como base de verificação documental (sem pretensão de substituir a avaliação qualitativa ou a percepção visual do diretor humano).
+- As evidências contam com catalogação dupla em metadados:
+  - `manifest.json`: Registra o caminho relativo, dimensões em pixels, tamanho em bytes e o hash SHA-256 de integridade de cada uma das 32 imagens PNG publicadas.
+  - `data/sheets_index.json`: Detalha a parametrização de câmera, intervalo de frames inspecionados, amplitude métrica corporal e o hash SHA-256 do arquivo `.blend` de origem (`blend_sha256`).
+Esses metadados asseguram proveniência e reprodutibilidade técnica das capturas, servindo como base documental para estudo de movimento (sem pretensão de substituir o julgamento qualitativo da direção de arte).
 
 ---
 
@@ -361,7 +364,7 @@ O Dragão (`Dragon_Default_LOD0`, 97 ossos) possui apenas 4 clipes de locomoçã
 
 ### 3.5 Análise Procrustes e Refutação Definitiva de Espelhamento (Mirroring)
 
-Uma hipótese inicial postulava que `Run_W` poderia ser o espelho matemático de `Run_E` com inversão de fase das passadas. Essa hipótese foi **completamente refutada** pelos dados:
+Uma hipótese inicial avaliava se `Run_W` poderia derivar de espelhamento matemático de `Run_E` com inversão de fase das passadas. A comparação de Procrustes não encontrou correspondência simétrica nos dados:
 
 | Par Comparado | Herói | Resíduo de Rotação Rígida | Resíduo de Espelhamento Bilateral ($X \to -X$) | Parecer Técnico |
 |---|---|---|---|---|
@@ -802,7 +805,7 @@ O próprio arquivo `Cogumelo.glb` já contém em seu contêiner 20 animações p
 | **F07** | Métricas de Peso e Impulso | **FORTEMENTE JUSTIFICADA** | O contraste entre Pakko/Rutger (pesados) e Tripp/Wu (ágeis) oferece parâmetros matemáticos exatos para calibrar a inércia do Wookada contra o Cogumelo. |
 | **F08** | Diagnóstico de Root Motion | **REJEITADA NO BLENDER** | O Three.js no Combat Lab e o Animation Studio já possuem módulos de root motion com descarte horizontal e liberdade vertical. Duplicar essa lógica no Blender violaria a regra de não-duplicação do `AGENTS.md`. |
 | **F09** | Silhueta e Poses Candidatas | **BAIXA / JÁ ATENDIDA** | O Motion Lens 0.3.3 já possui `contact_sheet`, `silhouette_sheet` e `skeleton_sheet`. Não justifica desenvolvimento adicional. |
-| **F10** | Smear e Exagero Plástico | **REJEITADA NO BLENDER** | O Combat Lab já possui runtime procedural em tempo real para malhas de rastro (`smear-mesh.js`) e deformação elástica com conservação de volume (`squash-stretch.js`). |
+| **F10** | Smear e Exagero Plástico | **ESCOPO MISTO / RESERVADA** | Preservar técnicas de smear meshes, malhas de impacto e keyframes de deformação autoral no Blender para ações estilizadas de alta expressividade, complementando os efeitos procedurais existentes no Combat Lab (`smear-mesh.js`, `squash-stretch.js`). |
 | **F11** | Diretor de Pose JSON | **MÉDIA** | Relevante exclusivamente para a posterior Fase B (edição autorizada), fora de escopo na atual Fase A. |
 | **F12** | Correção Localizada Transacional | **MÉDIA** | Complemento de F11; aplicável somente em fase de produção de novos clipes. |
 | **F13** | Comparação de Variantes A/B/C | **BAIXA / JÁ ATENDIDA** | Já coberta pelos operadores `save_baseline` e `check_baseline` existentes no Motion Lens. |
@@ -995,7 +998,7 @@ Tabela de integridade dos arquivos `.blend` inspecionados:
 |---|:---:|---|
 | Deslocamento de 0,0000 cm de root motion nas 40 corridas | **EVIDÊNCIA DIRETA** | Curvas F-Curve de `pose.bones["b_Root"].location` [0, 1, 2] gravadas e verificadas no Blender 5.2.2 LTS. |
 | Colapso de 4 clipes de corrida via rotação de pelve | **EVIDÊNCIA DIRETA** | Resíduos de Procrustes de 0,000 cm a 0,150 cm em Pakko, Rutger, Wu e Tripp com rotação de ±30°/60° em `b_Pelvis`. |
-| Inexistência de espelhamento bilateral | **EVIDÊNCIA DIRETA** | Resíduos massivos de Procrustes (5,9 cm a 26,5 cm) em simetria $X \to -X$. |
+| Discrepância geométrica em relação a espelhamento lateral simples | **EVIDÊNCIA DIRETA** | Resíduos de Procrustes de 5,9 cm a 26,5 cm ao testar simetria $X \to -X$ nos dados esqueléticos. |
 | Esquivas 3-way uniaxiais (3,1m–4,0m) | **EVIDÊNCIA DIRETA** | F-Curves de translação de `b_Root` em $X$ e $Y$ em Charnok, Pakko, Rutger, Wu e Tripp. |
 | Ausência de Dodge_N e esquivas diagonais nos arquivos | **EVIDÊNCIA DIRETA** | Varredura de 1.045 ações e 129 PSAs; zero ocorrências encontradas. |
 | Deslocamento de 400,0 cm em −Y no Skill_RushAttack | **EVIDÊNCIA DIRETA** | Curvas de translação de `b_Root` em Pakko, Rutger, Wu e Tripp convergindo exatamente para 400,00 cm. |
