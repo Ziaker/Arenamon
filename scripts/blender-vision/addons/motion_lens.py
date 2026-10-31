@@ -11,7 +11,7 @@ from motion_lens_parts.version import VERSION, VERSION_TEXT  # noqa: E402,F401
 bl_info = {
     "name": "Motion Lens (Arenamon)",
     "author": "Arenamon",
-    "version": VERSION,
+    "version": (0, 3, 3),
     "blender": (5, 0, 0),
     "location": "View3D > Sidebar > Motion Lens",
     "description": "Comprime movimento em contact sheets, graficos e diagnosticos priorizados",
