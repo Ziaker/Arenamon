@@ -1,14 +1,16 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **v8 aguardando opinião do responsável** (31/10/2026). Pedido: «só ajeita os braços pra ficarem corretamente semi-estáticos sem mover muito». A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
+Estado: **v9 aguardando opinião do responsável** (31/10/2026). Pedido: 4 pulinhos nos mesmos 32 frames, com pisada forte e impacto. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo sprint v8.blend` (Action `Sprint 1`).
-- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v8/shot_Sprint_1/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v8/motion_lens_Sprint_1/`.
+- Arquivo: `chars/Eggo/eggo sprint v9.blend` (Action `Sprint 1`).
+- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v9/shot_Sprint_1/report.html`; os 4 impactos lado a lado em `impactos.png`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v9/motion_lens_Sprint_1/`.
+- Scripts (gerador e pose do responsável): `scripts/blender-vision/evidence/eggo_sprint_v9/*.py`.
+- v8 (histórico, 2 pisadas): `chars/Eggo/eggo sprint v8.blend`.
 - v7 (histórico, braços em onda): `chars/Eggo/eggo sprint v7.blend`.
 - Script dos braços: `scripts/blender-vision/evidence/eggo_sprint_v7/eggo_sprint_bracos_onda.py`.
 - v6 (histórico): `chars/Eggo/eggo sprint v6.blend`.
@@ -28,6 +30,20 @@ animação aprovada.
 - Braços: o braço do Eggo aponta para trás; ao inclinar o tronco ele levantaria, então gira para a frente o mesmo
   ângulo e balança ±12° oposto às pernas; cotovelo ~20° mais dobrado que na idle.
 - Chaves LINEAR, 15 por osso.
+
+## v9 (4 pulinhos com impacto)
+
+- **4 pisadas em 32 frames:** 8 frames por pisada (ciclo de 16 f repetido 2×; pés tocam em f1, f9, f17, f25), 0,8 m por
+  pisada e arco de 20° mantidos. O corpo anda o dobro (3,2 m por clipe).
+- **Pisada forte:** toque (p0) → **impacto** no frame seguinte (quadril amassa 7 cm, tronco cai 6° para a frente, linear,
+  seco) → impulso com a perna de apoio **99–100%** reta (quadril sobe 17 cm em 1 frame) → voo de 6 frames.
+- Braços semi-estáticos na pose do f5 do responsável (como na v8). A coluna, a coxa e a canela que ele editou foram
+  aplicadas na fase equivalente (1º frame de voo: f4/f20, e espelhadas em f12/f28).
+- Perna que está no ar fica mais baixa durante o impacto do outro pé: antes a coxa entrava na barriga (malha rasgando no
+  f10/f26).
+- Motion Lens: pés cravados no contato (deslize 0); o arrasto do pé direito no f20 da v8 sumiu. Alertas ALTO só de
+  reversão da perna de apoio entre o amassado e o impulso (f3/f11/f19/f27) — é o próprio impacto. Direction Lines:
+  quadril e mãos sem retrocesso, desvio máx. 7,6 cm.
 
 ## v8 (braços semi-estáticos)
 
