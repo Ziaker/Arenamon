@@ -1,7 +1,17 @@
+import os
+import sys
+
+_AQUI = os.path.dirname(os.path.abspath(__file__))
+if _AQUI not in sys.path:
+    sys.path.insert(0, _AQUI)
+
+from motion_lens_parts.version import VERSION, VERSION_TEXT  # noqa: E402,F401
+
+
 bl_info = {
     "name": "Motion Lens (Arenamon)",
     "author": "Arenamon",
-    "version": (0, 3, 1),
+    "version": VERSION,
     "blender": (5, 0, 0),
     "location": "View3D > Sidebar > Motion Lens",
     "description": "Comprime movimento em contact sheets, graficos e diagnosticos priorizados",
@@ -12,13 +22,6 @@ bl_info = {
 # entrada do addon e reexporta toda a API que existia (analyze_motion, check_contract, render_contact_sheet, register…).
 # Instalação: copie ESTE arquivo e a pasta motion_lens_parts/ juntos para a pasta de addons do Blender
 # (scripts/blender-vision/instalar_motion_lens.py faz isso). Uma cópia antiga de arquivo único no Blender continua funcionando até ser trocada.
-import os
-import sys
-
-_AQUI = os.path.dirname(os.path.abspath(__file__))
-if _AQUI not in sys.path:
-    sys.path.insert(0, _AQUI)
-
 import bpy  # noqa: E402,F401
 
 from motion_lens_parts.common import (DEFAULT_ROLES, EXTRA_ROLES, GHOST_COLL, GRAPH_COLORS, PROFILE_KEYS, REPORT_TEXT, SKELETON_EDGES, TEMP_COLL, TRAIL_COLL, _action_keyed_frames, _armature, _clear_collection, _collection, _color, _context, _ensure_output_dir, _material, _median_mad, _mesh_min_z, _meshes_of, _parse_frames, _parse_mapping, _point_segment_distance_2d, _remove_object_and_data, _resolve_bone, _restore_frame, _safe_angle, _segment_distance, _severity, _world_point, clear_generated)

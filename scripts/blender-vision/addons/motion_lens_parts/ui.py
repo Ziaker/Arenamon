@@ -4,49 +4,86 @@ from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
 from .comparison import save_baseline
 from .contract import load_profile, save_profile
 from .operators import ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_trails
+from .version import VERSION_TEXT
 
 
 class ML_PT_panel(bpy.types.Panel):
-    bl_label = "Motion Lens 0.4.0"
+    bl_label = "Motion Lens " + VERSION_TEXT
     bl_idname = "ML_PT_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
     bl_category = "Motion Lens"
     def draw(self, context):
         scene = context.scene
-        col = self.layout.column(align=True)
+        col = self.layout.box().column(align=True)
+        col.label(text="Gerar evidencias")
         col.prop(scene, "motion_lens_frames")
         col.prop(scene, "motion_lens_output_dir")
+        col.prop(scene, "motion_lens_camera_names")
+        col.prop(scene, "motion_lens_tick_step")
         col.operator("motionlens.contact_sheet")
         col.operator("motionlens.silhouette_sheet")
         col.operator("motionlens.skeleton_sheet")
         col.operator("motionlens.graphs")
         col.operator("motionlens.report")
         col.operator("motionlens.html_report")
-        col.separator()
+
+        col = self.layout.box().column(align=True)
+        col.label(text="Comparar animacoes")
         col.prop(scene, "motion_lens_reference_action")
         col.operator("motionlens.reference_overlay")
         col.operator("motionlens.pose_diff")
-        col.separator()
-        col.prop(scene, "motion_lens_bones")
-        col.prop(scene, "motion_lens_use_tail")
-        col.operator("motionlens.trails")
-        col.prop(scene, "motion_lens_alpha")
-        col.operator("motionlens.ghosts")
-        col.separator()
-        col.prop(scene, "motion_lens_bone_map")
-        col.prop(scene, "motion_lens_contract")
-        col.prop(scene, "motion_lens_camera_names")
-        col.prop(scene, "motion_lens_max_issues")
-        col.separator()
-        col.prop(scene, "motion_lens_profile_path")
-        row = col.row(align=True)
-        row.operator("motionlens.save_profile")
-        row.operator("motionlens.load_profile")
         col.prop(scene, "motion_lens_baseline_path")
         row = col.row(align=True)
         row.operator("motionlens.save_baseline")
         row.operator("motionlens.check_baseline")
+
+        col = self.layout.box().column(align=True)
+        col.label(text="Visualizar movimento")
+        col.prop(scene, "motion_lens_bones")
+        col.prop(scene, "motion_lens_use_tail")
+        col.prop(scene, "motion_lens_alpha")
+        col.operator("motionlens.trails")
+        col.operator("motionlens.ghosts")
+
+        col = self.layout.box().column(align=True)
+        col.label(text="Diagnosticar movimento")
+        col.prop(scene, "motion_lens_bone_map")
+        col.prop(scene, "motion_lens_contract")
+        col.prop(scene, "motion_lens_max_issues")
+        col.prop(scene, "motion_lens_contact_margin")
+        col.prop(scene, "motion_lens_locked_speed")
+        col.prop(scene, "motion_lens_slide_threshold")
+        col.prop(scene, "motion_lens_ground_z")
+        col.prop(scene, "motion_lens_penetration_tolerance")
+        col.prop(scene, "motion_lens_pop_min")
+        col.prop(scene, "motion_lens_pop_mad")
+        col.prop(scene, "motion_lens_direction_min")
+        col.prop(scene, "motion_lens_direction_dot")
+        col.prop(scene, "motion_lens_rotation_jump")
+        col.prop(scene, "motion_lens_scale_tolerance")
+        col.prop(scene, "motion_lens_support_margin")
+        col.prop(scene, "motion_lens_capsule_radius")
+        col.prop(scene, "motion_lens_hyperextension")
+        col.prop(scene, "motion_lens_pause_speed")
+        col.prop(scene, "motion_lens_pause_frames")
+        col.prop(scene, "motion_lens_uniform_frames")
+        col.prop(scene, "motion_lens_uniform_cv")
+        col.prop(scene, "motion_lens_arc_break_angle")
+        col.prop(scene, "motion_lens_arc_straight_angle")
+        col.prop(scene, "motion_lens_arc_straight_frames")
+        col.prop(scene, "motion_lens_tangent_break_ratio")
+        col.prop(scene, "motion_lens_extra_motion_min")
+
+        col = self.layout.box().column(align=True)
+        col.label(text="Perfis")
+        col.prop(scene, "motion_lens_profile_path")
+        row = col.row(align=True)
+        row.operator("motionlens.save_profile")
+        row.operator("motionlens.load_profile")
+
+        col = self.layout.box().column(align=True)
+        col.label(text="Limpeza")
         col.operator("motionlens.clear")
 
 

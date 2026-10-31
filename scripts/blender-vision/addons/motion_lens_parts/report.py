@@ -7,6 +7,7 @@ from .analysis import analyze_motion, build_report
 from .common import _context, _ensure_output_dir
 from .graphs import render_graphs
 from .sheets import render_contact_sheet, render_skeleton_sheet
+from .version import VERSION_TEXT
 
 
 def _image_data_uri(path):
@@ -35,8 +36,8 @@ def build_html_report(context=None, output_path=None, include_renders=True):
         blocks.append("<section><h2>%s</h2><img src='%s'></section>" % (html.escape(title), _image_data_uri(path)))
     document = """<!doctype html><meta charset='utf-8'><title>Motion Lens</title>
 <style>body{font-family:system-ui;background:#17171c;color:#eee;max-width:1400px;margin:auto;padding:24px}pre{white-space:pre-wrap;background:#22232b;padding:16px}img{max-width:100%%;background:#fff}section{margin:28px 0}</style>
-<h1>Motion Lens 0.3</h1><pre>%s</pre>%s
-<p><strong>Limite:</strong> o relatorio mede sinais tecnicos; peso, ritmo, intencao e qualidade artistica continuam dependendo de avaliacao humana.</p>""" % (html.escape(report), "".join(blocks))
+<h1>Motion Lens %s</h1><pre>%s</pre>%s
+<p><strong>Limite:</strong> o relatorio mede sinais tecnicos; peso, ritmo, intencao e qualidade artistica continuam dependendo de avaliacao humana.</p>""" % (VERSION_TEXT, html.escape(report), "".join(blocks))
     output_path = output_path or os.path.join(_ensure_output_dir(scene), "motion_lens_report.html")
     with open(output_path, "w", encoding="utf-8") as handle:
         handle.write(document)
