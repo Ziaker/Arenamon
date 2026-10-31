@@ -49,6 +49,26 @@ BLENDER_BIN = r"C:\Program Files\Blender Foundation\Blender 5.2\blender.exe"
 GIGAS_DIR = r"C:\Users\zerke\Downloads\gigas"
 REPO_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
 
+# ---------------------------------------------------------------------------
+# PARÂMETROS FORNECIDOS MANUALMENTE / METADADOS EXTERNOS DE REFERÊNCIA
+# Registrados explicitamente para distinguir dos dados extraídos do Blender
+# ---------------------------------------------------------------------------
+# Altura física de referência do modelo Eggo (morfologia Arenamon):
+PARAMETRO_MANUAL_ALTURA_EGGO_M = 1.20
+
+# Altura corporal oficial da espécie Golisopod (referência benchmark FK Pokémon Z-A):
+PARAMETRO_MANUAL_ALTURA_GOLISOPOD_M = 1.442
+
+# Nível de solo de calibração para AlienRig (pés repousam em Z ≈ -0.52 m no espaço do armature):
+PARAMETRO_MANUAL_NIVEL_SOLO_ALIENRIG_M = -0.52
+PARAMETRO_MANUAL_TOLERANCIA_SOLO_M = 0.05
+
+# Identificação semântica dos efetores de pé para AlienRig:
+PARAMETRO_MANUAL_ROLES_PES_EGGO = {"left_foot": "LeftFoot", "right_foot": "RightFoot"}
+
+# Papéis corporais ausentes conhecidos em anatomia bípede/insetoide:
+PARAMETRO_MANUAL_ROLES_AUSENTES = ["left_wing", "right_wing"]
+
 
 class TestF01F02F04RealAssets(unittest.TestCase):
 
@@ -64,11 +84,12 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         if not self.has_blender or not os.path.isfile(self.pakko_blend):
             self.skipTest("Blender ou Pakko_Animations.blend indisponível.")
 
-        # Extrai nomes e deslocamentos das Actions de corrida de Pakko
+        # Extrai nomes, deslocamentos de raiz e lista completa de ossos diretamente do .blend
         py_extract = (
             "import bpy, json\n"
             "arm = [o for o in bpy.data.objects if o.type == 'ARMATURE'][0]\n"
             "fps = float(bpy.context.scene.render.fps)\n"
+            "all_bones = [b.name for b in arm.data.bones]\n"
             "runs = {}\n"
             "for d in ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']:\n"
             "    act = bpy.data.actions.get(f'Run_{d}')\n"
@@ -80,15 +101,16 @@ class TestF01F02F04RealAssets(unittest.TestCase):
             "        root_fc_x = [fc for fc in fcs if 'pose.bones[\"b_Root\"].location' in fc.data_path and fc.array_index == 0]\n"
             "        disp_x = (root_fc_x[0].keyframe_points[-1].co[1] - root_fc_x[0].keyframe_points[0].co[1]) / 100.0 if root_fc_x else 0.0\n"
             "        disp_y = (root_fc_z[0].keyframe_points[-1].co[1] - root_fc_z[0].keyframe_points[0].co[1]) / 100.0 if root_fc_z else 0.0\n"
+            "        disp_horiz = (disp_x**2 + disp_y**2)**0.5\n"
             "        f_count = int(act.frame_range[1] - act.frame_range[0] + 1)\n"
             "        runs[d] = {\n"
             "            'action_name': act.name,\n"
             "            'displacement_vector': [round(disp_x, 3), round(disp_y, 3), 0.0],\n"
             "            'frame_count': f_count,\n"
             "            'fps': fps,\n"
-            "            'is_in_place': True\n"
+            "            'is_in_place': bool(disp_horiz < 0.05)\n"
             "        }\n"
-            "res = {'armature': arm.name, 'runs': runs}\n"
+            "res = {'armature': arm.name, 'bones': all_bones, 'runs': runs}\n"
             "print('__EXTRACTION_JSON__' + json.dumps(res))\n"
         )
 
@@ -122,9 +144,9 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         self.assertTrue(os.path.isfile(real_png))
         real_sha256 = compute_file_sha256(real_png)
 
-        # 3. Exportação para F15 com verificação estrita
+        # 3. Exportação para F15 com verificação estrita e lista de ossos extraída do Blender
         rig_map = build_rig_map(
-            bone_names=["b_Root", "b_Pelvis", "b_Thigh_L", "b_Ankle_L"],
+            bone_names=data["bones"],  # Lista completa de ossos extraída diretamente do .blend
             rig_id="pakko_real",
             armature_name=data["armature"]
         )
@@ -207,9 +229,9 @@ class TestF01F02F04RealAssets(unittest.TestCase):
             bone_poses_b=data["poses_b"],
             fps_a=data["fps"],
             fps_b=data["fps"],
-            ground_z_reference_m=-0.52,  # Pés de AlienRig repousam em Z ~= -0.52 m
-            ground_tolerance_m=0.05,
-            foot_bones={"left_foot": "LeftFoot", "right_foot": "RightFoot"},
+            ground_z_reference_m=PARAMETRO_MANUAL_NIVEL_SOLO_ALIENRIG_M,  # Calibração manual documentada
+            ground_tolerance_m=PARAMETRO_MANUAL_TOLERANCIA_SOLO_M,
+            foot_bones=PARAMETRO_MANUAL_ROLES_PES_EGGO,
             visual_evidence_confirmed=False,
         )
 
@@ -292,7 +314,7 @@ class TestF01F02F04RealAssets(unittest.TestCase):
             "        pb = arm.pose.bones.get(bname)\n"
             "        if pb:\n"
             "            samples[r].append([round(c, 4) for c in pb.matrix.translation])\n"
-            "res = {'samples': samples, 'yaws': yaws, 'duration': (f_end - f_start + 1) / float(bpy.context.scene.render.fps)}\n"
+            "res = {'bones': [b.name for b in arm.data.bones], 'samples': samples, 'yaws': yaws, 'duration': (f_end - f_start + 1) / float(bpy.context.scene.render.fps)}\n"
             "print('__EGGO_EXTRACTION__' + json.dumps(res))\n"
         )
         proc_eggo = subprocess.run([BLENDER_BIN, "-b", self.eggo_dodge_blend, "--python-expr", py_extract_eggo],
@@ -322,7 +344,7 @@ class TestF01F02F04RealAssets(unittest.TestCase):
             "        pb = arm.pose.bones.get(bname)\n"
             "        if pb:\n"
             "            samples[r].append([round(c, 4) for c in pb.matrix.translation])\n"
-            "res = {'samples': samples, 'yaws': yaws, 'duration': (f_end - f_start + 1) / float(bpy.context.scene.render.fps)}\n"
+            "res = {'bones': [b.name for b in arm.data.bones], 'samples': samples, 'yaws': yaws, 'duration': (f_end - f_start + 1) / float(bpy.context.scene.render.fps)}\n"
             "print('__GOLI_EXTRACTION__' + json.dumps(res))\n"
         )
         proc_goli = subprocess.run([BLENDER_BIN, "-b", self.za_blend, "--python-expr", py_extract_goli],
@@ -330,29 +352,30 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         goli_line = [l for l in proc_goli.stdout.splitlines() if "__GOLI_EXTRACTION__" in l][0].replace("__GOLI_EXTRACTION__", "")
         goli_data = json.loads(goli_line)
 
-        # 3. Rig Maps F03 reais de ambos os esqueletos
+        # 3. Rig Maps F03 reais baseados na lista de ossos extraída do próprio .blend
         rig_map_eggo = build_rig_map(
-            bone_names=["Root", "Hips", "Chest", "Head", "LeftArm", "RightArm", "LeftFoot", "RightFoot"],
+            bone_names=eggo_data["bones"],
             rig_id="eggo_alien_rig",
             armature_name="AlienRig",
-            absent_roles=["left_wing", "right_wing"]
+            absent_roles=PARAMETRO_MANUAL_ROLES_AUSENTES,
         )
         rig_map_goli = build_rig_map(
-            bone_names=["pm0867_00_00", "origin", "waist", "spine_01", "head", "left_arm_a", "right_arm_a", "left_foot", "right_foot"],
+            bone_names=goli_data["bones"],
             rig_id="golisopod_pm0867",
             armature_name="pm0867_00_00",
-            absent_roles=["left_wing", "right_wing"]
+            absent_roles=PARAMETRO_MANUAL_ROLES_AUSENTES,
         )
 
         # 4. Comparação Cross-Rig F04 com normalização espacial real (centralização e yaw)
+        # Alturas morfológicas de referência fornecidas como parâmetros manuais documentados:
         comparison = compare_cross_rig_actions(
             comparison_id="eggo_idle_vs_golisopod_attack_real",
             rig_map_a=rig_map_eggo,
             rig_map_b=rig_map_goli,
             action_a_meta={"action_name": "Idle 1", "armature_name": "AlienRig", "duration_seconds": eggo_data["duration"], "fps": 24.0, "frame_count": 24},
             action_b_meta={"action_name": "00400_attack01", "armature_name": "pm0867_00_00", "duration_seconds": goli_data["duration"], "fps": 30.0, "frame_count": 135},
-            height_a_m=1.20,
-            height_b_m=1.442,  # Altura factual oficial de Golisopod
+            height_a_m=PARAMETRO_MANUAL_ALTURA_EGGO_M,
+            height_b_m=PARAMETRO_MANUAL_ALTURA_GOLISOPOD_M,
             samples_a_by_role=eggo_data["samples"],
             samples_b_by_role=goli_data["samples"],
             sample_count=sample_count,

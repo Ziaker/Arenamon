@@ -344,8 +344,44 @@ def export_cross_rig_to_agent_report(
     comp_id = comparison["comparison_id"]
     rep_id = report_id or f"REP-F04-CROSSRIG-{comp_id.upper()}"
     act_a = comparison["action_a"]
+    act_b = comparison["action_b"]
+
+    # Frame range real de A sem fabricação
+    if "frame_range" in act_a and isinstance(act_a["frame_range"], (list, tuple)):
+        frame_range_a = tuple(act_a["frame_range"])
+    else:
+        fc_a = int(act_a.get("frame_count", 30))
+        frame_range_a = (0, max(0, fc_a - 1))
 
     measurements: List[Dict[str, Any]] = [
+        {
+            "metric": "cross_rig_target_b_action_name",
+            "value": act_b.get("action_name", "Action_B"),
+            "unit": "string",
+            "method": "cross_rig_metadata_record",
+            "confidence": 1.0,
+        },
+        {
+            "metric": "cross_rig_target_b_armature",
+            "value": act_b.get("armature_name", "Armature_B"),
+            "unit": "string",
+            "method": "cross_rig_metadata_record",
+            "confidence": 1.0,
+        },
+        {
+            "metric": "cross_rig_target_b_height_meters",
+            "value": comparison["height_b_meters"],
+            "unit": "m",
+            "method": "morphological_scale_parameter",
+            "confidence": 1.0,
+        },
+        {
+            "metric": "cross_rig_target_a_height_meters",
+            "value": comparison["height_a_meters"],
+            "unit": "m",
+            "method": "morphological_scale_parameter",
+            "confidence": 1.0,
+        },
         {
             "metric": "cross_rig_global_mean_discrepancy",
             "value": comparison["global_mean_discrepancy_rel_H"],
@@ -362,6 +398,31 @@ def export_cross_rig_to_agent_report(
             "target_role": comparison["peak_discrepancy_role"],
         },
     ]
+
+    if act_b.get("frame_count") is not None:
+        measurements.append({
+            "metric": "cross_rig_target_b_frame_count",
+            "value": act_b.get("frame_count"),
+            "unit": "frames",
+            "method": "cross_rig_metadata_record",
+            "confidence": 1.0,
+        })
+    if act_b.get("duration_seconds") is not None:
+        measurements.append({
+            "metric": "cross_rig_target_b_duration_seconds",
+            "value": act_b.get("duration_seconds"),
+            "unit": "s",
+            "method": "cross_rig_metadata_record",
+            "confidence": 1.0,
+        })
+    if act_b.get("fps") is not None:
+        measurements.append({
+            "metric": "cross_rig_target_b_fps",
+            "value": act_b.get("fps"),
+            "unit": "fps",
+            "method": "cross_rig_metadata_record",
+            "confidence": 1.0,
+        })
 
     for role, r_data in comparison["role_comparisons"].items():
         measurements.append({
@@ -386,9 +447,9 @@ def export_cross_rig_to_agent_report(
         target={
             "source_file": source_file_a,
             "action_name": act_a.get("action_name", "Action_A"),
-            "action_slot": None,
+            "action_slot": act_a.get("action_slot"),
             "armature_name": act_a.get("armature_name", "Armature_A"),
-            "frame_range": [0, int(act_a.get("frame_count", 30))],
+            "frame_range": frame_range_a,
             "fps": float(act_a.get("fps", 30.0)),
             "unit_system": "METRIC_METERS",
         },

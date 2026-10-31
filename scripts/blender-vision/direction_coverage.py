@@ -78,7 +78,8 @@ STATUS_PRESENT = "PRESENT"
 STATUS_ABSENT = "ABSENT"
 STATUS_DEVIATED = "DEVIATED"
 
-RELATION_INDEPENDENT = "INDEPENDENT_AUTHORIAL"
+RELATION_GEOMETRIC_ASYMMETRY = "GEOMETRIC_ASYMMETRY"
+RELATION_INDEPENDENT = RELATION_GEOMETRIC_ASYMMETRY  # Alias de retrocompatibilidade
 RELATION_SYMMETRIC_MIRRORED = "SYMMETRIC_MIRRORED"
 RELATION_SAME_ACTION_REUSED = "SAME_ACTION_REUSED"
 RELATION_DISTINCT_UNMEASURED = "DISTINCT_ACTIONS_UNMEASURED"
@@ -337,8 +338,8 @@ def build_direction_coverage_analysis(
                 rationale = f"Discrepância pós-espelhamento de {mirror_disc:.3f} m (abaixo de {mirror_similarity_threshold_m} m); comprova forte simetria bilateral geométrica."
                 conf = 0.95
             else:
-                rel_type = RELATION_INDEPENDENT
-                rationale = f"Discrepância pós-espelhamento de {mirror_disc:.3f} m; denota autoria de movimento independente entre os lados."
+                rel_type = RELATION_GEOMETRIC_ASYMMETRY
+                rationale = f"Discrepância pós-espelhamento medida de {mirror_disc:.3f} m (acima de {mirror_similarity_threshold_m} m); constata assimetria geométrica entre os lados nos dados analisados."
                 conf = 0.95
         else:
             rel_type = RELATION_DISTINCT_UNMEASURED
@@ -381,8 +382,8 @@ def build_direction_coverage_analysis(
         p_str = f"{sym['pair'][0]}/{sym['pair'][1]}"
         if sym["relation_type"] == RELATION_SYMMETRIC_MIRRORED:
             inferences.append(f"Par {p_str}: Semelhança geométrica estrita pós-espelhamento comprova simetria bilateral de malha/esqueleto.")
-        elif sym["relation_type"] == RELATION_INDEPENDENT:
-            inferences.append(f"Par {p_str}: Assimetrias métricas detectadas confirmam desenvolvimento coreográfico autoral para cada lado.")
+        elif sym["relation_type"] == RELATION_GEOMETRIC_ASYMMETRY:
+            observations.append(f"Par {p_str}: Discrepância geométrica medida de {sym['mirror_discrepancy_m']:.3f} m pós-espelhamento constata assimetria entre os lados.")
         elif sym["relation_type"] == RELATION_SAME_ACTION_REUSED:
             hypotheses.append(f"Par {p_str}: A mesma Action '{sym['action_a']}' pode ser orientada por rotação procedural no motor de jogo.")
         elif sym["relation_type"] == RELATION_DISTINCT_UNMEASURED:
@@ -451,13 +452,16 @@ def export_direction_coverage_to_agent_report(
     coverage: Dict[str, Any],
     source_file: str,
     rig_mapping: Dict[str, Any],
+    reference_direction: Optional[str] = None,
     fps: float = 30.0,
     report_id: Optional[str] = None,
     visual_evidence: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """Converte o documento de cobertura direcional em um relatório F15 (arenamon.agent-report/1).
     
-    Exige obrigatoriamente um rig_mapping autêntico do contrato arenamon.rig-map/1.
+    Preserva a proveniência temporal exata: o target referencia uma Action real do conjunto
+    (por padrão a direção de referência 'N' ou a primeira presente), e os metadados de cada
+    uma das demais Actions são registrados individualmente em measurements sem fabricação.
     """
     from agent_report import build_agent_report
     from rig_map import validate_rig_map
@@ -470,15 +474,33 @@ def export_direction_coverage_to_agent_report(
     armature = coverage["armature_name"]
     rep_id = report_id or f"REP-F01-DIR-COVERAGE-{set_id.upper()}"
 
-    # Calcula duração real e contagem de frames a partir das Actions presentes
-    present_frames = [
-        inf["frame_count"] for inf in coverage["directions"].values()
-        if inf.get("frame_count") and inf["status"] != STATUS_ABSENT
-    ]
-    max_frames = max(present_frames) if present_frames else 30
-    frame_range = (0, max_frames)
+    # Identifica a Action de referência primária real no conjunto
+    ref_dir = reference_direction or "N"
+    ref_info = coverage["directions"].get(ref_dir)
+    if not ref_info or ref_info["status"] == STATUS_ABSENT:
+        # Pega a primeira direção presente
+        for d in DIRECTIONS_8:
+            if coverage["directions"][d]["status"] != STATUS_ABSENT:
+                ref_dir = d
+                ref_info = coverage["directions"][d]
+                break
+
+    if not ref_info or ref_info["status"] == STATUS_ABSENT:
+        raise DirectionCoverageError("O conjunto direcional não possui nenhuma Action presente para referência temporal")
+
+    ref_act_name = ref_info["action_name"] or f"Action_{ref_dir}"
+    ref_fps = float(ref_info.get("fps") or fps)
+    ref_f_count = int(ref_info.get("frame_count") or 30)
+    ref_frame_range = (0, max(0, ref_f_count - 1))
 
     measurements: List[Dict[str, Any]] = [
+        {
+            "metric": "direction_set_id",
+            "value": set_id,
+            "unit": "id",
+            "method": "directional_collection_identifier",
+            "confidence": 1.0,
+        },
         {
             "metric": "direction_coverage_count",
             "value": coverage["coverage_count"],
@@ -495,16 +517,55 @@ def export_direction_coverage_to_agent_report(
         },
     ]
 
-    for d, info in coverage["directions"].items():
-        if info["status"] != STATUS_ABSENT and info.get("speed_mps") is not None:
+    # Registra a proveniência temporal e cinemática individual de cada Action
+    for d in DIRECTIONS_8:
+        info = coverage["directions"][d]
+        if info["status"] != STATUS_ABSENT:
+            act_n = info["action_name"]
+            fc = info.get("frame_count")
+            dur = info.get("duration_seconds")
+            speed = info.get("speed_mps")
+            inp = info.get("is_in_place", False)
+
             measurements.append({
-                "metric": f"root_speed_direction_{d}",
-                "value": info["speed_mps"],
-                "unit": "m/s",
-                "method": "root_fcurve_average_velocity",
-                "confidence": info.get("confidence", 0.9),
-                "target_role": "root",
+                "metric": f"action_metadata_{d}_name",
+                "value": act_n,
+                "unit": "string",
+                "method": "action_provenance_record",
+                "confidence": 1.0,
             })
+            if fc is not None:
+                measurements.append({
+                    "metric": f"action_metadata_{d}_frame_count",
+                    "value": fc,
+                    "unit": "frames",
+                    "method": "action_header_extraction",
+                    "confidence": 1.0,
+                })
+            if dur is not None:
+                measurements.append({
+                    "metric": f"action_metadata_{d}_duration_seconds",
+                    "value": dur,
+                    "unit": "s",
+                    "method": "action_header_extraction",
+                    "confidence": 1.0,
+                })
+            measurements.append({
+                "metric": f"action_metadata_{d}_is_in_place",
+                "value": inp,
+                "unit": "bool",
+                "method": "root_displacement_threshold_test",
+                "confidence": 1.0,
+            })
+            if speed is not None:
+                measurements.append({
+                    "metric": f"root_speed_direction_{d}",
+                    "value": speed,
+                    "unit": "m/s",
+                    "method": "root_fcurve_average_velocity",
+                    "confidence": info.get("confidence", 0.9),
+                    "target_role": "root",
+                })
 
     limitations = {
         "missing_data": [f"Direção {d} ausente no conjunto" for d, inf in coverage["directions"].items() if inf["status"] == STATUS_ABSENT],
@@ -517,11 +578,11 @@ def export_direction_coverage_to_agent_report(
         report_id=rep_id,
         target={
             "source_file": source_file,
-            "action_name": f"{set_id}_8way_set",
+            "action_name": ref_act_name,
             "action_slot": None,
             "armature_name": armature,
-            "frame_range": frame_range,
-            "fps": fps,
+            "frame_range": ref_frame_range,
+            "fps": ref_fps,
             "unit_system": "METRIC_METERS",
         },
         rig_mapping=rig_mapping,
