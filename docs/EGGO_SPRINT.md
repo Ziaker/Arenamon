@@ -1,14 +1,16 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **v6 aguardando opinião do responsável** (31/10/2026). A v6 parte da v5 com a pose do f5 feita pelo responsável, espelhada na segunda pisada. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
+Estado: **v7 aguardando opinião do responsável** (31/10/2026). A v7 faz os braços acompanharem o movimento o ciclo todo (pedido: «os braços têm que acompanhar o movimento, não só subir e descer»). A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo sprint v6.blend` (Action `Sprint 1`).
-- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v6/shot_Sprint_1/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v6/motion_lens_Sprint_1/`.
+- Arquivo: `chars/Eggo/eggo sprint v7.blend` (Action `Sprint 1`).
+- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v7/shot_Sprint_1/report.html`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v7/motion_lens_Sprint_1/`.
+- Script dos braços: `scripts/blender-vision/evidence/eggo_sprint_v7/eggo_sprint_bracos_onda.py`.
+- v6 (histórico): `chars/Eggo/eggo sprint v6.blend`.
 - A edição do responsável no f5, intacta, antes de qualquer mudança minha: `chars/Eggo/eggo sprint v5 com f5 do usuario.blend`.
 - Histórico: `eggo sprint v1.blend` (4 m), `v2` (0,8 m com tudo mudado), `v3` (26 f, LINEAR) e `v4` (40 f), evidências em `eggo_sprint_v1/` a `v4/`.
 
@@ -25,6 +27,18 @@ animação aprovada.
 - Braços: o braço do Eggo aponta para trás; ao inclinar o tronco ele levantaria, então gira para a frente o mesmo
   ângulo e balança ±12° oposto às pernas; cotovelo ~20° mais dobrado que na idle.
 - Chaves LINEAR, 15 por osso.
+
+## v7 (braços em onda contínua)
+
+- Braço = pose da v5 + a mudança do responsável no f5 (e o espelho dela na 2ª pisada) multiplicada por uma **onda**:
+  no toque os braços caem para a frente/baixo (32–36° abaixo da horizontal), no impulso varrem para trás e para cima,
+  chegam à pose dele no f5/f21 (**0,0° de diferença**, chaves dele intactas), flutuam até f7/f23 e descem num arco
+  contínuo até o próximo toque.
+- **Contrapeso do tombo:** quando o corpo tomba 5° para um lado, o braço abre até 5° para o lado oposto (zero no pico, para
+  não mexer na pose dele).
+- **Arrasto das mãos:** a mão dobra conforme a onda dos 2 frames anteriores (~12° por unidade), continuando o movimento.
+- Mãos: nenhuma reversão, pico 17 cm/frame. Motion Lens: só resta o ALTO do pé direito arrastando 11 cm no f20 (já
+  existia). Direction Lines: mãos e quadril sem retrocesso, desvio máx. 6,5 cm.
 
 ## v6 (pose do f5 do responsável nas duas pisadas)
 
