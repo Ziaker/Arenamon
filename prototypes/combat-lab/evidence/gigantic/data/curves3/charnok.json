@@ -1,0 +1,930 @@
+{
+ "blend": "C:\\Users\\zerke\\AppData\\Local\\Temp\\opencode\\gigas_work\\charnok\\Charnok_Animations.blend",
+ "armature": "Bombard_Default_LOD0",
+ "pairs": {
+  "Run_N|Run_NE": {
+   "core_rot_max": 45.0,
+   "core_loc_max": 1.03,
+   "acc_rot_max": 0.551,
+   "core_top": [
+    [
+     "b_Root",
+     45.0
+    ],
+    [
+     "b_Spine_base",
+     26.98
+    ],
+    [
+     "b_Spine04",
+     21.07
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Horn_L",
+     0.55
+    ],
+    [
+     "b_Backpack01",
+     0.38
+    ],
+    [
+     "b_ForeLeg01_L",
+     0.14
+    ]
+   ]
+  },
+  "Run_N|Run_E": {
+   "core_rot_max": 91.611,
+   "core_loc_max": 46.52,
+   "acc_rot_max": 123.249,
+   "core_top": [
+    [
+     "b_Pelvis",
+     91.61
+    ],
+    [
+     "b_Foot_R",
+     59.22
+    ],
+    [
+     "b_Elbow_L",
+     52.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     123.25
+    ],
+    [
+     "b_ForeLeg03_L",
+     104.44
+    ],
+    [
+     "b_ForeLeg02_L",
+     99.46
+    ]
+   ]
+  },
+  "Run_N|Run_SE": {
+   "core_rot_max": 105.244,
+   "core_loc_max": 42.215,
+   "acc_rot_max": 138.178,
+   "core_top": [
+    [
+     "b_Pelvis",
+     105.24
+    ],
+    [
+     "b_Foot_R",
+     90.96
+    ],
+    [
+     "b_Thigh_L",
+     87.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     138.18
+    ],
+    [
+     "b_ForeLeg01_L",
+     137.05
+    ],
+    [
+     "b_ForeLeg02_R",
+     105.88
+    ]
+   ]
+  },
+  "Run_N|Run_S": {
+   "core_rot_max": 132.253,
+   "core_loc_max": 4.418,
+   "acc_rot_max": 142.22,
+   "core_top": [
+    [
+     "b_Foot_L",
+     132.25
+    ],
+    [
+     "b_Foot_R",
+     111.5
+    ],
+    [
+     "b_Wrist_L",
+     72.3
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     142.22
+    ],
+    [
+     "b_ForeLeg01_L",
+     100.85
+    ],
+    [
+     "b_ForeLeg02_L",
+     89.15
+    ]
+   ]
+  },
+  "Run_N|Run_SW": {
+   "core_rot_max": 123.672,
+   "core_loc_max": 40.556,
+   "acc_rot_max": 135.767,
+   "core_top": [
+    [
+     "b_Pelvis",
+     123.67
+    ],
+    [
+     "b_Thigh_L",
+     107.75
+    ],
+    [
+     "b_Foot_R",
+     107.49
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     135.77
+    ],
+    [
+     "b_ForeLeg01_L",
+     119.12
+    ],
+    [
+     "b_ForeLeg01_R",
+     115.36
+    ]
+   ]
+  },
+  "Run_N|Run_W": {
+   "core_rot_max": 90.002,
+   "core_loc_max": 48.707,
+   "acc_rot_max": 167.981,
+   "core_top": [
+    [
+     "b_Pelvis",
+     90.0
+    ],
+    [
+     "b_Foot_R",
+     56.18
+    ],
+    [
+     "b_Spine_base",
+     52.31
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     167.98
+    ],
+    [
+     "b_ForeLeg01_R",
+     114.65
+    ],
+    [
+     "b_FX_Aim",
+     90.0
+    ]
+   ]
+  },
+  "Run_N|Run_NW": {
+   "core_rot_max": 45.0,
+   "core_loc_max": 0.936,
+   "acc_rot_max": 0.551,
+   "core_top": [
+    [
+     "b_Root",
+     45.0
+    ],
+    [
+     "b_Spine04",
+     30.2
+    ],
+    [
+     "b_Spine_base",
+     29.98
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Horn_L",
+     0.55
+    ],
+    [
+     "b_Backpack01",
+     0.36
+    ],
+    [
+     "b_ForeLeg01_L",
+     0.14
+    ]
+   ]
+  },
+  "Run_NE|Run_E": {
+   "core_rot_max": 91.614,
+   "core_loc_max": 46.519,
+   "acc_rot_max": 123.246,
+   "core_top": [
+    [
+     "b_Pelvis",
+     91.61
+    ],
+    [
+     "b_Foot_R",
+     59.23
+    ],
+    [
+     "b_Elbow_L",
+     52.39
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     123.25
+    ],
+    [
+     "b_ForeLeg03_L",
+     104.44
+    ],
+    [
+     "b_ForeLeg02_L",
+     99.46
+    ]
+   ]
+  },
+  "Run_NE|Run_SE": {
+   "core_rot_max": 105.246,
+   "core_loc_max": 42.214,
+   "acc_rot_max": 138.185,
+   "core_top": [
+    [
+     "b_Pelvis",
+     105.25
+    ],
+    [
+     "b_Foot_R",
+     90.96
+    ],
+    [
+     "b_Thigh_L",
+     87.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     138.18
+    ],
+    [
+     "b_ForeLeg01_L",
+     137.04
+    ],
+    [
+     "b_ForeLeg02_R",
+     105.88
+    ]
+   ]
+  },
+  "Run_NE|Run_S": {
+   "core_rot_max": 132.258,
+   "core_loc_max": 4.419,
+   "acc_rot_max": 142.227,
+   "core_top": [
+    [
+     "b_Foot_L",
+     132.26
+    ],
+    [
+     "b_Foot_R",
+     111.5
+    ],
+    [
+     "b_Wrist_L",
+     72.3
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     142.23
+    ],
+    [
+     "b_ForeLeg01_L",
+     100.84
+    ],
+    [
+     "b_ForeLeg02_L",
+     89.16
+    ]
+   ]
+  },
+  "Run_NE|Run_SW": {
+   "core_rot_max": 123.673,
+   "core_loc_max": 40.56,
+   "acc_rot_max": 135.775,
+   "core_top": [
+    [
+     "b_Pelvis",
+     123.67
+    ],
+    [
+     "b_Thigh_L",
+     107.75
+    ],
+    [
+     "b_Foot_R",
+     107.49
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     135.77
+    ],
+    [
+     "b_ForeLeg01_L",
+     119.09
+    ],
+    [
+     "b_ForeLeg01_R",
+     115.36
+    ]
+   ]
+  },
+  "Run_NE|Run_W": {
+   "core_rot_max": 90.0,
+   "core_loc_max": 48.707,
+   "acc_rot_max": 167.987,
+   "core_top": [
+    [
+     "b_Pelvis",
+     90.0
+    ],
+    [
+     "b_Foot_R",
+     56.19
+    ],
+    [
+     "b_Spine04",
+     52.55
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     167.99
+    ],
+    [
+     "b_ForeLeg01_R",
+     114.66
+    ],
+    [
+     "b_FX_Aim",
+     90.0
+    ]
+   ]
+  },
+  "Run_NE|Run_NW": {
+   "core_rot_max": 90.0,
+   "core_loc_max": 1.964,
+   "acc_rot_max": 0.736,
+   "core_top": [
+    [
+     "b_Root",
+     90.0
+    ],
+    [
+     "b_Spine_base",
+     46.52
+    ],
+    [
+     "b_Spine04",
+     43.69
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Backpack01",
+     0.74
+    ],
+    [
+     "b_Thumb02_L",
+     0.01
+    ],
+    [
+     "b_Thumb03_L",
+     0.01
+    ]
+   ]
+  },
+  "Run_E|Run_SE": {
+   "core_rot_max": 81.123,
+   "core_loc_max": 19.831,
+   "acc_rot_max": 143.341,
+   "core_top": [
+    [
+     "b_Thigh_L",
+     81.12
+    ],
+    [
+     "b_Bicep_L",
+     69.2
+    ],
+    [
+     "b_Thigh_R",
+     65.79
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     143.34
+    ],
+    [
+     "b_ForeLeg01_L",
+     125.07
+    ],
+    [
+     "b_ForeLeg02_R",
+     117.15
+    ]
+   ]
+  },
+  "Run_E|Run_S": {
+   "core_rot_max": 103.96,
+   "core_loc_max": 46.538,
+   "acc_rot_max": 129.729,
+   "core_top": [
+    [
+     "b_Foot_L",
+     103.96
+    ],
+    [
+     "b_Pelvis",
+     91.86
+    ],
+    [
+     "b_Foot_R",
+     87.28
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     129.73
+    ],
+    [
+     "b_ForeLeg03_R",
+     108.27
+    ],
+    [
+     "b_ForeLeg01_L",
+     85.28
+    ]
+   ]
+  },
+  "Run_E|Run_SW": {
+   "core_rot_max": 178.609,
+   "core_loc_max": 57.367,
+   "acc_rot_max": 143.672,
+   "core_top": [
+    [
+     "b_Pelvis",
+     178.61
+    ],
+    [
+     "b_Foot_R",
+     78.04
+    ],
+    [
+     "b_Foot_L",
+     76.24
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     143.67
+    ],
+    [
+     "b_Tail05",
+     126.26
+    ],
+    [
+     "b_ForeLeg02_L",
+     117.15
+    ]
+   ]
+  },
+  "Run_E|Run_W": {
+   "core_rot_max": 179.999,
+   "core_loc_max": 68.788,
+   "acc_rot_max": 145.032,
+   "core_top": [
+    [
+     "b_Pelvis",
+     180.0
+    ],
+    [
+     "b_Spine02",
+     63.41
+    ],
+    [
+     "b_Elbow_L",
+     60.35
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     145.03
+    ],
+    [
+     "b_ForeLeg01_R",
+     127.83
+    ],
+    [
+     "b_Tail05",
+     101.8
+    ]
+   ]
+  },
+  "Run_E|Run_NW": {
+   "core_rot_max": 91.614,
+   "core_loc_max": 46.519,
+   "acc_rot_max": 123.246,
+   "core_top": [
+    [
+     "b_Pelvis",
+     91.61
+    ],
+    [
+     "b_Foot_R",
+     59.22
+    ],
+    [
+     "b_Spine_base",
+     52.75
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     123.25
+    ],
+    [
+     "b_ForeLeg03_L",
+     104.44
+    ],
+    [
+     "b_ForeLeg02_L",
+     99.46
+    ]
+   ]
+  },
+  "Run_SE|Run_S": {
+   "core_rot_max": 103.822,
+   "core_loc_max": 43.17,
+   "acc_rot_max": 123.165,
+   "core_top": [
+    [
+     "b_Pelvis",
+     103.82
+    ],
+    [
+     "b_Foot_R",
+     89.46
+    ],
+    [
+     "b_Bicep_L",
+     81.28
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail02",
+     123.16
+    ],
+    [
+     "b_ForeLeg03_R",
+     120.03
+    ],
+    [
+     "b_ForeLeg01_R",
+     119.49
+    ]
+   ]
+  },
+  "Run_SE|Run_SW": {
+   "core_rot_max": 178.602,
+   "core_loc_max": 54.733,
+   "acc_rot_max": 125.773,
+   "core_top": [
+    [
+     "b_Pelvis",
+     178.6
+    ],
+    [
+     "b_Wrist_R",
+     81.03
+    ],
+    [
+     "b_Foot_R",
+     78.26
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_L",
+     125.77
+    ],
+    [
+     "b_ForeLeg01_R",
+     125.76
+    ],
+    [
+     "b_Tail05",
+     124.25
+    ]
+   ]
+  },
+  "Run_SE|Run_W": {
+   "core_rot_max": 179.956,
+   "core_loc_max": 69.602,
+   "acc_rot_max": 144.809,
+   "core_top": [
+    [
+     "b_Pelvis",
+     179.96
+    ],
+    [
+     "b_Thigh_L",
+     82.31
+    ],
+    [
+     "b_Wrist_R",
+     73.58
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg01_R",
+     144.81
+    ],
+    [
+     "b_Tail05",
+     141.75
+    ],
+    [
+     "b_ForeLeg03_R",
+     125.57
+    ]
+   ]
+  },
+  "Run_SE|Run_NW": {
+   "core_rot_max": 105.246,
+   "core_loc_max": 42.214,
+   "acc_rot_max": 138.185,
+   "core_top": [
+    [
+     "b_Pelvis",
+     105.25
+    ],
+    [
+     "b_Foot_R",
+     90.96
+    ],
+    [
+     "b_Thigh_L",
+     87.43
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     138.18
+    ],
+    [
+     "b_ForeLeg01_L",
+     137.04
+    ],
+    [
+     "b_ForeLeg02_R",
+     105.88
+    ]
+   ]
+  },
+  "Run_S|Run_SW": {
+   "core_rot_max": 123.8,
+   "core_loc_max": 41.519,
+   "acc_rot_max": 147.769,
+   "core_top": [
+    [
+     "b_Pelvis",
+     123.8
+    ],
+    [
+     "b_Wrist_R",
+     80.56
+    ],
+    [
+     "b_Wrist_L",
+     75.72
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     147.77
+    ],
+    [
+     "b_Tail02",
+     123.16
+    ],
+    [
+     "b_ForeLeg02_L",
+     112.8
+    ]
+   ]
+  },
+  "Run_S|Run_W": {
+   "core_rot_max": 102.262,
+   "core_loc_max": 48.411,
+   "acc_rot_max": 179.216,
+   "core_top": [
+    [
+     "b_Foot_L",
+     102.26
+    ],
+    [
+     "b_Pelvis",
+     91.44
+    ],
+    [
+     "b_Foot_R",
+     87.8
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     179.22
+    ],
+    [
+     "b_ForeLeg03_L",
+     118.27
+    ],
+    [
+     "b_ForeLeg01_R",
+     106.69
+    ]
+   ]
+  },
+  "Run_S|Run_NW": {
+   "core_rot_max": 132.258,
+   "core_loc_max": 4.544,
+   "acc_rot_max": 142.227,
+   "core_top": [
+    [
+     "b_Foot_L",
+     132.26
+    ],
+    [
+     "b_Foot_R",
+     111.5
+    ],
+    [
+     "b_Wrist_L",
+     72.3
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     142.23
+    ],
+    [
+     "b_ForeLeg01_L",
+     100.84
+    ],
+    [
+     "b_ForeLeg02_L",
+     89.16
+    ]
+   ]
+  },
+  "Run_SW|Run_W": {
+   "core_rot_max": 103.716,
+   "core_loc_max": 26.603,
+   "acc_rot_max": 129.569,
+   "core_top": [
+    [
+     "b_Wrist_R",
+     103.72
+    ],
+    [
+     "b_Foot_R",
+     80.84
+    ],
+    [
+     "b_Thigh_L",
+     73.92
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_Tail05",
+     129.57
+    ],
+    [
+     "b_ForeLeg03_R",
+     121.17
+    ],
+    [
+     "b_ForeLeg02_L",
+     117.15
+    ]
+   ]
+  },
+  "Run_SW|Run_NW": {
+   "core_rot_max": 123.673,
+   "core_loc_max": 40.56,
+   "acc_rot_max": 135.775,
+   "core_top": [
+    [
+     "b_Pelvis",
+     123.67
+    ],
+    [
+     "b_Thigh_L",
+     107.75
+    ],
+    [
+     "b_Foot_R",
+     107.49
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_L",
+     135.77
+    ],
+    [
+     "b_ForeLeg01_L",
+     119.09
+    ],
+    [
+     "b_ForeLeg01_R",
+     115.36
+    ]
+   ]
+  },
+  "Run_W|Run_NW": {
+   "core_rot_max": 90.0,
+   "core_loc_max": 48.707,
+   "acc_rot_max": 167.987,
+   "core_top": [
+    [
+     "b_Pelvis",
+     90.0
+    ],
+    [
+     "b_Spine_base",
+     69.08
+    ],
+    [
+     "b_Foot_R",
+     56.18
+    ]
+   ],
+   "acc_top": [
+    [
+     "b_ForeLeg03_R",
+     167.99
+    ],
+    [
+     "b_ForeLeg01_R",
+     114.66
+    ],
+    [
+     "b_FX_Aim",
+     90.0
+    ]
+   ]
+  }
+ }
+}
