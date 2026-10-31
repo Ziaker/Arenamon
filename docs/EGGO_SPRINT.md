@@ -1,14 +1,15 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **v7 aguardando opinião do responsável** (31/10/2026). A v7 faz os braços acompanharem o movimento o ciclo todo (pedido: «os braços têm que acompanhar o movimento, não só subir e descer»). A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
+Estado: **v8 aguardando opinião do responsável** (31/10/2026). Pedido: «só ajeita os braços pra ficarem corretamente semi-estáticos sem mover muito». A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo sprint v7.blend` (Action `Sprint 1`).
-- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v7/shot_Sprint_1/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v7/motion_lens_Sprint_1/`.
+- Arquivo: `chars/Eggo/eggo sprint v8.blend` (Action `Sprint 1`).
+- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v8/shot_Sprint_1/report.html`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v8/motion_lens_Sprint_1/`.
+- v7 (histórico, braços em onda): `chars/Eggo/eggo sprint v7.blend`.
 - Script dos braços: `scripts/blender-vision/evidence/eggo_sprint_v7/eggo_sprint_bracos_onda.py`.
 - v6 (histórico): `chars/Eggo/eggo sprint v6.blend`.
 - A edição do responsável no f5, intacta, antes de qualquer mudança minha: `chars/Eggo/eggo sprint v5 com f5 do usuario.blend`.
@@ -27,6 +28,15 @@ animação aprovada.
 - Braços: o braço do Eggo aponta para trás; ao inclinar o tronco ele levantaria, então gira para a frente o mesmo
   ângulo e balança ±12° oposto às pernas; cotovelo ~20° mais dobrado que na idle.
 - Chaves LINEAR, 15 por osso.
+
+## v8 (braços semi-estáticos)
+
+- Ombros, braços, antebraços e mãos ficam **na pose do f5 feita pelo responsável em todas as chaves**: não têm
+  animação própria, só acompanham o tronco (tombo, inclinação e pulinho). A mão não se move em relação ao peito
+  (0,0 cm); no mundo o braço varia só pelo corpo (esquerdo −3° a 6°, direito −14° a −5° em relação à horizontal).
+- Pernas, tronco, Root e o resto do f5 dele não mudaram.
+- Motion Lens: mãos a no máximo 8,4 cm/frame (a velocidade do corpo); só resta o ALTO do pé direito arrastando 11 cm no
+  f20. Direction Lines: mãos e quadril sem retrocesso, desvio máx. 5 cm.
 
 ## v7 (braços em onda contínua)
 
