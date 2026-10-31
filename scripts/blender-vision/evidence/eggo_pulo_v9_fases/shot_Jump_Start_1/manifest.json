@@ -1,0 +1,233 @@
+{
+ "blend": "C:\\Users\\zerke\\OneDrive\\Área de Trabalho\\Arenamon\\chars\\Eggo\\eggo pulo v9 fases.blend",
+ "armature": "AlienRig",
+ "meshes": [
+  "output_unwrapped"
+ ],
+ "mode_run": "shot",
+ "engine": "BLENDER_WORKBENCH",
+ "size": 480,
+ "offset": 0,
+ "frame_note": "frame_autoral = frame_timeline - offset",
+ "render_note": "Workbench headless, NAO e o viewport real do Blender. Camera, luz e grade de chao sao proprias da ferramenta.",
+ "views": {
+  "side_pX": "lado, camera em +X (lado ESQUERDO do personagem)",
+  "q3_left": "3/4 frente-esquerda"
+ },
+ "items": [
+  {
+   "file": "side_pX_solid_t001_g001.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7425,
+    "lens": 50.0,
+    "center": [
+     1.6245,
+     0.8433,
+     0.3971
+    ],
+    "location": [
+     7.852,
+     0.8433,
+     0.3971
+    ]
+   },
+   "bbox_min_z_m": -0.043,
+   "bbox_size_m": [
+    0.923,
+    0.885,
+    0.756
+   ]
+  },
+  {
+   "file": "q3_left_solid_t001_g001.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7425,
+    "lens": 50.0,
+    "center": [
+     1.6245,
+     0.8433,
+     0.3971
+    ],
+    "location": [
+     3.3826,
+     -0.9148,
+     1.452
+    ]
+   },
+   "bbox_min_z_m": -0.043,
+   "bbox_size_m": [
+    0.923,
+    0.885,
+    0.756
+   ]
+  },
+  {
+   "file": "side_pX_solid_t002_g002.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7425,
+    "lens": 50.0,
+    "center": [
+     1.6245,
+     0.8433,
+     0.3971
+    ],
+    "location": [
+     7.852,
+     0.8433,
+     0.3971
+    ]
+   },
+   "bbox_min_z_m": -0.059,
+   "bbox_size_m": [
+    0.942,
+    0.857,
+    0.894
+   ]
+  },
+  {
+   "file": "q3_left_solid_t002_g002.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7425,
+    "lens": 50.0,
+    "center": [
+     1.6245,
+     0.8433,
+     0.3971
+    ],
+    "location": [
+     3.3826,
+     -0.9148,
+     1.452
+    ]
+   },
+   "bbox_min_z_m": -0.059,
+   "bbox_size_m": [
+    0.942,
+    0.857,
+    0.894
+   ]
+  },
+  {
+   "file": "side_pX_solid_t003_g003.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7425,
+    "lens": 50.0,
+    "center": [
+     1.6245,
+     0.8433,
+     0.3971
+    ],
+    "location": [
+     7.852,
+     0.8433,
+     0.3971
+    ]
+   },
+   "bbox_min_z_m": -0.053,
+   "bbox_size_m": [
+    0.918,
+    0.693,
+    1.04
+   ]
+  },
+  {
+   "file": "q3_left_solid_t003_g003.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7425,
+    "lens": 50.0,
+    "center": [
+     1.6245,
+     0.8433,
+     0.3971
+    ],
+    "location": [
+     3.3826,
+     -0.9148,
+     1.452
+    ]
+   },
+   "bbox_min_z_m": -0.053,
+   "bbox_size_m": [
+    0.918,
+    0.693,
+    1.04
+   ]
+  }
+ ],
+ "extra": {},
+ "action": "Jump Start 1",
+ "smart_reasons": {},
+ "align": "none",
+ "scale_ref_m": 1.556,
+ "camera_policy": "alinhamento=none; escala e lente fixas para todos os frames",
+ "blend_untouched": true,
+ "blend_sha256": "5d8fde61910d67de5441d67d113c6989f7378f11c68b8b216fa26de86276c08b",
+ "proveniencia": {
+  "codigo_sha256_16": {
+   "vision.py": "71458c847f9fac6a",
+   "check_inside.py": "0993180e3af357f9",
+   "inside_blender.py": "50ad1505d16eb142",
+   "dense_inside.py": "d6177b61c174fcef",
+   "vision_common.py": "4be620e547d6faca"
+  },
+  "blend": "eggo pulo v9 fases.blend",
+  "blend_sha256_16": "5d8fde61910d67de",
+  "entradas_sha256_16": {
+   "interp_envelope.json": "e018d38c8cec3d46",
+   "corpus_envelope.json": "02a8e8ebe7f10265"
+  },
+  "quando": "2026-10-31 18:46:10"
+ },
+ "sheets": [
+  "sheet_side_pX_solid.png",
+  "sheet_q3_left_solid.png"
+ ]
+}

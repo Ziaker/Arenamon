@@ -30,6 +30,25 @@ pico de 0,60 m no f13 e pousa no f20.
 Os **braços ficam na pose de sempre** e só acompanham o corpo (pedido do responsável: nada de balanço de pulo
 humano).
 
+## Fases do jogo (31/10/2026)
+
+O `Jump 1` ganhou **marcadores** com o nome da fase (chaves intactas): `jump_start` f4, `jump_rise` f6, `jump_apex` f12,
+`jump_fall` f16, `land` f20. Cada fase também virou uma **Action própria**, copiada do `Jump 1`, **no lugar** (o Root
+não sobe; no jogo a altura é da física). Arquivo: `chars/Eggo/eggo pulo v9 fases.blend`.
+
+| Action | Estado do jogo | Trecho do Jump 1 | Frames | Tipo |
+|---|---|---|---|---|
+| `Jump Start 1` | `jump_start` | f4–6 (agacha → impulso) | 3 | uma vez |
+| `Jump Rise 1` | `jump_rise` | f7 → f9 → f7 (vai e volta) | 5 | loop |
+| `Jump Apex 1` | `jump_apex` | f12–16 (encolhido) | 5 | uma vez (segura no fim) |
+| `Jump Fall 1` | `jump_fall` | f17 → f19 → f17 (vai e volta) | 5 | loop |
+| `Land 1` | `land` | f20–30 (impacto → neutro) | 11 | uma vez |
+
+Os loops de subida e queda são um vai-e-volta curto do meio do trecho, porque o trecho inteiro não fecha em ciclo.
+Motion Lens em cada fase: as únicas reversões são o ponto de volta dos loops (f4, movimentos de 3–5 cm) e os
+antebraços no fundo do amassado do pouso (f3); pés travados no `Land 1`. Folhas e relatórios:
+`scripts/blender-vision/evidence/eggo_pulo_v9_fases/`.
+
 ## Verificação
 
 - `vision.py shot` nos 30 frames (lado e 3/4), arquivo intacto (`blend_untouched`).

@@ -1,0 +1,357 @@
+{
+ "blend": "C:\\Users\\zerke\\OneDrive\\Área de Trabalho\\Arenamon\\chars\\Eggo\\eggo pulo v9 fases.blend",
+ "armature": "AlienRig",
+ "meshes": [
+  "output_unwrapped"
+ ],
+ "mode_run": "shot",
+ "engine": "BLENDER_WORKBENCH",
+ "size": 480,
+ "offset": 0,
+ "frame_note": "frame_autoral = frame_timeline - offset",
+ "render_note": "Workbench headless, NAO e o viewport real do Blender. Camera, luz e grade de chao sao proprias da ferramenta.",
+ "views": {
+  "side_pX": "lado, camera em +X (lado ESQUERDO do personagem)",
+  "q3_left": "3/4 frente-esquerda"
+ },
+ "items": [
+  {
+   "file": "side_pX_solid_t001_g001.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     7.726,
+     0.835,
+     0.4637
+    ]
+   },
+   "bbox_min_z_m": 0.046,
+   "bbox_size_m": [
+    0.94,
+    0.798,
+    0.865
+   ]
+  },
+  {
+   "file": "q3_left_solid_t001_g001.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     3.3406,
+     -0.8805,
+     1.4931
+    ]
+   },
+   "bbox_min_z_m": 0.046,
+   "bbox_size_m": [
+    0.94,
+    0.798,
+    0.865
+   ]
+  },
+  {
+   "file": "side_pX_solid_t002_g002.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     7.726,
+     0.835,
+     0.4637
+    ]
+   },
+   "bbox_min_z_m": 0.007,
+   "bbox_size_m": [
+    0.933,
+    0.783,
+    0.905
+   ]
+  },
+  {
+   "file": "q3_left_solid_t002_g002.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     3.3406,
+     -0.8805,
+     1.4931
+    ]
+   },
+   "bbox_min_z_m": 0.007,
+   "bbox_size_m": [
+    0.933,
+    0.783,
+    0.905
+   ]
+  },
+  {
+   "file": "side_pX_solid_t003_g003.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     7.726,
+     0.835,
+     0.4637
+    ]
+   },
+   "bbox_min_z_m": -0.026,
+   "bbox_size_m": [
+    0.919,
+    0.764,
+    0.936
+   ]
+  },
+  {
+   "file": "q3_left_solid_t003_g003.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     3.3406,
+     -0.8805,
+     1.4931
+    ]
+   },
+   "bbox_min_z_m": -0.026,
+   "bbox_size_m": [
+    0.919,
+    0.764,
+    0.936
+   ]
+  },
+  {
+   "file": "side_pX_solid_t004_g004.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     7.726,
+     0.835,
+     0.4637
+    ]
+   },
+   "bbox_min_z_m": 0.007,
+   "bbox_size_m": [
+    0.933,
+    0.783,
+    0.905
+   ]
+  },
+  {
+   "file": "q3_left_solid_t004_g004.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     3.3406,
+     -0.8805,
+     1.4931
+    ]
+   },
+   "bbox_min_z_m": 0.007,
+   "bbox_size_m": [
+    0.933,
+    0.783,
+    0.905
+   ]
+  },
+  {
+   "file": "side_pX_solid_t005_g005.png",
+   "view": "side_pX",
+   "mode": "solid",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_pX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     7.726,
+     0.835,
+     0.4637
+    ]
+   },
+   "bbox_min_z_m": 0.046,
+   "bbox_size_m": [
+    0.94,
+    0.798,
+    0.865
+   ]
+  },
+  {
+   "file": "q3_left_solid_t005_g005.png",
+   "view": "q3_left",
+   "mode": "solid",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "q3_left",
+    "type": "PERSP",
+    "ortho_scale": 1.7003,
+    "lens": 50.0,
+    "center": [
+     1.6251,
+     0.835,
+     0.4637
+    ],
+    "location": [
+     3.3406,
+     -0.8805,
+     1.4931
+    ]
+   },
+   "bbox_min_z_m": 0.046,
+   "bbox_size_m": [
+    0.94,
+    0.798,
+    0.865
+   ]
+  }
+ ],
+ "extra": {},
+ "action": "Jump Fall 1",
+ "smart_reasons": {},
+ "align": "none",
+ "scale_ref_m": 1.518,
+ "camera_policy": "alinhamento=none; escala e lente fixas para todos os frames",
+ "blend_untouched": true,
+ "blend_sha256": "5d8fde61910d67de5441d67d113c6989f7378f11c68b8b216fa26de86276c08b",
+ "proveniencia": {
+  "codigo_sha256_16": {
+   "vision.py": "71458c847f9fac6a",
+   "check_inside.py": "0993180e3af357f9",
+   "inside_blender.py": "50ad1505d16eb142",
+   "dense_inside.py": "d6177b61c174fcef",
+   "vision_common.py": "4be620e547d6faca"
+  },
+  "blend": "eggo pulo v9 fases.blend",
+  "blend_sha256_16": "5d8fde61910d67de",
+  "entradas_sha256_16": {
+   "interp_envelope.json": "e018d38c8cec3d46",
+   "corpus_envelope.json": "02a8e8ebe7f10265"
+  },
+  "quando": "2026-10-31 18:46:29"
+ },
+ "sheets": [
+  "sheet_side_pX_solid.png",
+  "sheet_q3_left_solid.png"
+ ]
+}

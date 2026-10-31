@@ -1,0 +1,28 @@
+{
+ "offset": 0,
+ "size": 480,
+ "armature": "AlienRig",
+ "mode": "shot",
+ "action": "Jump Fall 1",
+ "views": [
+  "side_pX",
+  "q3_left"
+ ],
+ "modes": [
+  "solid"
+ ],
+ "align": "none",
+ "zoom": null,
+ "zoom_radii": null,
+ "bone_cam": false,
+ "onion_step": 1,
+ "frames": [
+  1,
+  2,
+  3,
+  4,
+  5
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\evidence\\eggo_pulo_v9_fases\\shot_Jump_Fall_1.tmp-20528",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\eggo pulo v9 fases.blend"
+}
