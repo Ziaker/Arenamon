@@ -5,11 +5,12 @@ Analisa a continuidade biomecânica e espacial entre o término da Action A (ori
 e o início da Action B (destino).
 
 Regras fundamentais:
-1. Medição rigorosa de descontinuidades de raiz (posição, velocidade, orientação).
+1. Medição rigorosa de descontinuidades de raiz (posição, velocidade, orientação angular real).
 2. Pés no solo sem confirmação visual ou colisor físico permanecem estritamente
    classificados como CANDIDATO de contato (foot_contact_candidate).
 3. Respeito irrestrito a frames inteiros, FPS das Actions e tempo físico real decorrido em segundos.
-4. Compatibilidade e exportação para o contrato F15 (arenamon.agent-report/1).
+4. Compatibilidade e exportação para o contrato F15 (arenamon.agent-report/1) exigindo rig mapping autêntico F03,
+   sem inventar intervalos ou estruturas postiças.
 """
 from __future__ import annotations
 
@@ -74,6 +75,7 @@ class TransitionAnalysisReport:
     armature_name: str
     frame_end_a: int
     frame_start_b: int
+    frame_end_b: Optional[int]
     fps_a: float
     fps_b: float
     time_seconds_end_a: float
@@ -96,11 +98,13 @@ def analyze_transition_continuity(
     bone_poses_b: Dict[str, Tuple[float, float, float]],
     fps_a: float = 30.0,
     fps_b: float = 30.0,
-    ground_height_threshold_m: float = 0.05,
+    ground_z_reference_m: float = 0.0,
+    ground_tolerance_m: float = 0.05,
     foot_bones: Optional[Dict[str, str]] = None,
     visual_evidence_confirmed: bool = False,
+    end_frame_b: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """Analisa a continuidade entre duas Actions consecutivas."""
+    """Analisa a continuidade biomecânica real entre duas Actions consecutivas."""
     if not action_a_name or not action_b_name:
         raise TransitionAnalysisError("Nomes de Action A e B são obrigatórios")
     if not armature_name:
@@ -116,6 +120,7 @@ def analyze_transition_continuity(
     dz = pos_b[2] - pos_a[2]
     root_delta_m = round(math.sqrt(dx * dx + dy * dy + dz * dz), 4)
 
+    # Medição real da rotação (yaw em graus)
     rot_a = float(root_pose_a.get("yaw_deg", 0.0))
     rot_b = float(root_pose_b.get("yaw_deg", 0.0))
     rot_delta_deg = round(abs(rot_b - rot_a) % 360.0, 2)
@@ -129,7 +134,6 @@ def analyze_transition_continuity(
         vel_delta = round(abs(float(vel_b) - float(vel_a)), 3)
 
     # Estimativa de janela de blend recomendada
-    # Regra biomecânica: transições com saltos > 0.1m ou descontinuidades de velocidade pedem 0.15s–0.25s de blend
     if root_delta_m < 0.05 and rot_delta_deg < 10.0:
         blend_sec = 0.10
     elif root_delta_m < 0.20 and rot_delta_deg < 30.0:
@@ -150,7 +154,7 @@ def analyze_transition_continuity(
         blend_recommendation_frames=blend_frames,
     )
 
-    # 2. Continuidade de Poses Articulares
+    # 2. Continuidade de Poses Articulares (todos os ossos comuns)
     common_bones = set(bone_poses_a.keys()).intersection(set(bone_poses_b.keys()))
     if not common_bones:
         raise TransitionAnalysisError("Nenhum osso em comum entre os conjuntos de poses de A e B")
@@ -186,14 +190,16 @@ def analyze_transition_continuity(
             f_dist = round(math.sqrt(sum((b - a) ** 2 for a, b in zip(fa, fb))), 4)
             h_slide = round(math.hypot(fb[0] - fa[0], fb[1] - fa[1]), 4)
 
-            # Avalia altura vertical (Z em convenção Blender)
-            # Sem confirmação visual, contato no solo permanece estritamente CANDIDATO
+            # Avalia altura vertical em relação ao nível de solo de referência
+            dist_ground_a = abs(fa[2] - ground_z_reference_m)
+            dist_ground_b = abs(fb[2] - ground_z_reference_m)
+
             status_a = CANDIDATE_STATUS_NOT_IN_CONTACT
-            if abs(fa[2]) <= ground_height_threshold_m:
+            if dist_ground_a <= ground_tolerance_m:
                 status_a = CANDIDATE_STATUS_CONFIRMED if visual_evidence_confirmed else CANDIDATE_STATUS_CANDIDATE
 
             status_b = CANDIDATE_STATUS_NOT_IN_CONTACT
-            if abs(fb[2]) <= ground_height_threshold_m:
+            if dist_ground_b <= ground_tolerance_m:
                 status_b = CANDIDATE_STATUS_CONFIRMED if visual_evidence_confirmed else CANDIDATE_STATUS_CANDIDATE
 
             is_sliding = (status_a in (CANDIDATE_STATUS_CANDIDATE, CANDIDATE_STATUS_CONFIRMED)) and (h_slide > 0.02)
@@ -220,8 +226,8 @@ def analyze_transition_continuity(
 
     facts = [
         f"Transição analisada: '{action_a_name}' (frame {end_frame_a}, {time_a} s) para '{action_b_name}' (frame {start_frame_b}, {time_b} s).",
-        f"Descontinuidade de posição de raiz: {root_delta_m} m; descontinuidade angular: {rot_delta_deg}°.",
-        f"Discrepância articular média em {len(common_bones)} ossos: {mean_disc} m (máximo: {max_disc} m no osso '{max_bone}').",
+        f"Descontinuidade medida de posição de raiz: {root_delta_m} m; descontinuidade angular de orientação: {rot_delta_deg}°.",
+        f"Discrepância articular média em {len(common_bones)} ossos reais: {mean_disc} m (máximo: {max_disc} m no osso '{max_bone}').",
     ]
     observations = []
     inferences = []
@@ -230,7 +236,7 @@ def analyze_transition_continuity(
     for f in feet_entries:
         if f["is_sliding_candidate"]:
             observations.append(
-                f"Papel '{f['role']}' ({f['bone_name']}): candidato de contato com deslocamento horizontal de {f['horizontal_sliding_m']} m na emenda."
+                f"Papel '{f['role']}' ({f['bone_name']}): candidato de contato com salto horizontal de {f['horizontal_sliding_m']} m na emenda."
             )
         else:
             observations.append(
@@ -256,6 +262,7 @@ def analyze_transition_continuity(
         armature_name=armature_name,
         frame_end_a=end_frame_a,
         frame_start_b=start_frame_b,
+        frame_end_b=end_frame_b,
         fps_a=fps_a,
         fps_b=fps_b,
         time_seconds_end_a=time_a,
@@ -322,27 +329,47 @@ def validate_transition_analysis(data: Dict[str, Any]) -> Tuple[bool, List[str]]
 def export_transition_to_agent_report(
     analysis: Dict[str, Any],
     source_file: str,
-    rig_mapping: Optional[Dict[str, Any]] = None,
+    rig_mapping: Dict[str, Any],
     report_id: Optional[str] = None,
     visual_evidence: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Converte o documento de análise de transição em um relatório F15 (arenamon.agent-report/1)."""
+    """Converte o documento de análise de transição em um relatório F15 (arenamon.agent-report/1).
+    
+    Exige obrigatoriamente um rig_mapping autêntico do contrato arenamon.rig-map/1.
+    O target de F15 referencia a Action de destino B com metadados temporais reais.
+    """
     from agent_report import build_agent_report
-    from rig_map import build_rig_map
+    from rig_map import validate_rig_map
+
+    val_map, errs = validate_rig_map(rig_mapping)
+    if not val_map:
+        raise TransitionAnalysisError(f"rig_mapping F03 inválido: {errs}")
 
     trans_id = analysis["transition_id"]
     rep_id = report_id or f"REP-F02-TRANS-{trans_id.upper()}"
     rc = analysis["root_continuity"]
     pc = analysis["pose_continuity"]
-    armature = analysis["armature_name"]
 
-    active_rig_map = rig_mapping or build_rig_map(
-        bone_names=["Root", "Hips", "LeftFoot", "RightFoot"],
-        rig_id=f"rig_{armature.lower()}",
-        armature_name=armature
-    )
+    # Target no padrão F15 representa a Action de destino B com intervalo coerente
+    start_b = analysis["frame_start_b"]
+    end_b = analysis.get("frame_end_b") or (start_b + rc["blend_recommendation_frames"])
+    target_frame_range = (start_b, end_b)
 
     measurements: List[Dict[str, Any]] = [
+        {
+            "metric": "transition_source_cut_frame",
+            "value": analysis["frame_end_a"],
+            "unit": "frame",
+            "method": "transition_boundary_frame_index",
+            "confidence": 1.0,
+        },
+        {
+            "metric": "transition_target_cut_frame",
+            "value": analysis["frame_start_b"],
+            "unit": "frame",
+            "method": "transition_boundary_frame_index",
+            "confidence": 1.0,
+        },
         {
             "metric": "root_spatial_discontinuity",
             "value": rc["spatial_delta_m"],
@@ -397,14 +424,14 @@ def export_transition_to_agent_report(
         report_id=rep_id,
         target={
             "source_file": source_file,
-            "action_name": f"{analysis['action_a']}->{analysis['action_b']}",
+            "action_name": analysis["action_b"],
             "action_slot": None,
             "armature_name": analysis["armature_name"],
-            "frame_range": [analysis["frame_end_a"], analysis["frame_start_b"]],
+            "frame_range": target_frame_range,
             "fps": analysis["fps_b"],
             "unit_system": "METRIC_METERS",
         },
-        rig_mapping=active_rig_map,
+        rig_mapping=rig_mapping,
         measurements=measurements,
         visual_evidence=visual_evidence or [],
         findings=analysis["epistemic_findings"],

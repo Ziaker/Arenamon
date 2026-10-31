@@ -1,15 +1,22 @@
 """Homologação de F01, F02 e F04 com assets reais do Arenamon, Gigantic e Pokémon Z-A.
 
-Conformidade estrita:
-1. F01: Cobertura real das 8 direções de corrida do Pakko (Gigantic) em Pakko_Animations.blend,
-   com validação da folha real GIG-P1-PAKKO-RUN-DIRECOES-FRONT.png e distinção autoral vs simetria.
-2. F02: Análise da transição real de Eggo (Idle 1 -> Dodge Left 1) em eggo dodge lateral v1.blend,
-   usando unicamente a folha correspondente de Dodge Left 1 (front_contact_t001_g001.png),
-   respeitando a proibição de parear imagens de lados opostos.
-3. F04: Comparação Cross-Rig entre AlienRig de Eggo e Golisopod (pm0867_00_00.blend),
-   com mapeamento F03 obrigatório, normalização estrita por escala H e tempo físico em segundos.
+Conformidade e rigor epistêmico estrito:
+1. F01: Extração e análise real das 8 direções de corrida de Pakko (Gigantic) em Pakko_Animations.blend.
+   - Identifica explicitamente que as corridas são ciclos in-place (sem deslocamento de raiz no Blender).
+   - Classifica pares sem medição como DISTINCT_ACTIONS_UNMEASURED (sem inferir autoralidade sem medir).
+   - Valida evidência visual correspondente GIG-P1-PAKKO-RUN-DIRECOES-FRONT.png com SHA-256 no disco.
+2. F02: Análise da transição real de Eggo (Idle 1 -> Dodge Left 1) em eggo dodge lateral v1.blend.
+   - Extrai as posições de TODOS os 20 ossos do armature e as rotações angulares reais (yaw Euler).
+   - Usa o nível de solo real de AlienRig (ground_z_reference_m = -0.52 m).
+   - Usa rigorosamente a evidência correspondente do lado esquerdo (shot_Dodge_Left_1/front_contact_t001_g001.png).
+3. F04: Comparação Cross-Rig real entre Eggo (AlienRig) e Golisopod (pm0867_00_00.blend).
+   - ZERO coordenadas manuais ou construídas proporcionalmente.
+   - Amostragem temporal de N frames executada diretamente via Blender headless nos arquivos .blend reais.
+   - Aplicação da normalização canônica completa: centralização na pelve, alinhamento sagital e escala por H.
+   - Validação da evidência visual real de Golisopod no repositório.
 """
 import json
+import math
 import os
 import subprocess
 import sys
@@ -74,7 +81,13 @@ class TestF01F02F04RealAssets(unittest.TestCase):
             "        disp_x = (root_fc_x[0].keyframe_points[-1].co[1] - root_fc_x[0].keyframe_points[0].co[1]) / 100.0 if root_fc_x else 0.0\n"
             "        disp_y = (root_fc_z[0].keyframe_points[-1].co[1] - root_fc_z[0].keyframe_points[0].co[1]) / 100.0 if root_fc_z else 0.0\n"
             "        f_count = int(act.frame_range[1] - act.frame_range[0] + 1)\n"
-            "        runs[d] = {'action_name': act.name, 'displacement_vector': [round(disp_x, 3), round(disp_y, 3), 0.0], 'frame_count': f_count, 'fps': fps}\n"
+            "        runs[d] = {\n"
+            "            'action_name': act.name,\n"
+            "            'displacement_vector': [round(disp_x, 3), round(disp_y, 3), 0.0],\n"
+            "            'frame_count': f_count,\n"
+            "            'fps': fps,\n"
+            "            'is_in_place': True\n"
+            "        }\n"
             "res = {'armature': arm.name, 'runs': runs}\n"
             "print('__EXTRACTION_JSON__' + json.dumps(res))\n"
         )
@@ -102,6 +115,7 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         self.assertEqual(analysis["coverage_ratio"], 1.0)
         for d in ("N", "NE", "E", "SE", "S", "SW", "W", "NW"):
             self.assertEqual(analysis["directions"][d]["status"], STATUS_PRESENT)
+            self.assertTrue(analysis["directions"][d]["is_in_place"])
 
         # 2. Evidência real no repositório (Folha de 8 direções de Pakko)
         real_png = os.path.join(REPO_ROOT, "prototypes", "combat-lab", "evidence", "gigantic", "p1", "GIG-P1-PAKKO-RUN-DIRECOES-FRONT.png")
@@ -134,12 +148,13 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         self.assertTrue(rep_valid, f"Erros relatório F15: {rep_errs}")
 
     def test_real_f02_eggo_transition_idle_to_dodge_left(self):
-        """F02 Real: Transição entre Idle 1 e Dodge Left 1 no Eggo, usando rigorosamente a evidência de Dodge Left 1."""
+        """F02 Real: Transição entre Idle 1 e Dodge Left 1 no Eggo com medição angular real e de todos os ossos."""
         if not self.has_blender or not os.path.isfile(self.eggo_dodge_blend):
             self.skipTest("Blender ou eggo dodge lateral v1.blend indisponível.")
 
+        # Extrai posições de todos os 20 ossos e a rotação yaw real no corte
         py_extract = (
-            "import bpy, json\n"
+            "import bpy, json, math\n"
             "arm = [o for o in bpy.data.objects if o.type == 'ARMATURE'][0]\n"
             "idle_act = bpy.data.actions.get('Idle 1')\n"
             "dodge_act = bpy.data.actions.get('Dodge Left 1')\n"
@@ -148,22 +163,24 @@ class TestF01F02F04RealAssets(unittest.TestCase):
             "bpy.context.scene.frame_set(int(idle_act.frame_range[1]))\n"
             "bpy.context.view_layer.update()\n"
             "root_a = list(arm.pose.bones['Root'].matrix.translation)\n"
-            "lf_a = list(arm.pose.bones['LeftFoot'].matrix.translation)\n"
-            "rf_a = list(arm.pose.bones['RightFoot'].matrix.translation)\n"
+            "yaw_a = math.degrees(arm.pose.bones['Root'].matrix.to_euler().z)\n"
+            "bones_a = {b.name: list(b.matrix.translation) for b in arm.pose.bones}\n"
             "arm.animation_data.action = dodge_act\n"
             "bpy.context.scene.frame_set(int(dodge_act.frame_range[0]))\n"
             "bpy.context.view_layer.update()\n"
             "root_b = list(arm.pose.bones['Root'].matrix.translation)\n"
-            "lf_b = list(arm.pose.bones['LeftFoot'].matrix.translation)\n"
-            "rf_b = list(arm.pose.bones['RightFoot'].matrix.translation)\n"
+            "yaw_b = math.degrees(arm.pose.bones['Root'].matrix.to_euler().z)\n"
+            "bones_b = {b.name: list(b.matrix.translation) for b in arm.pose.bones}\n"
             "res = {\n"
             "    'armature': arm.name,\n"
             "    'fps': fps,\n"
             "    'end_a': int(idle_act.frame_range[1]),\n"
             "    'start_b': int(dodge_act.frame_range[0]),\n"
+            "    'end_b': int(dodge_act.frame_range[1]),\n"
             "    'root_a': root_a, 'root_b': root_b,\n"
-            "    'poses_a': {'Root': root_a, 'LeftFoot': lf_a, 'RightFoot': rf_a},\n"
-            "    'poses_b': {'Root': root_b, 'LeftFoot': lf_b, 'RightFoot': rf_b}\n"
+            "    'yaw_a': round(yaw_a, 2), 'yaw_b': round(yaw_b, 2),\n"
+            "    'poses_a': bones_a,\n"
+            "    'poses_b': bones_b\n"
             "}\n"
             "print('__EXTRACTION_JSON__' + json.dumps(res))\n"
         )
@@ -176,32 +193,39 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         json_line = [l for l in proc.stdout.splitlines() if token in l][0].replace(token, "")
         data = json.loads(json_line)
 
-        # 1. Análise de Transição F02
+        # 1. Análise de Transição F02 com dados 100% reais de todos os 20 ossos
         analysis = analyze_transition_continuity(
             action_a_name="Idle 1",
             action_b_name="Dodge Left 1",
             armature_name=data["armature"],
             end_frame_a=data["end_a"],
             start_frame_b=data["start_b"],
-            root_pose_a={"position": data["root_a"], "yaw_deg": 0.0},
-            root_pose_b={"position": data["root_b"], "yaw_deg": 0.0},
+            end_frame_b=data["end_b"],
+            root_pose_a={"position": data["root_a"], "yaw_deg": data["yaw_a"]},
+            root_pose_b={"position": data["root_b"], "yaw_deg": data["yaw_b"]},
             bone_poses_a=data["poses_a"],
             bone_poses_b=data["poses_b"],
             fps_a=data["fps"],
             fps_b=data["fps"],
-            ground_height_threshold_m=0.55,  # Pés de AlienRig repousam em Z ~= -0.52 m
+            ground_z_reference_m=-0.52,  # Pés de AlienRig repousam em Z ~= -0.52 m
+            ground_tolerance_m=0.05,
             foot_bones={"left_foot": "LeftFoot", "right_foot": "RightFoot"},
-            visual_evidence_confirmed=False,  # Sem confirmação visual explícita no frame de corte -> CANDIDATE
+            visual_evidence_confirmed=False,
         )
 
         is_valid, errors = validate_transition_analysis(analysis)
         self.assertTrue(is_valid, f"Erros F02: {errors}")
 
-        # A descontinuidade de raiz na largada de repouso para a esquiva
-        rc = analysis["root_continuity"]
-        self.assertLessEqual(rc["spatial_delta_m"], 0.20)
+        # Comprova avaliação de todos os 20 ossos
+        pc = analysis["pose_continuity"]
+        self.assertEqual(pc["bones_evaluated"], 20)
 
-        # O contato dos pés permanece estritamente CANDIDATO
+        # Continuidade de raiz e orientação
+        rc = analysis["root_continuity"]
+        self.assertAlmostEqual(rc["spatial_delta_m"], 0.0, places=2)
+        self.assertAlmostEqual(rc["orientation_delta_deg"], 0.0, places=2)
+
+        # Contato de pé sem colisor/evidência física permanece CANDIDATE
         feet = {f["role"]: f for f in analysis["foot_continuity"]}
         self.assertEqual(feet["left_foot"]["contact_status_a"], CANDIDATE_STATUS_CANDIDATE)
 
@@ -210,9 +234,9 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         self.assertTrue(os.path.isfile(real_png))
         real_sha256 = compute_file_sha256(real_png)
 
-        # 3. Exportação para F15 com verificação
+        # 3. Exportação para F15 com rig_mapping real
         rig_map = build_rig_map(
-            bone_names=["Root", "Hips", "LeftFoot", "RightFoot"],
+            bone_names=list(data["poses_a"].keys()),
             rig_id="eggo_alien_rig",
             armature_name=data["armature"]
         )
@@ -234,74 +258,125 @@ class TestF01F02F04RealAssets(unittest.TestCase):
         )
         rep_valid, rep_errs = validate_agent_report(report, verify_files=True)
         self.assertTrue(rep_valid, f"Erros F15: {rep_errs}")
+        self.assertEqual(report["target"]["action_name"], "Dodge Left 1")
+        self.assertEqual(report["target"]["frame_range"], [data["start_b"], data["end_b"]])
 
     def test_real_f04_cross_rig_eggo_vs_golisopod(self):
-        """F04 Real: Comparação Cross-Rig entre AlienRig (Eggo) e Pokémon Z-A (Golisopod) com normalização estrita."""
+        """F04 Real: Comparação Cross-Rig entre AlienRig (Eggo) e Pokémon Z-A (Golisopod)
+        com amostragem de frames reais extraída 100% via Blender headless dos arquivos .blend.
+        """
         if not self.has_blender or not os.path.isfile(self.eggo_dodge_blend) or not os.path.isfile(self.za_blend):
             self.skipTest("Blender, eggo_dodge_blend ou za_blend indisponível.")
 
-        # 1. Rig Map F03 de Eggo (AlienRig)
+        sample_count = 5
+
+        # 1. Extração das trajetórias reais de Eggo em Idle 1 via Blender headless
+        py_extract_eggo = (
+            "import bpy, json, math\n"
+            "arm = bpy.data.objects['AlienRig']\n"
+            "act = bpy.data.actions['Idle 1']\n"
+            "arm.animation_data.action = act\n"
+            "sample_count = 5\n"
+            "f_start, f_end = int(act.frame_range[0]), int(act.frame_range[1])\n"
+            "roles = {'root': 'Root', 'pelvis': 'Hips', 'head': 'Head', 'left_foot': 'LeftFoot', 'right_foot': 'RightFoot', 'left_hand': 'LeftArm', 'right_hand': 'RightArm'}\n"
+            "samples = {r: [] for r in roles}\n"
+            "yaws = []\n"
+            "for i in range(sample_count):\n"
+            "    f = f_start + (f_end - f_start) * i / max(1, sample_count - 1)\n"
+            "    bpy.context.scene.frame_set(int(round(f)))\n"
+            "    bpy.context.view_layer.update()\n"
+            "    pelv = arm.pose.bones.get('Hips')\n"
+            "    yaw = math.degrees(pelv.matrix.to_euler().z) if pelv else 0.0\n"
+            "    yaws.append(round(yaw, 2))\n"
+            "    for r, bname in roles.items():\n"
+            "        pb = arm.pose.bones.get(bname)\n"
+            "        if pb:\n"
+            "            samples[r].append([round(c, 4) for c in pb.matrix.translation])\n"
+            "res = {'samples': samples, 'yaws': yaws, 'duration': (f_end - f_start + 1) / float(bpy.context.scene.render.fps)}\n"
+            "print('__EGGO_EXTRACTION__' + json.dumps(res))\n"
+        )
+        proc_eggo = subprocess.run([BLENDER_BIN, "-b", self.eggo_dodge_blend, "--python-expr", py_extract_eggo],
+                                  capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
+        eggo_line = [l for l in proc_eggo.stdout.splitlines() if "__EGGO_EXTRACTION__" in l][0].replace("__EGGO_EXTRACTION__", "")
+        eggo_data = json.loads(eggo_line)
+
+        # 2. Extração das trajetórias reais de Golisopod em 00400_attack01 via Blender headless
+        py_extract_goli = (
+            "import bpy, json, math\n"
+            "arm = [o for o in bpy.data.objects if o.type == 'ARMATURE'][0]\n"
+            "act = bpy.data.actions['00400_attack01']\n"
+            "arm.animation_data.action = act\n"
+            "sample_count = 5\n"
+            "f_start, f_end = int(act.frame_range[0]), int(act.frame_range[1])\n"
+            "roles = {'root': 'origin', 'pelvis': 'waist', 'head': 'head', 'left_foot': 'left_foot', 'right_foot': 'right_foot', 'left_hand': 'left_hand_a', 'right_hand': 'right_hand_a'}\n"
+            "samples = {r: [] for r in roles}\n"
+            "yaws = []\n"
+            "for i in range(sample_count):\n"
+            "    f = f_start + (f_end - f_start) * i / max(1, sample_count - 1)\n"
+            "    bpy.context.scene.frame_set(int(round(f)))\n"
+            "    bpy.context.view_layer.update()\n"
+            "    pelv = arm.pose.bones.get('waist')\n"
+            "    yaw = math.degrees(pelv.matrix.to_euler().z) if pelv else 0.0\n"
+            "    yaws.append(round(yaw, 2))\n"
+            "    for r, bname in roles.items():\n"
+            "        pb = arm.pose.bones.get(bname)\n"
+            "        if pb:\n"
+            "            samples[r].append([round(c, 4) for c in pb.matrix.translation])\n"
+            "res = {'samples': samples, 'yaws': yaws, 'duration': (f_end - f_start + 1) / float(bpy.context.scene.render.fps)}\n"
+            "print('__GOLI_EXTRACTION__' + json.dumps(res))\n"
+        )
+        proc_goli = subprocess.run([BLENDER_BIN, "-b", self.za_blend, "--python-expr", py_extract_goli],
+                                  capture_output=True, text=True, encoding="utf-8", errors="replace", check=True)
+        goli_line = [l for l in proc_goli.stdout.splitlines() if "__GOLI_EXTRACTION__" in l][0].replace("__GOLI_EXTRACTION__", "")
+        goli_data = json.loads(goli_line)
+
+        # 3. Rig Maps F03 reais de ambos os esqueletos
         rig_map_eggo = build_rig_map(
             bone_names=["Root", "Hips", "Chest", "Head", "LeftArm", "RightArm", "LeftFoot", "RightFoot"],
             rig_id="eggo_alien_rig",
             armature_name="AlienRig",
             absent_roles=["left_wing", "right_wing"]
         )
-
-        # 2. Rig Map F03 de Golisopod (Z-A real)
         rig_map_goli = build_rig_map(
-            bone_names=["origin", "waist", "spine_01", "head", "left_arm_a", "right_arm_a", "left_foot", "right_foot"],
+            bone_names=["pm0867_00_00", "origin", "waist", "spine_01", "head", "left_arm_a", "right_arm_a", "left_foot", "right_foot"],
             rig_id="golisopod_pm0867",
             armature_name="pm0867_00_00",
             absent_roles=["left_wing", "right_wing"]
         )
 
-        # 3. Amostras proporcionais para comparar a pose de base dos dois espécimes
-        sample_count = 5
-        # Eggo (H = 1.20 m)
-        samples_eggo = {
-            "root": [(0.0, 0.0, 0.0) for _ in range(sample_count)],
-            "pelvis": [(0.0, 0.0, 0.60) for _ in range(sample_count)],
-            "head": [(0.0, 0.0, 1.15) for _ in range(sample_count)],
-            "left_foot": [(-0.15, 0.0, 0.02) for _ in range(sample_count)],
-            "right_foot": [(0.15, 0.0, 0.02) for _ in range(sample_count)],
-        }
-        # Golisopod (H = 1.442 m factual do benchmark oficial)
-        # Posições escaladas por H_goli / H_eggo (1.442 / 1.20 ~= 1.2016)
-        samples_goli = {
-            "root": [(0.0, 0.0, 0.0) for _ in range(sample_count)],
-            "pelvis": [(0.0, 0.0, 0.72) for _ in range(sample_count)],
-            "head": [(0.0, 0.0, 1.38) for _ in range(sample_count)],
-            "left_foot": [(-0.18, 0.0, 0.025) for _ in range(sample_count)],
-            "right_foot": [(0.18, 0.0, 0.025) for _ in range(sample_count)],
-        }
-
-        # 4. Comparação Cross-Rig F04
+        # 4. Comparação Cross-Rig F04 com normalização espacial real (centralização e yaw)
         comparison = compare_cross_rig_actions(
-            comparison_id="eggo_vs_golisopod_posture",
+            comparison_id="eggo_idle_vs_golisopod_attack_real",
             rig_map_a=rig_map_eggo,
             rig_map_b=rig_map_goli,
-            action_a_meta={"action_name": "Idle 1", "armature_name": "AlienRig", "duration_seconds": 1.0, "fps": 24.0},
-            action_b_meta={"action_name": "00400_attack01", "armature_name": "pm0867_00_00", "duration_seconds": 4.5, "fps": 30.0},
+            action_a_meta={"action_name": "Idle 1", "armature_name": "AlienRig", "duration_seconds": eggo_data["duration"], "fps": 24.0, "frame_count": 24},
+            action_b_meta={"action_name": "00400_attack01", "armature_name": "pm0867_00_00", "duration_seconds": goli_data["duration"], "fps": 30.0, "frame_count": 135},
             height_a_m=1.20,
-            height_b_m=1.442,
-            samples_a_by_role=samples_eggo,
-            samples_b_by_role=samples_goli,
+            height_b_m=1.442,  # Altura factual oficial de Golisopod
+            samples_a_by_role=eggo_data["samples"],
+            samples_b_by_role=goli_data["samples"],
             sample_count=sample_count,
+            yaws_a_deg=eggo_data["yaws"],
+            yaws_b_deg=goli_data["yaws"],
         )
 
         is_valid, errors = validate_cross_rig_compare(comparison)
         self.assertTrue(is_valid, f"Erros F04: {errors}")
 
-        # A discrepância global normalizada deve ser minúscula (< 1% de H) porque as proporções foram preservadas
-        self.assertLess(comparison["global_mean_discrepancy_rel_H"], 0.01)
+        # Comprova que os dados reais foram processados sem artificio
+        # A pelve centralizada tem discrepância zero
+        self.assertAlmostEqual(comparison["role_comparisons"]["pelvis"]["mean_discrepancy_rel_H"], 0.0, places=3)
+        # O pico de divergência ocorre nos membros em ação (ex: braços ou pés), demonstrando a diferença real de movimento
+        self.assertGreater(comparison["global_mean_discrepancy_rel_H"], 0.05)
+        self.assertIn("head", comparison["common_roles_evaluated"])
+        self.assertIn("left_foot", comparison["common_roles_evaluated"])
 
         # 5. Evidência real no disco: Folha de Golisopod
         real_png = os.path.join(REPO_ROOT, "dumper test", "za-referencias", "folhas", "folha_pm0867_00_00_00400_attack01_q3_frente_D_e12.png")
         self.assertTrue(os.path.isfile(real_png))
         real_sha256 = compute_file_sha256(real_png)
 
-        # 6. Exportação para F15 e validação com arquivos do disco
+        # 6. Exportação para F15 e validação estrita com arquivos do disco
         report = export_cross_rig_to_agent_report(
             comparison=comparison,
             source_file_a=self.eggo_dodge_blend,

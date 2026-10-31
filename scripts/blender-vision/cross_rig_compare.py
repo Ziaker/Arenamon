@@ -7,14 +7,18 @@ AlienRig vs Pokémon Z-A, Rigify vs Mixamo) sem contaminação por escala ou esp
 Regras fundamentais:
 1. Utilização mandatória do mapeamento F03 (arenamon.rig-map/1):
    Somente papéis canônicos mapeados em ambos os esqueletos são elegíveis para comparação.
-2. Normalização estrita de escala corporal (H):
+2. Normalização de Origem Anatômica (Centralização na Pelve):
+   Todas as coordenadas articulares são expressas relativamente ao centro de massa
+   anatômico (pelve), garantindo que offsets de mundo sejam rigorosamente anulados.
+3. Normalização de Orientação Sagital:
+   Alinhamento da orientação frontal do torso para o eixo canônico (+Y no Blender),
+   neutralizando rotações arbitrárias de mundo.
+4. Normalização de Escala Corporal (H):
    Discrepâncias expressas em porcentagem da altura corporal (%H) e metros normalizados.
-3. Normalização de espaço local e orientação:
-   Posições calculadas relativamente ao centro de massa anatômico (pelve) com rotação sagital alinhada.
-4. Normalização temporal em segundos físicos:
+5. Normalização Temporal em Segundos Físicos:
    Amostragem em tempo normalizado t in [0, 1] com base nas durações físicas reais (frame / FPS).
-5. Proibição categórica: NUNCA comparar coordenadas brutas de esqueletos incompatíveis.
-6. Neutralidade avaliativa: mede divergência geométrica sem julgar qualidade artística.
+6. Proibição categórica: NUNCA comparar coordenadas brutas de esqueletos incompatíveis.
+7. Neutralidade avaliativa: mede divergência geométrica sem emitir juízo artístico.
 """
 from __future__ import annotations
 
@@ -62,6 +66,35 @@ class CrossRigCompareReport:
     epistemic_findings: Dict[str, List[str]]
 
 
+def _canonicalize_point(
+    raw_pt: Tuple[float, float, float],
+    pelvis_pt: Tuple[float, float, float],
+    yaw_deg: float,
+    height_m: float,
+) -> Tuple[float, float, float]:
+    """Aplica a normalização geométrica canônica completa:
+    
+    1. Subtração do centro de massa (pelve) -> origem anatômica em (0, 0, 0).
+    2. Rotação inversa de yaw -> alinha vetor frontal para +Y.
+    3. Divisão escalar por H -> invariância à escala corporal.
+    """
+    # 1. Translação relativa à pelve
+    dx = raw_pt[0] - pelvis_pt[0]
+    dy = raw_pt[1] - pelvis_pt[1]
+    dz = raw_pt[2] - pelvis_pt[2]
+
+    # 2. Rotação inversa em torno do eixo vertical Z
+    yaw_rad = math.radians(yaw_deg)
+    cos_y = math.cos(-yaw_rad)
+    sin_y = math.sin(-yaw_rad)
+    x_rot = dx * cos_y - dy * sin_y
+    y_rot = dx * sin_y + dy * cos_y
+    z_rot = dz
+
+    # 3. Normalização de escala por H
+    return (x_rot / height_m, y_rot / height_m, z_rot / height_m)
+
+
 def compare_cross_rig_actions(
     comparison_id: str,
     rig_map_a: Dict[str, Any],
@@ -73,6 +106,8 @@ def compare_cross_rig_actions(
     samples_a_by_role: Dict[str, Sequence[Tuple[float, float, float]]],
     samples_b_by_role: Dict[str, Sequence[Tuple[float, float, float]]],
     sample_count: int = 21,
+    yaws_a_deg: Optional[Sequence[float]] = None,
+    yaws_b_deg: Optional[Sequence[float]] = None,
 ) -> Dict[str, Any]:
     """Compara duas Actions em rigs diferentes aplicando normalização estrita de escala, espaço e tempo."""
     if not comparison_id or not isinstance(comparison_id, str):
@@ -109,7 +144,21 @@ def compare_cross_rig_actions(
     act_a_name = action_a_meta.get("action_name", "Action_A")
     act_b_name = action_b_meta.get("action_name", "Action_B")
 
-    # 4. Avaliação normalizada de cada papel canônico comum
+    # Identifica pontos de referência de centro anatômico (pelve ou root como fallback)
+    ref_role = "pelvis" if "pelvis" in common_roles else "root"
+    if ref_role not in samples_a_by_role or ref_role not in samples_b_by_role:
+        ref_role = "root" if "root" in samples_a_by_role and "root" in samples_b_by_role else None
+
+    # Validação do tamanho das séries temporais
+    for r in common_roles:
+        if r in samples_a_by_role and r in samples_b_by_role:
+            if len(samples_a_by_role[r]) < sample_count or len(samples_b_by_role[r]) < sample_count:
+                raise CrossRigCompareError(
+                    f"Amostras insuficientes para o papel '{r}': esperadas {sample_count}, "
+                    f"recebidas A={len(samples_a_by_role[r])}, B={len(samples_b_by_role[r])}"
+                )
+
+    # 4. Avaliação normalizada com centralização e alinhamento sagital
     role_results: Dict[str, Dict[str, Any]] = {}
     all_role_means: List[float] = []
     overall_peak_role = ""
@@ -117,32 +166,32 @@ def compare_cross_rig_actions(
 
     for role in common_roles:
         if role not in samples_a_by_role or role not in samples_b_by_role:
-            # Papel mapeado em F03 mas sem amostras fornecidas
             excluded_roles.append(role)
             continue
 
         pts_a = samples_a_by_role[role]
         pts_b = samples_b_by_role[role]
 
-        if len(pts_a) < sample_count or len(pts_b) < sample_count:
-            raise CrossRigCompareError(
-                f"Número insuficiente de amostras para o papel '{role}': esperadas {sample_count}, "
-                f"recebidas A={len(pts_a)}, B={len(pts_b)}"
-            )
-
-        # Distâncias normalizadas por H em cada ponto temporal t in [0, 1]
         distances_rel_H: List[float] = []
         for i in range(sample_count):
-            pa = pts_a[i]
-            pb = pts_b[i]
-            # Normalização de escala individual
-            norm_xa, norm_ya, norm_za = pa[0] / height_a_m, pa[1] / height_a_m, pa[2] / height_a_m
-            norm_xb, norm_yb, norm_zb = pb[0] / height_b_m, pb[1] / height_b_m, pb[2] / height_b_m
+            raw_a = pts_a[i]
+            raw_b = pts_b[i]
+
+            # Centro anatômico da amostra i
+            pelv_a = samples_a_by_role[ref_role][i] if ref_role else (0.0, 0.0, 0.0)
+            pelv_b = samples_b_by_role[ref_role][i] if ref_role else (0.0, 0.0, 0.0)
+
+            yaw_a = yaws_a_deg[i] if yaws_a_deg and i < len(yaws_a_deg) else 0.0
+            yaw_b = yaws_b_deg[i] if yaws_b_deg and i < len(yaws_b_deg) else 0.0
+
+            # Coordenadas canônicas normalizadas
+            norm_a = _canonicalize_point(raw_a, pelv_a, yaw_a, height_a_m)
+            norm_b = _canonicalize_point(raw_b, pelv_b, yaw_b, height_b_m)
 
             d_norm = math.sqrt(
-                (norm_xb - norm_xa) ** 2 +
-                (norm_yb - norm_ya) ** 2 +
-                (norm_zb - norm_za) ** 2
+                (norm_b[0] - norm_a[0]) ** 2 +
+                (norm_b[1] - norm_a[1]) ** 2 +
+                (norm_b[2] - norm_a[2]) ** 2
             )
             distances_rel_H.append(d_norm)
 
@@ -183,7 +232,8 @@ def compare_cross_rig_actions(
     facts = [
         f"Comparação Cross-Rig '{comparison_id}': {act_a_name} (H={height_a_m} m, {dur_a} s) vs {act_b_name} (H={height_b_m} m, {dur_b} s).",
         f"Mapeamento anatômico F03 identificou {len(active_roles)} papéis canônicos elegíveis avaliados.",
-        f"Discrepância global média normalizada por escala corporal: {global_mean * 100:.2f}% de H.",
+        f"Posições normalizadas: centralização na pelve, alinhamento frontal sagital e escala adimensional dividida por H.",
+        f"Discrepância global média normalizada: {global_mean * 100:.2f}% de H.",
         f"Pico de divergência ocorreu no papel '{overall_peak_role}' com {overall_peak_val * 100:.2f}% de H.",
     ]
     observations = []
@@ -280,8 +330,16 @@ def export_cross_rig_to_agent_report(
     report_id: Optional[str] = None,
     visual_evidence: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Converte o documento de comparação cross-rig em um relatório F15 (arenamon.agent-report/1)."""
+    """Converte o documento de comparação cross-rig em um relatório F15 (arenamon.agent-report/1).
+    
+    Exige obrigatoriamente um rig_mapping autêntico do contrato arenamon.rig-map/1.
+    """
     from agent_report import build_agent_report
+    from rig_map import validate_rig_map
+
+    val_map, errs = validate_rig_map(rig_mapping_a)
+    if not val_map:
+        raise CrossRigCompareError(f"rig_mapping_a F03 inválido: {errs}")
 
     comp_id = comparison["comparison_id"]
     rep_id = report_id or f"REP-F04-CROSSRIG-{comp_id.upper()}"
@@ -292,14 +350,14 @@ def export_cross_rig_to_agent_report(
             "metric": "cross_rig_global_mean_discrepancy",
             "value": comparison["global_mean_discrepancy_rel_H"],
             "unit": "%H",
-            "method": "normalized_height_mean_euclidean",
+            "method": "normalized_pelvis_centered_sagittal_aligned_mean_euclidean",
             "confidence": 1.0,
         },
         {
             "metric": "cross_rig_peak_discrepancy",
             "value": comparison["peak_discrepancy_rel_H"],
             "unit": "%H",
-            "method": "normalized_height_peak_sample",
+            "method": "normalized_pelvis_centered_peak_sample",
             "confidence": 1.0,
             "target_role": comparison["peak_discrepancy_role"],
         },
@@ -330,8 +388,8 @@ def export_cross_rig_to_agent_report(
             "action_name": act_a.get("action_name", "Action_A"),
             "action_slot": None,
             "armature_name": act_a.get("armature_name", "Armature_A"),
-            "frame_range": [0, act_a.get("frame_count", 30)],
-            "fps": act_a.get("fps", 30.0),
+            "frame_range": [0, int(act_a.get("frame_count", 30))],
+            "fps": float(act_a.get("fps", 30.0)),
             "unit_system": "METRIC_METERS",
         },
         rig_mapping=rig_mapping_a,

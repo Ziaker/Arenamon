@@ -5,15 +5,18 @@ Analisa conjuntos de Actions de locomoção e esquiva nas oito direções (N, NE
 Compara poses, trajetórias, orientação da raiz e simetria de pares opostos.
 
 Regras fundamentais:
-1. Distinção estrita entre semelhança geométrica e funcionamento de runtime:
+1. Normalização estrita de identificadores por tokenização exata (sem falsos positivos por substring).
+2. Distinção estrita entre semelhança geométrica e funcionamento de runtime:
    A paridade métrica de espelhamento não autoriza afirmar que o motor de jogo usa espelhamento procedural.
-2. Não presumir rotação procedural sem prova de runtime.
-3. Tratamento explícito de coberturas assimétricas ou incompletas (ex: 4 direções, 1 direção, etc.).
-4. Compatibilidade nativa com o contrato F15 (arenamon.agent-report/1).
+3. Não presumir rotação procedural; se a mesma Action for reutilizada, registrar como fato
+   e manter a rotação de runtime estritamente como hipótese.
+4. Suporte a ciclos de locomoção in-place (sem deslocamento de raiz), avaliando orientação pela pose.
+5. Compatibilidade nativa com o contrato F15 (arenamon.agent-report/1) exigindo rig mapping autêntico F03.
 """
 from __future__ import annotations
 
 import math
+import re
 from dataclasses import asdict, dataclass, field
 from typing import Any, Dict, List, Optional, Sequence, Tuple
 
@@ -35,34 +38,34 @@ DIRECTION_ANGLES: Dict[str, float] = {
 DIRECTION_ALIASES: Dict[str, str] = {
     "N": "N",
     "FORWARD": "N",
-    "F": "N",
     "FRONT": "N",
+    "F": "N",
     "NE": "NE",
     "FORWARD_RIGHT": "NE",
-    "FR": "NE",
     "FRONT_RIGHT": "NE",
+    "FR": "NE",
     "E": "E",
     "RIGHT": "E",
     "R": "E",
     "SE": "SE",
     "BACKWARD_RIGHT": "SE",
-    "BR": "SE",
     "BACK_RIGHT": "SE",
+    "BR": "SE",
     "S": "S",
     "BACKWARD": "S",
-    "B": "S",
     "BACK": "S",
+    "B": "S",
     "SW": "SW",
     "BACKWARD_LEFT": "SW",
-    "BL": "SW",
     "BACK_LEFT": "SW",
+    "BL": "SW",
     "W": "W",
     "LEFT": "W",
     "L": "W",
     "NW": "NW",
     "FORWARD_LEFT": "NW",
-    "FL": "NW",
     "FRONT_LEFT": "NW",
+    "FL": "NW",
 }
 
 SYMMETRY_PAIRS = (
@@ -77,7 +80,8 @@ STATUS_DEVIATED = "DEVIATED"
 
 RELATION_INDEPENDENT = "INDEPENDENT_AUTHORIAL"
 RELATION_SYMMETRIC_MIRRORED = "SYMMETRIC_MIRRORED"
-RELATION_RUNTIME_ROTATED = "RUNTIME_ROTATED"
+RELATION_SAME_ACTION_REUSED = "SAME_ACTION_REUSED"
+RELATION_DISTINCT_UNMEASURED = "DISTINCT_ACTIONS_UNMEASURED"
 RELATION_INCOMPLETE = "INCOMPLETE"
 
 
@@ -86,23 +90,50 @@ class DirectionCoverageError(Exception):
 
 
 def normalize_direction_name(raw: str) -> str:
-    """Normaliza identificador ou alias para uma das 8 direções canônicas."""
+    """Normaliza identificador ou alias para uma das 8 direções canônicas usando tokenização exata.
+    
+    Previne categoricamente colisões por substring (ex: 'Run_E' não pode ser casada com 'N'
+    apenas porque 'Run' contém a letra 'n').
+    """
     clean = raw.strip().upper().replace("-", "_").replace(" ", "_")
+
+    # 1. Correspondência exata da string completa
     if clean in DIRECTION_ALIASES:
         return DIRECTION_ALIASES[clean]
-    for alias, canon in DIRECTION_ALIASES.items():
-        if alias in clean:
-            return canon
-    raise DirectionCoverageError(f"Direção desconhecida: '{raw}'. Opções válidas: {list(DIRECTION_ANGLES.keys())}")
+
+    # 2. Decomposição em tokens delimitados por sublinhado
+    tokens = [t for t in clean.split("_") if t]
+
+    # Verifica combinação dos dois últimos tokens (ex: FORWARD_RIGHT, BACK_LEFT)
+    if len(tokens) >= 2:
+        last_two = f"{tokens[-2]}_{tokens[-1]}"
+        if last_two in DIRECTION_ALIASES:
+            return DIRECTION_ALIASES[last_two]
+
+    # Verifica o último token isolado (ex: Run_N, Dodge_E, Walk_SW)
+    if tokens and tokens[-1] in DIRECTION_ALIASES:
+        return DIRECTION_ALIASES[tokens[-1]]
+
+    # Verifica o primeiro token isolado (ex: N_Run, Left_Dodge)
+    if tokens and tokens[0] in DIRECTION_ALIASES:
+        return DIRECTION_ALIASES[tokens[0]]
+
+    # 3. Busca por token canônico exato delimitado por borda
+    for alias in sorted(DIRECTION_ALIASES.keys(), key=len, reverse=True):
+        pattern = rf"(^|_){re.escape(alias)}(_|$)"
+        if re.search(pattern, clean):
+            return DIRECTION_ALIASES[alias]
+
+    raise DirectionCoverageError(
+        f"Direção desconhecida: '{raw}'. Opções canônicas válidas: {list(DIRECTION_ANGLES.keys())}"
+    )
 
 
 def calculate_horizontal_angle(dx: float, dy: float, ground_plane: str = "XY") -> float:
     """Calcula o ângulo horizontal no sentido horário em graus [0, 360), onde N=0° (+Y em Blender)."""
-    # Blender XY: Frente é +Y (0°), Direita é +X (90°), Trás é -Y (180°), Esquerda é -X (270°)
     if ground_plane.upper() == "XY":
         angle_rad = math.atan2(dx, dy)
     elif ground_plane.upper() == "XZ":
-        # Three.js / OpenGL XZ: Frente é -Z ou +Z dependendo da convenção. Se Frente=-Z e Direita=+X:
         angle_rad = math.atan2(dx, -dy)
     else:
         raise DirectionCoverageError(f"Plano de solo inválido: '{ground_plane}'. Use 'XY' ou 'XZ'.")
@@ -124,12 +155,14 @@ class DirectionEntry:
     status: str
     action_name: Optional[str] = None
     displacement_vector: Optional[Tuple[float, float, float]] = None
+    is_in_place: bool = False
     measured_angle_deg: Optional[float] = None
     angular_deviation_deg: Optional[float] = None
     speed_mps: Optional[float] = None
     duration_seconds: Optional[float] = None
     frame_count: Optional[int] = None
     confidence: float = 1.0
+    note: str = ""
 
 
 @dataclass
@@ -170,7 +203,6 @@ def build_direction_coverage_analysis(
     if not armature_name or not isinstance(armature_name, str):
         raise DirectionCoverageError("armature_name deve ser string não-vazia")
 
-    # Mapeia as entradas fornecidas para direções canônicas
     mapped_inputs: Dict[str, Dict[str, Any]] = {}
     for raw_dir, data in actions_by_direction.items():
         canon = normalize_direction_name(raw_dir)
@@ -191,6 +223,7 @@ def build_direction_coverage_analysis(
                 nominal_angle_deg=nom_ang,
                 status=STATUS_ABSENT,
                 confidence=1.0,
+                note="Nenhuma Action mapeada para esta orientação",
             )
             directions_out[d] = asdict(entry)
             continue
@@ -208,18 +241,41 @@ def build_direction_coverage_analysis(
         ang_dev = None
         speed = None
         status = STATUS_PRESENT
+        note = ""
 
+        # Detecção de locomoção in-place vs root motion translativo
+        is_in_place = False
+        horiz_dist = 0.0
         if disp is not None:
             dx, dy = disp[0], disp[1]
-            # Se for plano XZ, Y é Z no vetor tridimensional
             if ground_plane.upper() == "XZ":
                 dy = disp[2]
             horiz_dist = math.hypot(dx, dy)
-            if horiz_dist > 0.01:
-                measured_ang = round(calculate_horizontal_angle(dx, dy, ground_plane), 2)
+            if horiz_dist < 0.05:
+                is_in_place = True
+
+        if item.get("is_in_place", False):
+            is_in_place = True
+
+        # Avaliação de orientação
+        if is_in_place:
+            note = "Ciclo in-place (sem deslocamento de raiz no Blender)."
+            # Se fornecida orientação da pose (ex: facing_angle_deg), avalia
+            if "facing_angle_deg" in item:
+                measured_ang = float(item["facing_angle_deg"])
                 ang_dev = round(angular_difference(measured_ang, nom_ang), 2)
                 if ang_dev > max_angular_tolerance_deg:
                     status = STATUS_DEVIATED
+            elif "measured_angle_deg" in item:
+                measured_ang = float(item["measured_angle_deg"])
+                ang_dev = round(angular_difference(measured_ang, nom_ang), 2)
+                if ang_dev > max_angular_tolerance_deg:
+                    status = STATUS_DEVIATED
+        elif disp is not None and horiz_dist >= 0.05:
+            measured_ang = round(calculate_horizontal_angle(dx, dy, ground_plane), 2)
+            ang_dev = round(angular_difference(measured_ang, nom_ang), 2)
+            if ang_dev > max_angular_tolerance_deg:
+                status = STATUS_DEVIATED
             if duration and duration > 0:
                 speed = round(horiz_dist / duration, 3)
 
@@ -230,12 +286,14 @@ def build_direction_coverage_analysis(
             status=status,
             action_name=act_name,
             displacement_vector=tuple(disp) if disp else None,
+            is_in_place=is_in_place,
             measured_angle_deg=measured_ang,
             angular_deviation_deg=ang_dev,
             speed_mps=speed,
             duration_seconds=duration,
             frame_count=frames,
             confidence=1.0 if status == STATUS_PRESENT else 0.85,
+            note=note,
         )
         directions_out[d] = asdict(entry)
 
@@ -260,9 +318,6 @@ def build_direction_coverage_analysis(
             symmetry_results.append(asdict(pair_res))
             continue
 
-        # Verifica se foi fornecida medição métrica explícita de discrepância pós-espelhamento
-        pair_key = f"{dir_a}_{dir_b}"
-        pair_key_rev = f"{dir_b}_{dir_a}"
         custom_pair_data = (
             mapped_inputs.get(dir_a, {}).get("symmetry_with_opposite")
             or mapped_inputs.get(dir_b, {}).get("symmetry_with_opposite")
@@ -273,20 +328,21 @@ def build_direction_coverage_analysis(
 
         if act_a == act_b:
             # Mesma Action mapeada para ambas as direções
-            rel_type = RELATION_RUNTIME_ROTATED
-            rationale = f"Mesma Action '{act_a}' associada a direções opostas; rotação em tempo de execução."
-            conf = 0.95
-        elif mirror_disc is not None and mirror_disc <= mirror_similarity_threshold_m:
-            rel_type = RELATION_SYMMETRIC_MIRRORED
-            rationale = f"Discrepância pós-espelhamento de {mirror_disc:.3f} m (abaixo de {mirror_similarity_threshold_m} m); indica forte simetria bilateral geométrica."
-            conf = 0.90
+            rel_type = RELATION_SAME_ACTION_REUSED
+            rationale = f"Mesma Action '{act_a}' associada a direções opostas nos dados."
+            conf = 1.0
         elif mirror_disc is not None:
-            rel_type = RELATION_INDEPENDENT
-            rationale = f"Discrepância pós-espelhamento de {mirror_disc:.3f} m; denota autoria de movimento independente entre os lados."
-            conf = 0.90
+            if mirror_disc <= mirror_similarity_threshold_m:
+                rel_type = RELATION_SYMMETRIC_MIRRORED
+                rationale = f"Discrepância pós-espelhamento de {mirror_disc:.3f} m (abaixo de {mirror_similarity_threshold_m} m); comprova forte simetria bilateral geométrica."
+                conf = 0.95
+            else:
+                rel_type = RELATION_INDEPENDENT
+                rationale = f"Discrepância pós-espelhamento de {mirror_disc:.3f} m; denota autoria de movimento independente entre os lados."
+                conf = 0.95
         else:
-            rel_type = RELATION_INDEPENDENT
-            rationale = "Actions com identificadores distintos sem espelhamento demonstrado nos dados."
+            rel_type = RELATION_DISTINCT_UNMEASURED
+            rationale = "Actions com identificadores distintos, mas sem medição métrica de espelhamento fornecida."
             conf = 0.80
 
         pair_res = SymmetryPairAnalysis(
@@ -303,29 +359,34 @@ def build_direction_coverage_analysis(
     # Construção da taxonomia epistêmica estrita
     facts.append(f"O conjunto '{set_id}' possui {present_count} de 8 direções mapeadas no armature '{armature_name}'.")
     ratio = round(present_count / 8.0, 3)
-    facts.append(f"A taxa de cobertura direcional e de {ratio * 100:.1f}%.")
+    facts.append(f"A taxa de cobertura direcional é de {ratio * 100:.1f}%.")
 
     for d in DIRECTIONS_8:
         info = directions_out[d]
-        if info["status"] == STATUS_PRESENT and info.get("displacement_vector"):
-            facts.append(
-                f"Direcao {d}: Action '{info['action_name']}' translada raiz em {info['displacement_vector']} m com angulo medido de {info['measured_angle_deg']}° (nominal {info['nominal_angle_deg']}°)."
-            )
+        if info["status"] == STATUS_PRESENT:
+            if info["is_in_place"]:
+                facts.append(f"Direção {d}: Action '{info['action_name']}' é um ciclo in-place.")
+            elif info.get("displacement_vector"):
+                facts.append(
+                    f"Direção {d}: Action '{info['action_name']}' translada raiz em {info['displacement_vector']} m com ângulo medido de {info['measured_angle_deg']}°."
+                )
         elif info["status"] == STATUS_DEVIATED:
             observations.append(
-                f"Direcao {d}: Desvio angular de {info['angular_deviation_deg']}° excede a tolerancia de {max_angular_tolerance_deg}°."
+                f"Direção {d}: Desvio angular de {info['angular_deviation_deg']}° excede a tolerância de {max_angular_tolerance_deg}°."
             )
         elif info["status"] == STATUS_ABSENT:
-            observations.append(f"Direcao {d}: Nenhuma Action mapeada neste conjunto.")
+            observations.append(f"Direção {d}: Nenhuma Action mapeada neste conjunto.")
 
     for sym in symmetry_results:
         p_str = f"{sym['pair'][0]}/{sym['pair'][1]}"
         if sym["relation_type"] == RELATION_SYMMETRIC_MIRRORED:
-            inferences.append(f"Par {p_str}: Semelhança geométrica estrita sugere espelhamento de malha/esqueleto.")
+            inferences.append(f"Par {p_str}: Semelhança geométrica estrita pós-espelhamento comprova simetria bilateral de malha/esqueleto.")
         elif sym["relation_type"] == RELATION_INDEPENDENT:
-            inferences.append(f"Par {p_str}: Assimetrias detectadas indicam desenvolvimento coreográfico autoral para cada lado.")
-        elif sym["relation_type"] == RELATION_RUNTIME_ROTATED:
-            hypotheses.append(f"Par {p_str}: O runtime pode estar aplicando rotação orientada sobre a mesma Action básica.")
+            inferences.append(f"Par {p_str}: Assimetrias métricas detectadas confirmam desenvolvimento coreográfico autoral para cada lado.")
+        elif sym["relation_type"] == RELATION_SAME_ACTION_REUSED:
+            hypotheses.append(f"Par {p_str}: A mesma Action '{sym['action_a']}' pode ser orientada por rotação procedural no motor de jogo.")
+        elif sym["relation_type"] == RELATION_DISTINCT_UNMEASURED:
+            observations.append(f"Par {p_str}: Actions distintas ('{sym['action_a']}' vs '{sym['action_b']}'); diferença geométrica não medida.")
 
     report = DirectionCoverageReport(
         schema=SCHEMA_NAME,
@@ -389,24 +450,33 @@ def validate_direction_coverage(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
 def export_direction_coverage_to_agent_report(
     coverage: Dict[str, Any],
     source_file: str,
-    rig_mapping: Optional[Dict[str, Any]] = None,
+    rig_mapping: Dict[str, Any],
     fps: float = 30.0,
     report_id: Optional[str] = None,
     visual_evidence: Optional[List[Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
-    """Converte o documento de cobertura direcional em um relatório F15 (arenamon.agent-report/1)."""
+    """Converte o documento de cobertura direcional em um relatório F15 (arenamon.agent-report/1).
+    
+    Exige obrigatoriamente um rig_mapping autêntico do contrato arenamon.rig-map/1.
+    """
     from agent_report import build_agent_report
-    from rig_map import build_rig_map
+    from rig_map import validate_rig_map
+
+    val_map, errs = validate_rig_map(rig_mapping)
+    if not val_map:
+        raise DirectionCoverageError(f"rig_mapping F03 inválido: {errs}")
 
     set_id = coverage["set_id"]
     armature = coverage["armature_name"]
     rep_id = report_id or f"REP-F01-DIR-COVERAGE-{set_id.upper()}"
 
-    active_rig_map = rig_mapping or build_rig_map(
-        bone_names=["Root", "Hips"],
-        rig_id=f"rig_{armature.lower()}",
-        armature_name=armature
-    )
+    # Calcula duração real e contagem de frames a partir das Actions presentes
+    present_frames = [
+        inf["frame_count"] for inf in coverage["directions"].values()
+        if inf.get("frame_count") and inf["status"] != STATUS_ABSENT
+    ]
+    max_frames = max(present_frames) if present_frames else 30
+    frame_range = (0, max_frames)
 
     measurements: List[Dict[str, Any]] = [
         {
@@ -437,7 +507,7 @@ def export_direction_coverage_to_agent_report(
             })
 
     limitations = {
-        "missing_data": [f"Direcao {d} ausente no conjunto" for d, inf in coverage["directions"].items() if inf["status"] == STATUS_ABSENT],
+        "missing_data": [f"Direção {d} ausente no conjunto" for d, inf in coverage["directions"].items() if inf["status"] == STATUS_ABSENT],
         "assumptions": ["Deslocamento de raiz reflete velocidade horizontal média pretendida"],
         "risks": ["Semelhança de espelhamento não garante comportamento idêntico de colisores no combate"],
         "confidence_score": 0.95,
@@ -447,14 +517,14 @@ def export_direction_coverage_to_agent_report(
         report_id=rep_id,
         target={
             "source_file": source_file,
-            "action_name": f"{set_id}_8way_blend",
+            "action_name": f"{set_id}_8way_set",
             "action_slot": None,
             "armature_name": armature,
-            "frame_range": [0, 30],
+            "frame_range": frame_range,
             "fps": fps,
             "unit_system": "METRIC_METERS",
         },
-        rig_mapping=active_rig_map,
+        rig_mapping=rig_mapping,
         measurements=measurements,
         visual_evidence=visual_evidence or [],
         findings=coverage["epistemic_findings"],

@@ -253,7 +253,7 @@ def _detect_template(bone_names: Sequence[str], armature_name: str = "") -> Tupl
         elif t_name == "ALIEN_RIG" and any(b in ("Root", "root") for b in bones_set) and "Hips" in bones_set:
             base_score += 0.10
 
-        if t_name == "POKEMON_ZA" and any(b.startswith("pm") for b in bone_names):
+        if t_name == "POKEMON_ZA" and (any(b.startswith("pm") for b in bone_names) or "pm" in arm_lower or "pokemon" in arm_lower):
             base_score += 0.20
 
         scores[t_name] = base_score

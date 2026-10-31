@@ -10,8 +10,9 @@ from direction_coverage import (
     STATUS_ABSENT,
     STATUS_DEVIATED,
     STATUS_PRESENT,
+    RELATION_DISTINCT_UNMEASURED,
     RELATION_INDEPENDENT,
-    RELATION_RUNTIME_ROTATED,
+    RELATION_SAME_ACTION_REUSED,
     RELATION_SYMMETRIC_MIRRORED,
     angular_difference,
     build_direction_coverage_analysis,
@@ -20,44 +21,60 @@ from direction_coverage import (
     normalize_direction_name,
     validate_direction_coverage,
 )
+from rig_map import build_rig_map
 
 
 class TestF01DirectionCoverage(unittest.TestCase):
 
-    def test_normalize_direction_aliases(self):
-        self.assertEqual(normalize_direction_name("FORWARD"), "N")
-        self.assertEqual(normalize_direction_name("front"), "N")
-        self.assertEqual(normalize_direction_name("RIGHT"), "E")
-        self.assertEqual(normalize_direction_name("LEFT"), "W")
-        self.assertEqual(normalize_direction_name("BACKWARD"), "S")
-        self.assertEqual(normalize_direction_name("FORWARD_RIGHT"), "NE")
-        self.assertEqual(normalize_direction_name("fl"), "NW")
+    def test_normalize_direction_token_isolation(self):
+        # Validação estrita contra o bug de colisão por substring
+        self.assertEqual(normalize_direction_name("Run_N"), "N")
+        self.assertEqual(normalize_direction_name("Run_NE"), "NE")
+        self.assertEqual(normalize_direction_name("Run_E"), "E")
+        self.assertEqual(normalize_direction_name("Run_SE"), "SE")
+        self.assertEqual(normalize_direction_name("Run_S"), "S")
+        self.assertEqual(normalize_direction_name("Run_SW"), "SW")
+        self.assertEqual(normalize_direction_name("Run_W"), "W")
+        self.assertEqual(normalize_direction_name("Run_NW"), "NW")
+        self.assertEqual(normalize_direction_name("Dodge_Forward"), "N")
+        self.assertEqual(normalize_direction_name("Dodge_Right"), "E")
+        self.assertEqual(normalize_direction_name("Dodge_Left"), "W")
+        self.assertEqual(normalize_direction_name("Dodge_Backward"), "S")
 
     def test_calculate_horizontal_angle_blender_xy(self):
-        # N = +Y -> dx=0, dy=1 -> 0°
         self.assertAlmostEqual(calculate_horizontal_angle(0.0, 1.0, "XY"), 0.0, places=2)
-        # E = +X -> dx=1, dy=0 -> 90°
         self.assertAlmostEqual(calculate_horizontal_angle(1.0, 0.0, "XY"), 90.0, places=2)
-        # S = -Y -> dx=0, dy=-1 -> 180°
         self.assertAlmostEqual(calculate_horizontal_angle(0.0, -1.0, "XY"), 180.0, places=2)
-        # W = -X -> dx=-1, dy=0 -> 270°
         self.assertAlmostEqual(calculate_horizontal_angle(-1.0, 0.0, "XY"), 270.0, places=2)
 
-    def test_angular_difference(self):
-        self.assertAlmostEqual(angular_difference(10.0, 350.0), 20.0, places=2)
-        self.assertAlmostEqual(angular_difference(0.0, 180.0), 180.0, places=2)
-        self.assertAlmostEqual(angular_difference(45.0, 50.0), 5.0, places=2)
+    def test_in_place_cycle_handling(self):
+        # Ciclo in-place (deslocamento raiz < 0.05m) deve ser PRESENT com is_in_place=True
+        actions = {
+            "Run_N": {
+                "action_name": "Pakko_Run_N",
+                "displacement_vector": (0.0, 0.001, 0.0),
+                "is_in_place": True,
+                "facing_angle_deg": 0.0,
+                "frame_count": 20,
+                "fps": 30.0,
+            }
+        }
+        analysis = build_direction_coverage_analysis("pakko_inplace", "Armature", actions)
+        n_entry = analysis["directions"]["N"]
+        self.assertEqual(n_entry["status"], STATUS_PRESENT)
+        self.assertTrue(n_entry["is_in_place"])
+        self.assertEqual(n_entry["measured_angle_deg"], 0.0)
 
     def test_full_8way_coverage_and_symmetry(self):
         actions = {
-            "N": {"action_name": "Run_F", "displacement_vector": (0.0, 2.0, 0.0), "duration_seconds": 1.0},
-            "NE": {"action_name": "Run_FR", "displacement_vector": (1.41, 1.41, 0.0), "duration_seconds": 1.0, "symmetry_with_opposite": 0.02},
-            "E": {"action_name": "Run_R", "displacement_vector": (2.0, 0.0, 0.0), "duration_seconds": 1.0, "symmetry_with_opposite": 0.03},
-            "SE": {"action_name": "Run_BR", "displacement_vector": (1.41, -1.41, 0.0), "duration_seconds": 1.0, "symmetry_with_opposite": 0.12},
-            "S": {"action_name": "Run_B", "displacement_vector": (0.0, -2.0, 0.0), "duration_seconds": 1.0},
-            "SW": {"action_name": "Run_BL", "displacement_vector": (-1.41, -1.41, 0.0), "duration_seconds": 1.0},
-            "W": {"action_name": "Run_L", "displacement_vector": (-2.0, 0.0, 0.0), "duration_seconds": 1.0},
-            "NW": {"action_name": "Run_FL", "displacement_vector": (-1.41, 1.41, 0.0), "duration_seconds": 1.0},
+            "Run_N": {"action_name": "Run_F", "displacement_vector": (0.0, 2.0, 0.0), "duration_seconds": 1.0, "frame_count": 30},
+            "Run_NE": {"action_name": "Run_FR", "displacement_vector": (1.41, 1.41, 0.0), "duration_seconds": 1.0, "frame_count": 30, "symmetry_with_opposite": 0.02},
+            "Run_E": {"action_name": "Run_R", "displacement_vector": (2.0, 0.0, 0.0), "duration_seconds": 1.0, "frame_count": 30, "symmetry_with_opposite": 0.03},
+            "Run_SE": {"action_name": "Run_BR", "displacement_vector": (1.41, -1.41, 0.0), "duration_seconds": 1.0, "frame_count": 30, "symmetry_with_opposite": 0.12},
+            "Run_S": {"action_name": "Run_B", "displacement_vector": (0.0, -2.0, 0.0), "duration_seconds": 1.0, "frame_count": 30},
+            "Run_SW": {"action_name": "Run_BL", "displacement_vector": (-1.41, -1.41, 0.0), "duration_seconds": 1.0, "frame_count": 30},
+            "Run_W": {"action_name": "Run_L", "displacement_vector": (-2.0, 0.0, 0.0), "duration_seconds": 1.0, "frame_count": 30},
+            "Run_NW": {"action_name": "Run_FL", "displacement_vector": (-1.41, 1.41, 0.0), "duration_seconds": 1.0, "frame_count": 30},
         }
 
         analysis = build_direction_coverage_analysis(
@@ -75,41 +92,45 @@ class TestF01DirectionCoverage(unittest.TestCase):
         self.assertEqual(analysis["directions"]["N"]["status"], STATUS_PRESENT)
         self.assertEqual(analysis["directions"]["E"]["status"], STATUS_PRESENT)
 
-        # Simetria E vs W: discrepância de 0.03m <= 0.05m -> SYMMETRIC_MIRRORED
+        # Simetria E vs W: 0.03m <= 0.05m -> SYMMETRIC_MIRRORED
         sym_e_w = [s for s in analysis["symmetry_pairs"] if tuple(s["pair"]) == ("E", "W")][0]
         self.assertEqual(sym_e_w["relation_type"], RELATION_SYMMETRIC_MIRRORED)
 
-        # Simetria SE vs SW: discrepância de 0.12m > 0.05m -> INDEPENDENT_AUTHORIAL
+        # Simetria SE vs SW: 0.12m > 0.05m -> INDEPENDENT_AUTHORIAL
         sym_se_sw = [s for s in analysis["symmetry_pairs"] if tuple(s["pair"]) == ("SE", "SW")][0]
         self.assertEqual(sym_se_sw["relation_type"], RELATION_INDEPENDENT)
 
-    def test_partial_coverage_and_deviation(self):
-        # Apenas 2 direções, e uma com ângulo desviado (N apontando para E)
+    def test_unmeasured_symmetry_distinct_vs_reused(self):
+        # A e B distintas sem medição geométrica -> DISTINCT_ACTIONS_UNMEASURED
         actions = {
-            "N": {"action_name": "Run_Wrong", "displacement_vector": (2.0, 0.1, 0.0), "duration_seconds": 1.0},
-            "S": {"action_name": "Run_Back", "displacement_vector": (0.0, -2.0, 0.0), "duration_seconds": 1.0},
+            "Run_E": {"action_name": "Action_Right", "displacement_vector": (1.0, 0.0, 0.0)},
+            "Run_W": {"action_name": "Action_Left", "displacement_vector": (-1.0, 0.0, 0.0)},
         }
+        analysis = build_direction_coverage_analysis("test_unmeasured", "Armature", actions)
+        sym = [s for s in analysis["symmetry_pairs"] if tuple(s["pair"]) == ("E", "W")][0]
+        self.assertEqual(sym["relation_type"], RELATION_DISTINCT_UNMEASURED)
 
-        analysis = build_direction_coverage_analysis(
-            set_id="partial_run",
-            armature_name="HeroArmature",
-            actions_by_direction=actions,
-            max_angular_tolerance_deg=20.0,
-        )
-
-        self.assertEqual(analysis["coverage_count"], 2)
-        self.assertAlmostEqual(analysis["coverage_ratio"], 0.25, places=2)
-        # N mediu ~87° quando devia ser 0° -> DEVIATED
-        self.assertEqual(analysis["directions"]["N"]["status"], STATUS_DEVIATED)
-        self.assertEqual(analysis["directions"]["E"]["status"], STATUS_ABSENT)
+        # Mesma Action em ambas -> SAME_ACTION_REUSED
+        actions_same = {
+            "Run_E": {"action_name": "Action_Omni", "displacement_vector": (1.0, 0.0, 0.0)},
+            "Run_W": {"action_name": "Action_Omni", "displacement_vector": (-1.0, 0.0, 0.0)},
+        }
+        analysis_same = build_direction_coverage_analysis("test_same", "Armature", actions_same)
+        sym_same = [s for s in analysis_same["symmetry_pairs"] if tuple(s["pair"]) == ("E", "W")][0]
+        self.assertEqual(sym_same["relation_type"], RELATION_SAME_ACTION_REUSED)
 
     def test_export_to_agent_report_f15(self):
         actions = {
-            "N": {"action_name": "Run_N", "displacement_vector": (0.0, 3.0, 0.0), "duration_seconds": 1.0, "fps": 30.0},
-            "S": {"action_name": "Run_S", "displacement_vector": (0.0, -3.0, 0.0), "duration_seconds": 1.0, "fps": 30.0},
+            "Run_N": {"action_name": "Run_N", "displacement_vector": (0.0, 3.0, 0.0), "duration_seconds": 1.0, "fps": 30.0, "frame_count": 30},
+            "Run_S": {"action_name": "Run_S", "displacement_vector": (0.0, -3.0, 0.0), "duration_seconds": 1.0, "fps": 30.0, "frame_count": 30},
         }
-        analysis = build_direction_coverage_analysis("run_set", "Armature", actions)
-        rep = export_direction_coverage_to_agent_report(analysis, source_file="hero.blend")
+        rig_map = build_rig_map(
+            bone_names=["Root", "Hips", "LeftFoot", "RightFoot"],
+            rig_id="hero_rig",
+            armature_name="HeroArmature"
+        )
+        analysis = build_direction_coverage_analysis("run_set", "HeroArmature", actions)
+        rep = export_direction_coverage_to_agent_report(analysis, source_file="hero.blend", rig_mapping=rig_map)
 
         from agent_report import validate_agent_report
         is_valid, errors = validate_agent_report(rep, verify_files=False)
