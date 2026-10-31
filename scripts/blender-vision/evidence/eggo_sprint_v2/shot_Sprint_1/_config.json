@@ -1,0 +1,35 @@
+{
+ "offset": 0,
+ "size": 480,
+ "armature": "AlienRig",
+ "mode": "shot",
+ "action": "Sprint 1",
+ "views": [
+  "side_pX",
+  "q3_left"
+ ],
+ "modes": [
+  "solid"
+ ],
+ "align": "root",
+ "zoom": null,
+ "zoom_radii": null,
+ "bone_cam": false,
+ "onion_step": 1,
+ "frames": [
+  1,
+  2,
+  3,
+  4,
+  5,
+  6,
+  7,
+  8,
+  9,
+  10,
+  11,
+  12
+ ],
+ "out": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\scripts\\blender-vision\\evidence\\eggo_sprint_v2\\shot_Sprint_1.tmp-2352",
+ "blend": "C:\\Users\\zerke\\OneDrive\\\u00c1rea de Trabalho\\Arenamon\\chars\\Eggo\\eggo sprint v2.blend"
+}
