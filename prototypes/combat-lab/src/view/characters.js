@@ -24,6 +24,7 @@ import {mulberry} from '../sim/ai.js';
 import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-windows.js';
 import {sniffFormat} from './validate.js';
 import {RigLayers} from './rig-layers.js';
+import {sprintUsesTurn, updateSprintTurn} from './sprint-turn.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
@@ -576,7 +577,7 @@ export class Character {
     const rel = angleDelta(f.faceGoal ?? f.facing, angleOf(f.velocity));
     const direction = Math.abs(rel) > 3 * Math.PI / 4 ? 'back' : Math.abs(rel) > Math.PI / 4 ? (rel > 0 ? 'left' : 'right') : '';
     // Só existem duas velocidades de locomoção: andar (C solto) e sprint (C segurado). “Correr” é o mesmo que andar.
-    if (f.sprinting) return direction ? `sprint_${direction}` : 'sprint';
+    if (f.sprinting) return direction && !sprintUsesTurn(this) ? `sprint_${direction}` : 'sprint';   // sem clipes direcionais: sprint para a frente + corpo girando (sprint-turn.js)
     return direction ? `walk_${direction}` : 'walk';
   }
   /** Histerese da locomoção: um estado de locomoção novo só vale depois de estável por locomotionHold segundos. */
@@ -781,12 +782,12 @@ export class Character {
   }
   /** Game feel 8 e 9: apoio visual dos pés e olhar aditivo, DEPOIS da pose base e do posicionamento (só visual; ver rig-layers.js). */
   applyRigLayers(f, dt, ctx) {
-    const G = C.extras.gameFeel, foot = !!G.footOn && this.footEnabled, track = !!G.trackOn && this.trackEnabled;
-    if (!foot && !track && !this.rigLayers) return;
+    const G = C.extras.gameFeel, foot = !!G.footOn && this.footEnabled, track = !!G.trackOn && this.trackEnabled, twist = updateSprintTurn(this, f, dt);
+    if (!foot && !track && !twist && !this.rigLayers) return;
     this.rigLayers ??= new RigLayers(T, this.model, this.hips);
     this.root.updateMatrixWorld(true);
     const mode = trackModeOf(f, this.trackProfile);
-    this.rigLayers.apply(f, dt, {foot, track, G, mode, occluded: ctx.occluded, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
+    this.rigLayers.apply(f, dt, {foot, track, twist, G, mode, occluded: ctx.occluded, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0) + (this.sprintTurn?.body ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
   }
   /** Texto de diagnóstico das camadas de pose (pés e olhar) para o painel do personagem. */
   rigDiagnostic() {return this.rigLayers ? this.rigLayers.diagnostics() : 'Camadas de pose (pés e olhar) ainda não ativadas: ligue-as em Ajustes › Visual › Game feel 5–9.';}
@@ -1032,7 +1033,7 @@ export class Character {
     }
     this.root.rotation.set(0, this.squash.heading, 0);
     this.deformation.scale.set(this.squash.transverse, this.squash.transverse, this.squash.z);
-    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading + (this.extraYaw ?? 0), 0);   // extraYaw: giro visual do golpe no vazio (whiff-fx.js); nunca altera a simulação
+    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading + (this.extraYaw ?? 0) + (this.sprintTurn?.body ?? 0), 0);   // extraYaw: giro do golpe no vazio (whiff-fx.js); sprintTurn: corpo rumo à corrida (sprint-turn.js); nunca alteram a simulação
   }
   /** Durações das regras derivadas dos clipes (primeira variante ÷ velocidade). Só ações com animação própria. */
   ruleDurations(moves = []) {

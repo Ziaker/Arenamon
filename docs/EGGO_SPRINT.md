@@ -4,6 +4,19 @@ Estado: **v9 APROVADA pelo responsável** (31/10/2026). Pedido: 4 pulinhos nos m
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
+## Sprint nas outras direções: corpo girando no jogo (v1.49.16)
+
+- **Onde ajustar:** `JOGAR_ARENAMON.html` › Ajustes › aba **X e C** › bloco **«Sprint em qualquer direção (corpo girando)»**:
+  ligar/desligar, velocidade do giro das pernas (°/s, padrão 540), torção máxima do tronco (°, 60), quanto a cabeça
+  ainda acompanha (°, 45) e o ângulo a partir do qual ele corre de costas (°, 110).
+- **Como funciona (só visual, a física não muda):** personagem que tem só o sprint para a frente (sem `sprint_back`,
+  `sprint_left` e `sprint_right`, como o Eggo) toca o `sprint` em qualquer direção; o corpo (pernas e quadril) gira para
+  onde ele corre e o tronco e a cabeça torcem de volta para o rival. Correndo de costas (acima de 110°), o tronco solta e
+  só a cabeça olha por cima do ombro. Quem já tem clipes direcionais (ex.: Wookada) continua igual.
+- Código: `prototypes/combat-lab/src/view/sprint-turn.js` (+ `applyTwist` em `rig-layers.js`); teste:
+  `prototypes/combat-lab/test/sprint-turn.test.mjs`.
+- Não verificado: o Eggo ainda não está exportado (GLB) nem importado no jogo, então o giro não foi visto com ele.
+
 ## Onde abrir
 
 - Arquivo: `chars/Eggo/eggo sprint v9.blend` (Action `Sprint 1`).
