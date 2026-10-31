@@ -1,0 +1,55 @@
+DIRECTION LINES - comparacao entre guias e animacao
+
+DL_motion_RightFoot (osso RightFoot, frames 1 a 5, comprimento da guia 0.07 m)
+  desvio da trajetoria ate a guia: medio 1.569 m, maximo 1.958 m
+  distancia no inicio 1.320 m, no fim 1.958 m
+  pior(es) frame(s): 5 (1.96 m), 4 (1.71 m), 3 (1.50 m), 2 (1.37 m), 1 (1.32 m)
+  retrocessos ao longo da guia: 0
+
+DL_motion_LeftHand (osso LeftHand, frames 1 a 5, comprimento da guia 0.08 m)
+  desvio da trajetoria ate a guia: medio 1.723 m, maximo 2.106 m
+  distancia no inicio 1.461 m, no fim 2.106 m
+  pior(es) frame(s): 5 (2.11 m), 4 (1.87 m), 3 (1.68 m), 2 (1.54 m), 1 (1.43 m)
+  retrocessos ao longo da guia: 1
+
+DL_motion_LeftFoot (osso LeftFoot, frames 1 a 5, comprimento da guia 0.13 m)
+  desvio da trajetoria ate a guia: medio 1.424 m, maximo 1.608 m
+  distancia no inicio 1.346 m, no fim 1.608 m
+  pior(es) frame(s): 5 (1.61 m), 4 (1.45 m), 3 (1.39 m), 2 (1.34 m), 1 (1.34 m)
+  retrocessos ao longo da guia: 0
+
+DL_motion_Hips (osso Hips, frames 1 a 5, comprimento da guia 0.93 m)
+  desvio da trajetoria ate a guia: medio 1.504 m, maximo 1.733 m
+  distancia no inicio 1.342 m, no fim 1.858 m
+  pior(es) frame(s): 5 (1.73 m), 4 (1.59 m), 3 (1.47 m), 2 (1.39 m), 1 (1.34 m)
+  retrocessos ao longo da guia: 2
+
+DL_motion_Hips.001 (osso Hips, frames 1 a 27, comprimento da guia 8.24 m)
+  desvio da trajetoria ate a guia: medio 0.018 m, maximo 0.113 m
+  distancia no inicio 0.000 m, no fim 0.000 m
+  pior(es) frame(s): 13 (0.11 m), 2 (0.07 m), 26 (0.05 m), 3 (0.04 m), 12 (0.04 m)
+  retrocessos ao longo da guia: 0
+
+DL_motion_Head (osso Head, frames 1 a 27, comprimento da guia 8.25 m)
+  desvio da trajetoria ate a guia: medio 0.019 m, maximo 0.115 m
+  distancia no inicio 0.000 m, no fim 0.000 m
+  pior(es) frame(s): 13 (0.11 m), 2 (0.07 m), 26 (0.06 m), 3 (0.05 m), 12 (0.04 m)
+  retrocessos ao longo da guia: 0
+
+DL_motion_LeftHand.001 (osso LeftHand, frames 1 a 27, comprimento da guia 8.27 m)
+  desvio da trajetoria ate a guia: medio 0.021 m, maximo 0.120 m
+  distancia no inicio 0.000 m, no fim 0.000 m
+  pior(es) frame(s): 13 (0.12 m), 2 (0.08 m), 26 (0.05 m), 3 (0.05 m), 12 (0.04 m)
+  retrocessos ao longo da guia: 0
+
+DL_motion_LeftFoot.001 (osso LeftFoot, frames 1 a 27, comprimento da guia 8.29 m)
+  desvio da trajetoria ate a guia: medio 0.016 m, maximo 0.064 m
+  distancia no inicio 0.000 m, no fim 0.000 m
+  pior(es) frame(s): 13 (0.06 m), 6 (0.04 m), 7 (0.04 m), 26 (0.03 m), 23 (0.03 m)
+  retrocessos ao longo da guia: 0
+
+DL_motion_RightFoot.001 (osso RightFoot, frames 1 a 27, comprimento da guia 8.30 m)
+  desvio da trajetoria ate a guia: medio 0.019 m, maximo 0.109 m
+  distancia no inicio 0.000 m, no fim 0.000 m
+  pior(es) frame(s): 13 (0.11 m), 2 (0.07 m), 3 (0.05 m), 21 (0.04 m), 23 (0.04 m)
+  retrocessos ao longo da guia: 0
