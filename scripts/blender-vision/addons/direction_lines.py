@@ -1,7 +1,7 @@
 bl_info = {
     "name": "Direction Lines (Arenamon)",
     "author": "Arenamon",
-    "version": (0, 1, 1),
+    "version": (0, 1, 2),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Direction Lines",
     "description": "Linhas de acao e linhas de movimento editaveis, que a IA le e compara com a animacao",
@@ -203,7 +203,7 @@ def dump_guides(n=24):
     return out
 
 
-def compare(context):
+def _compare(context):
     sc = context.scene
     arm = _arm(context)
     c = bpy.data.collections.get(COLL)
@@ -289,6 +289,17 @@ def compare(context):
             L.append("  curvatura (desvio maximo da corda): personagem %.3f m, guia %.3f m" % (bulge(pts), bulge([Vector(p) for p in poly])))
     sc.frame_set(keep)
     return "\n".join(L)
+
+
+def compare(context):
+    """Compara as guias e restaura o frame mesmo quando a amostragem falha."""
+    sc = context.scene
+    keep = sc.frame_current
+    keep_subframe = sc.frame_subframe
+    try:
+        return _compare(context)
+    finally:
+        sc.frame_set(keep, subframe=keep_subframe)
 
 
 class DL_OT_compare(bpy.types.Operator):

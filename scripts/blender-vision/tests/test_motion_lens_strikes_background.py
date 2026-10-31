@@ -2,6 +2,7 @@
 import importlib.util
 import os
 import sys
+import tempfile
 from unittest import mock
 
 import bpy
@@ -113,6 +114,19 @@ assert (scene.frame_current, scene.frame_subframe) == frame_before
 assert scene.camera is camera_before
 assert (scene.render.engine, scene.render.filepath, scene.render.resolution_x, scene.render.resolution_y) == render_before
 assert tuple(obj.name for obj in bpy.context.selected_objects) == selected_before
+
+with tempfile.TemporaryDirectory(prefix="motion-lens-overlay-", dir=os.path.dirname(__file__)) as temp_dir:
+    ml.render_reference_overlay_sheet(
+        bpy.context,
+        reference_action=comparison,
+        current_action=source,
+        frames=[13],
+        output_path=os.path.join(temp_dir, "overlay.png"),
+        cell_size=32,
+    )
+assert arm.animation_data.action is source
+assert arm.animation_data.action_slot == secondary_slot
+assert (scene.frame_current, scene.frame_subframe) == frame_before
 
 ml.unregister()
 print("PASS: strike candidato, intervalo real, unidades e derivacao transacional")

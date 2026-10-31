@@ -6,6 +6,7 @@ Executar:
 import importlib.util
 import os
 import sys
+from unittest import mock
 
 import bpy
 from mathutils import Vector
@@ -85,6 +86,27 @@ guide["dl_frame"] = 1
 dl._coll(bpy.context.scene).objects.link(guide)
 report = dl.compare(bpy.context)
 check("comparacao ignora guia com menos de dois pontos", "menos de dois pontos" in report, report)
+
+motion_curve = bpy.data.curves.new("MotionFailure", "CURVE")
+motion_curve.dimensions = "3D"
+motion_spline = motion_curve.splines.new("POLY")
+motion_spline.points.add(1)
+motion_spline.points[0].co = (0.0, 0.0, 0.0, 1.0)
+motion_spline.points[1].co = (1.0, 0.0, 0.0, 1.0)
+motion_guide = bpy.data.objects.new("MotionFailureGuide", motion_curve)
+motion_guide["dl_kind"] = "MOTION"
+motion_guide["dl_bone"] = "RightHand"
+motion_guide["dl_f0"] = 5
+motion_guide["dl_f1"] = 8
+dl._coll(bpy.context.scene).objects.link(motion_guide)
+bpy.context.scene.frame_set(37, subframe=0.25)
+with mock.patch.object(dl, "_nearest", side_effect=RuntimeError("falha injetada")):
+    try:
+        dl.compare(bpy.context)
+        raise AssertionError("a falha injetada deveria propagar")
+    except RuntimeError as exc:
+        check("falha de comparacao preserva frame", "falha injetada" in str(exc))
+check("comparacao restaura frame e subframe", bpy.context.scene.frame_current == 37 and abs(bpy.context.scene.frame_subframe - 0.25) < 1e-6)
 
 dl.unregister()
 print("PASS: Direction Lines robustez")

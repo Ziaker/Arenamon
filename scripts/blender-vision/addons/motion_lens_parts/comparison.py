@@ -188,12 +188,15 @@ def render_reference_overlay_sheet(
     if not 1 <= sample_count <= 16:
         raise RuntimeError("Use entre 1 e 16 amostras")
     original = arm.animation_data.action
+    original_slot = arm.animation_data.action_slot
     with _restore_frame(scene):
         try:
             _, current_segments = _sample_action(context, arm, current, sample_count, segments=True)
             _, reference_segments = _sample_action(context, arm, reference, sample_count, segments=True)
         finally:
             arm.animation_data.action = original
+            if original_slot is not None:
+                arm.animation_data.action_slot = original_slot
     views = ("FRONT", "SIDE", "TOP")
     width, height = cell_size * sample_count, cell_size * len(views)
     pixels = [0.035, 0.035, 0.045, 1.0] * (width * height)

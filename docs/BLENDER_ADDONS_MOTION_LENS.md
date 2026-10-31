@@ -7,7 +7,7 @@ Cópia versionada dos dois addons personalizados usados nos testes de animação
 | Addon | Caminho no repositório | Versão | SHA-256 |
 |---|---|---|---|
 | Motion Lens | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/` | 0.3.3 | ponto de entrada: `f4f948b6029e3bb3912150c9cd4da010bd3dfb8c9badc8258a69fedb69091bb3`; as partes possuem hashes próprios |
-| Direction Lines | `scripts/blender-vision/addons/direction_lines.py` | 0.1.1 | `a0f95852ba55908cae7b0c6ab1d69a747608b6099b1127fe376999dccd526793` |
+| Direction Lines | `scripts/blender-vision/addons/direction_lines.py` | 0.1.2 | `4a592e3d910d17363dc217123fc6152c66120b271c3bcddbb96ce05c3c8bac5f` |
 
 Estes arquivos são as fontes oficiais versionadas. A cópia instalada no Blender 5.2 só muda quando o instalador é executado explicitamente.
 
@@ -75,7 +75,8 @@ Para respeitar o limite de 2.000 linhas por arquivo (AGENTS.md), `scripts/blende
 - Nenhum handler ou retorno automático de frame foi adicionado.
 - O painel Motion Lens preserva os 15 comandos anteriores e expõe os dois operadores de golpe já existentes: 17 operadores e 40 propriedades.
 - O diagnóstico de golpe rotula contato como **CANDIDATO**, mostra frames, segundos, m/frame e m/s, e não infere colisão sem alvo/evento.
-- Derivação e comparação preservam Action Slot, frame/subframe e estado anterior; a derivação é removida se falhar.
+- Comparações, incluindo o overlay de referência, preservam Action Slot e frame/subframe. Em sucesso, `apply_impact` mantém a derivada ativa para inspeção; em falha, remove a derivada parcial e restaura a Action/slot anteriores.
+- Direction Lines 0.1.2 restaura frame e subframe também quando uma comparação falha.
 - Os controles estão agrupados por função: **Gerar evidências**, **Comparar animações**, **Visualizar movimento**, **Diagnosticar movimento**, **Perfis** e **Limpeza**.
 - `bl_info`, título do painel e relatório HTML usam a mesma versão definida em `motion_lens_parts/version.py`.
 

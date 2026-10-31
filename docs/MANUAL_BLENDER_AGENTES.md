@@ -76,7 +76,7 @@ Documentação: [README do blender-vision](../scripts/blender-vision/README.md) 
 | Add-on | No repositório | Instalado no Blender (verificado em 30/10/2026) |
 |---|---|---|
 | **Motion Lens** | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/`. Versão 0.3.3, 17 operadores e 40 propriedades. Inclui `motionlens.strike` (candidato de timing) e `motionlens.apply_impact` (cria uma **cópia** transacional da Action) | **0.3.2 modular, 15 operadores expostos; não foi reinstalado nesta auditoria** |
-| **Direction Lines** | `scripts/blender-vision/addons/direction_lines.py` 0.1.0 (`new_motion`, `new_action`, `dump`, `compare`, `clear`) | 0.1.0, os mesmos 5 operadores |
+| **Direction Lines** | `scripts/blender-vision/addons/direction_lines.py` 0.1.2; 5 operadores; frame/subframe protegido sob falha | 0.1.1; 5 operadores; não reinstalado |
 
 > [!WARNING]
 > **A versão do Motion Lens no repositório não é a instalada.** Antes de citar `strike` ou `apply_impact`, confirme no

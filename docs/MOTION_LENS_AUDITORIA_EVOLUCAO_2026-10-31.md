@@ -4,7 +4,7 @@ Data: 31/10/2026. Especificação operacional: `ARENAMON_MOTION_LENS_AUDITORIA_M
 
 ## Resultado executivo
 
-O código-fonte do Motion Lens passou de 15 para 17 operadores e de 36 para 40 propriedades registradas. Os dois operadores de golpe que já existiam no código agora são acessíveis no painel, sem remover nenhum comando anterior. A análise de golpe declara explicitamente **CANDIDATO de contato**, usa o intervalo real da Action e informa frames, segundos, m/frame e m/s. A criação de uma Action derivada é transacional, não altera a original nem o intervalo da cena e restaura Action, Action Slot, frame e subframe. As comparações também restauram o Action Slot.
+O código-fonte do Motion Lens passou de 15 para 17 operadores e de 36 para 40 propriedades registradas. Os dois operadores de golpe que já existiam no código agora são acessíveis no painel, sem remover nenhum comando anterior. A análise de golpe declara explicitamente **CANDIDATO de contato**, usa o intervalo real da Action e informa frames, segundos, m/frame e m/s. A criação de uma Action derivada é transacional e não altera a original nem o intervalo da cena. Em sucesso, a derivada fica ativa para inspeção; em falha, a Action e o Action Slot anteriores são restaurados. Todas as comparações, incluindo o overlay de referência, restauram o Action Slot.
 
 O instalador foi endurecido contra falhas no staging, backup, remoção e publicação. Nenhuma instalação foi executada: o Blender do usuário continua com a versão 0.3.2 anteriormente instalada. O fonte auditado é 0.3.3.
 
@@ -25,7 +25,7 @@ Nenhuma mecânica de combate, arquivo `.blend`, animação original, Wookada, Co
 | R02 | Quatro propriedades eram consumidas sem registro. Foram registradas com rótulos, limites e unidades visíveis. | Corrigido e testado |
 | R03 | Uma falha depois do backup podia deixar a instalação parcial. A remoção/publicação agora fica dentro da transação e o rollback restaura entrada e módulos. | Corrigido com cinco testes de falha |
 | R04 | A heurística confundia desaceleração com contato confirmado. Todos os textos e retornos agora dizem **CANDIDATO**, com limite explícito. | Corrigido e testado |
-| R05 | A derivação podia vazar estado e usar nome já existente. Agora tem nome único, Action Slot compatível, rollback e restauração de Action/slot/frame/subframe/faixa. A comparação também preserva slot. | Corrigido e testado |
+| R05 | A derivação podia vazar estado e usar nome já existente. Agora tem nome único, Action Slot compatível e rollback de Action/slot/frame/subframe/faixa em falha; no sucesso, deixa deliberadamente a derivada ativa para inspeção. Todas as comparações preservam slot. | Corrigido e testado |
 | R06 | Duas cópias carregadas no mesmo processo reutilizam o primeiro `motion_lens_parts` no `sys.modules`. O probe 9.9.1/9.9.2 reproduziu a colisão. | Confirmado; migração requer aprovação |
 | R07 | Fonte agora declara 0.3.3 em um único módulo e documentação distingue fonte de instalado. Hash do ponto de entrada isolado não basta para identificar o pacote modular; os hashes das partes devem integrar um manifesto futuro. | Parcial: fonte/documentos coerentes; instalação não autorizada |
 | R08 | A análise usava a faixa da cena. Agora usa `Action.frame_range` e torna FPS/unidades explícitos. | Corrigido e testado |
@@ -73,6 +73,7 @@ Nenhuma dessas fases maiores foi implementada nesta entrega. A aprovação deve 
 
 - Blender 5.2.2, factory startup: inventário 40 propriedades/17 operadores e registro/desregistro repetido.
 - Blender 5.2.2, rig sintético: intervalo 10–20 apesar da cena 1–250; unidades; candidato; fonte imutável; nome/slot; rollback; preservação de Action, slot, frame, subframe, câmera, render e seleção.
+- Blender 5.2.2: overlay de referência com dois Action Slots restaura a Action e o slot originais; Direction Lines restaura frame/subframe após exceção injetada.
 - Python unittest: cinco cenários do instalador (limpo e falhas em staging, backup, remoção e troca).
 - Probe de imports: colisão 9.9.1/9.9.2 reproduzida, mantida como diagnóstico arquitetural.
 
@@ -86,7 +87,7 @@ Nenhuma dessas fases maiores foi implementada nesta entrega. A aprovação deve 
 
 O Motion Lens fonte está em 0.3.3, modularizado em `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/`. A instalação real permanece 0.3.2 porque o usuário proibiu instalar addons sem autorização. O inventário público passou de 15/36 para 17 operadores/40 propriedades, preservando todos os recursos anteriores. `strike` e `apply_impact`, já existentes mas ocultos, agora estão registrados em um bloco funcional visível.
 
-Os defeitos objetivos R01–R05 e R08 foram corrigidos com testes sintéticos: golpe usa a faixa real da Action, informa frames/segundos e m/frame/m/s, chama o suposto contato de CANDIDATO, não de fato confirmado; derivação trabalha em cópia com nome único e slot compatível; falhas removem a cópia parcial e restauram Action/slot/frame/subframe/faixa; comparações restauram slot; o instalador tem staging/backup/publicação/rollback testados.
+Os defeitos objetivos R01–R05 e R08 foram corrigidos com testes sintéticos: golpe usa a faixa real da Action, informa frames/segundos e m/frame/m/s, chama o suposto contato de CANDIDATO, não de fato confirmado; derivação trabalha em cópia com nome único e slot compatível; falhas removem a cópia parcial e restauram Action/slot/frame/subframe/faixa; sucesso deixa a derivada ativa para inspeção; todas as comparações restauram slot; o instalador tem staging/backup/publicação/rollback testados.
 
 R06 foi reproduzido: duas árvores do addon no mesmo processo colidem no nome global `motion_lens_parts`, fazendo a segunda reutilizar a primeira versão. Não corrigir silenciosamente. A solução proposta é empacotamento Blender com imports relativos, migração compatível e testes de coexistência, sujeita a aprovação. R07 ficou coerente no fonte e documentação, mas a cópia instalada deliberadamente não foi atualizada.
 
