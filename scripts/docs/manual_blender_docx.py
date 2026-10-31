@@ -197,6 +197,9 @@ def main():
     limpar_corpo(doc)
     with open(a.md, encoding="utf-8") as f:
         converter(f.read(), doc)
+    if doc.paragraphs and not doc.paragraphs[-1].text.strip():
+        paragraph = doc.paragraphs[-1]._element
+        paragraph.getparent().remove(paragraph)
     doc.core_properties.title = "ARENAMON — Manual Blender para agentes de IA (V2.0)"
     doc.core_properties.revision = 2
     doc.save(a.saida)

@@ -206,11 +206,11 @@ class ML_OT_clear(bpy.types.Operator):
 class ML_OT_strike(bpy.types.Operator):
     bl_idname = "motionlens.strike"
     bl_label = "Analisar golpe"
-    bl_description = "Acha o contato, mede a duracao do bote, a aceleracao ate o contato e a segurada do impacto"
+    bl_description = "Estima um candidato de contato e mede bote, aceleracao e pausa; nao confirma contato sem alvo ou evento autorizado"
     def execute(self, context):
         try:
             info = analyze_strike(context)
-            self.report({'INFO'}, "Contato f%d, bote %d frames, segurada %d. Detalhes em ML_Golpe" % (info["contact"], info["strike"], info["hold"]))
+            self.report({'INFO'}, "Candidato f%d, bote %d frames, pausa %d. Detalhes em ML_Golpe" % (info["contact"], info["strike"], info["hold"]))
             return {'FINISHED'}
         except Exception as exc:
             self.report({'ERROR'}, str(exc))
@@ -219,8 +219,8 @@ class ML_OT_strike(bpy.types.Operator):
 
 class ML_OT_apply_impact(bpy.types.Operator):
     bl_idname = "motionlens.apply_impact"
-    bl_label = "Aplicar impacto (versao derivada)"
-    bl_description = "Cria uma copia da action com o bote no numero de frames alvo, acelerando ate o contato e segurando o impacto. A original nao muda"
+    bl_label = "Aplicar timing candidato (derivada)"
+    bl_description = "Cria uma Action derivada a partir do candidato estimado; a Action original nao muda e contato nao e confirmado"
     def execute(self, context):
         try:
             r = apply_impact(context)

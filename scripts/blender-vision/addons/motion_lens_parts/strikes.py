@@ -1,5 +1,6 @@
 # Motion Lens — parte «strikes» (dividida de motion_lens.py; a API pública continua em motion_lens.py).
 import bpy
+import math
 import os
 from .common import _action_keyed_frames, _armature, _context, _parse_mapping, _resolve_bone, _restore_frame, _world_point
 
@@ -17,12 +18,18 @@ def _action_fcurves(action):
 
 def _strike_samples(context, arm, roles):
     scene = context.scene
+    if arm is None:
+        raise RuntimeError("Selecione um armature")
+    action = arm.animation_data.action if arm.animation_data else None
+    if action is None:
+        raise RuntimeError("Armature sem Action ativa")
     mapping = _parse_mapping(scene.motion_lens_bone_map)
     bones = {r: _resolve_bone(arm, r, mapping) for r in roles}
     missing = [r for r, b in bones.items() if b is None]
     if missing:
         raise RuntimeError("Ossos nao encontrados: " + ", ".join(missing))
-    frames = list(range(scene.frame_start, scene.frame_end + 1))
+    start, end = action.frame_range
+    frames = list(range(math.floor(start), math.ceil(end) + 1))
     data = {r: [] for r in roles}
     with _restore_frame(scene):
         for f in frames:
@@ -38,6 +45,8 @@ def analyze_strike(context=None):
     scene = context.scene
     arm = _armature(context)
     eff = [s.strip() for s in scene.motion_lens_strike_effectors.split(",") if s.strip()]
+    if not eff:
+        raise RuntimeError("Informe ao menos um efetor do golpe")
     roles = list(dict.fromkeys(eff + ["Hips", "Head"]))
     frames, data = _strike_samples(context, arm, roles)
     n = len(frames)
@@ -85,29 +94,29 @@ def analyze_strike(context=None):
     if strike > t_strike:
         verdicts.append(("LENTO", "o bote dura %d frames (%.2f s); alvo ate %d. Encurte o trecho f%d-f%d." % (strike, strike / fps, t_strike, frames[windup_i], frames[contact_i])))
     else:
-        verdicts.append(("OK", "bote em %d frames (alvo ate %d)." % (strike, t_strike)))
+        verdicts.append(("OK", "bote em %d frames (%.2f s; alvo ate %d)." % (strike, strike / fps, t_strike)))
     if accel < 1.0:
         verdicts.append(("SEM ACELERACAO", "a mao chega ao contato mais devagar que a media do bote (%.2fx). Golpe forte acelera ate o contato." % accel))
     else:
         verdicts.append(("OK", "acelera ate o contato (%.2fx a media)." % accel))
     if hold < t_hold:
-        verdicts.append(("SEM SEGURADA", "%d frame(s) parado(s) depois do contato; alvo %d (hit-stop). O impacto nao assenta." % (hold, t_hold)))
+        verdicts.append(("SEM PAUSA", "%d frame(s) (%.2f s) abaixo do limiar depois do candidato; alvo %d. Nao equivale a hit-stop do jogo." % (hold, hold / fps, t_hold)))
     else:
-        verdicts.append(("OK", "segura %d frames no impacto." % hold))
+        verdicts.append(("OK", "pausa %d frames (%.2f s) depois do candidato." % (hold, hold / fps)))
     if turns > 1:
         verdicts.append(("ANTECIPACAO DUPLA", "o tronco muda de sentido %d vezes antes do bote; a preparacao fica diluida." % turns))
     lines = ["MOTION LENS - GOLPE", "Action: %s | frames %d..%d | %.0f FPS" % (arm.animation_data.action.name if arm.animation_data and arm.animation_data.action else "-", frames[0], frames[-1], fps),
-             "Contato: f%d (%s)" % (frames[contact_i], how),
+             "CANDIDATO de contato: f%d (%s)" % (frames[contact_i], how),
              "Inicio do bote (pose mais aberta/carregada): f%d" % frames[windup_i],
-             "Velocidade media das maos: pico %.3f m/frame, media no bote %.3f, no contato %.3f" % (peak, mean, last), ""]
+             "Velocidade dos efetores: pico %.3f m/frame (%.3f m/s), media %.3f m/frame (%.3f m/s), no candidato %.3f m/frame (%.3f m/s)" % (peak, peak * fps, mean, mean * fps, last, last * fps), ""]
     lines += ["[%s] %s" % v for v in verdicts]
-    lines += ["", "LIMITES: mede tempo e velocidade; nao julga pose, silhueta nem estilo. Use 'Aplicar impacto' para gerar uma versao derivada com o timing alvo."]
+    lines += ["", "LIMITES: CANDIDATO inferido, nao contato confirmado. Sem alvo geometrico ou evento autorizado, mede apenas tempo e velocidade. Nao julga pose, silhueta nem estilo."]
     text = "\n".join(lines)
     block = bpy.data.texts.get(STRIKE_TEXT) or bpy.data.texts.new(STRIKE_TEXT)
     block.clear()
     block.write(text)
     print(text)
-    return {"contact": frames[contact_i], "windup": frames[windup_i], "strike": strike, "accel": accel, "hold": hold, "turns": turns, "text": text}
+    return {"contact": frames[contact_i], "contact_status": "CANDIDATO", "windup": frames[windup_i], "strike": strike, "accel": accel, "hold": hold, "turns": turns, "frames": frames, "fps": fps, "text": text}
 
 
 def apply_impact(context=None):
@@ -118,6 +127,11 @@ def apply_impact(context=None):
     src = arm.animation_data.action if arm.animation_data else None
     if src is None:
         raise RuntimeError("Armature sem action")
+    original_action = src
+    original_slot = getattr(arm.animation_data, "action_slot", None)
+    original_frame = scene.frame_current
+    original_subframe = scene.frame_subframe
+    original_range = (scene.frame_start, scene.frame_end)
     info = analyze_strike(context)
     keys = sorted(_action_keyed_frames(src))
     if len(keys) < 2:
@@ -130,10 +144,7 @@ def apply_impact(context=None):
     strike, hold = scene.motion_lens_strike_frames, scene.motion_lens_hold_frames
     new_contact = windup + strike
     delta = new_contact - contact
-    dst = src.copy()
-    base = src.name + "_impacto"
-    dst.name = base
-    dst.use_fake_user = True
+    dst = None
 
     def remap(x):
         if x <= windup + 1e-6:
@@ -142,26 +153,50 @@ def apply_impact(context=None):
             return windup + (x - windup) * strike / float(contact - windup)
         return x + delta + hold
 
-    for fc in _action_fcurves(dst):
-        hold_val = fc.evaluate(contact)
-        for k in fc.keyframe_points:
-            nx = remap(k.co.x)
-            dx = nx - k.co.x
-            k.co.x = nx
-            k.handle_left.x += dx
-            k.handle_right.x += dx
-        for k in fc.keyframe_points:
-            f = int(round(k.co.x))
-            if f == windup:
-                k.interpolation = 'EXPO'
-                k.easing = 'EASE_IN'
-            elif f == new_contact:
-                k.interpolation = 'CONSTANT'
-        if hold:
-            kp = fc.keyframe_points.insert(new_contact + hold, hold_val)
-            kp.interpolation = 'BEZIER'
-        fc.update()
-    arm.animation_data.action = dst
-    if scene.frame_end > contact:
-        scene.frame_end = max(scene.frame_start + 1, scene.frame_end + delta + hold)
-    return {"action": dst.name, "windup": windup, "contact": new_contact, "hold_end": new_contact + hold, "old_contact": contact}
+    try:
+        dst = src.copy()
+        base = src.name + "_impacto"
+        suffix = 1
+        name = base
+        while bpy.data.actions.get(name) not in (None, dst):
+            name = "%s_%02d" % (base, suffix)
+            suffix += 1
+        dst.name = name
+        dst.use_fake_user = True
+        for fc in _action_fcurves(dst):
+            hold_val = fc.evaluate(contact)
+            for k in fc.keyframe_points:
+                nx = remap(k.co.x)
+                dx = nx - k.co.x
+                k.co.x = nx
+                k.handle_left.x += dx
+                k.handle_right.x += dx
+            for k in fc.keyframe_points:
+                f = int(round(k.co.x))
+                if f == windup:
+                    k.interpolation = 'EXPO'
+                    k.easing = 'EASE_IN'
+                elif f == new_contact:
+                    k.interpolation = 'CONSTANT'
+            if hold:
+                kp = fc.keyframe_points.insert(new_contact + hold, hold_val)
+                kp.interpolation = 'BEZIER'
+            fc.update()
+        arm.animation_data.action = dst
+        slots = list(getattr(dst, "slots", ()))
+        slot = next((candidate for candidate in slots if original_slot and candidate.identifier == original_slot.identifier), None)
+        if slot is None and slots:
+            slot = slots[0]
+        if slot is not None:
+            arm.animation_data.action_slot = slot
+        return {"action": dst.name, "windup": windup, "contact": new_contact, "hold_end": new_contact + hold, "old_contact": contact, "contact_status": "CANDIDATO"}
+    except Exception:
+        arm.animation_data.action = original_action
+        if original_slot is not None:
+            arm.animation_data.action_slot = original_slot
+        if dst is not None:
+            bpy.data.actions.remove(dst)
+        raise
+    finally:
+        scene.frame_start, scene.frame_end = original_range
+        scene.frame_set(original_frame, subframe=original_subframe)

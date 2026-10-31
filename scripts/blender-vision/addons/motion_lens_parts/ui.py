@@ -3,7 +3,7 @@ import bpy
 from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
 from .comparison import save_baseline
 from .contract import load_profile, save_profile
-from .operators import ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_trails
+from .operators import ML_OT_apply_impact, ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_strike, ML_OT_trails
 from .version import VERSION_TEXT
 
 
@@ -76,6 +76,15 @@ class ML_PT_panel(bpy.types.Panel):
         col.prop(scene, "motion_lens_extra_motion_min")
 
         col = self.layout.box().column(align=True)
+        col.label(text="Analisar e derivar golpe")
+        col.prop(scene, "motion_lens_strike_effectors")
+        col.prop(scene, "motion_lens_hold_speed")
+        col.prop(scene, "motion_lens_strike_frames")
+        col.prop(scene, "motion_lens_hold_frames")
+        col.operator("motionlens.strike")
+        col.operator("motionlens.apply_impact")
+
+        col = self.layout.box().column(align=True)
         col.label(text="Perfis")
         col.prop(scene, "motion_lens_profile_path")
         row = col.row(align=True)
@@ -92,7 +101,7 @@ classes = (
     ML_OT_contact_sheet, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet,
     ML_OT_reference_overlay, ML_OT_pose_diff, ML_OT_html_report,
     ML_OT_save_profile, ML_OT_load_profile, ML_OT_save_baseline, ML_OT_check_baseline,
-    ML_OT_clear, ML_PT_panel,
+    ML_OT_clear, ML_OT_strike, ML_OT_apply_impact, ML_PT_panel,
 )
 
 
@@ -133,4 +142,14 @@ PROPERTIES = {
     "motion_lens_arc_straight_frames": IntProperty(name="Frames arco reto", default=5, min=2, max=60),
     "motion_lens_tangent_break_ratio": FloatProperty(name="Quebra tangente", default=0.65, min=0.01, max=1.0),
     "motion_lens_extra_motion_min": FloatProperty(name="Movimento extra minimo", default=0.02, min=0.0001, max=2.0),
+    "motion_lens_strike_effectors": StringProperty(
+        name="Efetores do golpe",
+        default="RightHand",
+        description="Papeis de ossos separados por virgula; o resultado indica candidato de contato, nunca contato confirmado",
+    ),
+    "motion_lens_hold_speed": FloatProperty(
+        name="Limiar segurada (m/frame)", default=0.01, min=0.0, max=10.0, precision=4,
+    ),
+    "motion_lens_strike_frames": IntProperty(name="Bote alvo (frames)", default=4, min=1, max=120),
+    "motion_lens_hold_frames": IntProperty(name="Segurada alvo (frames)", default=2, min=0, max=120),
 }

@@ -75,15 +75,15 @@ Documentação: [README do blender-vision](../scripts/blender-vision/README.md) 
 
 | Add-on | No repositório | Instalado no Blender (verificado em 30/10/2026) |
 |---|---|---|
-| **Motion Lens** | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/`. `bl_info` 0.3.1, mas o painel diz «0.4.0». Tem 17 operadores, incluindo `motionlens.strike` (Analisar golpe) e `motionlens.apply_impact` (cria uma **cópia** da Action com o bote retimado) | **0.3.1, arquivo único, 15 operadores, sem `strike`/`apply_impact`** |
+| **Motion Lens** | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/`. Versão 0.3.3, 17 operadores e 40 propriedades. Inclui `motionlens.strike` (candidato de timing) e `motionlens.apply_impact` (cria uma **cópia** transacional da Action) | **0.3.2 modular, 15 operadores expostos; não foi reinstalado nesta auditoria** |
 | **Direction Lines** | `scripts/blender-vision/addons/direction_lines.py` 0.1.0 (`new_motion`, `new_action`, `dump`, `compare`, `clear`) | 0.1.0, os mesmos 5 operadores |
 
 > [!WARNING]
 > **A versão do Motion Lens no repositório não é a instalada.** Antes de citar `strike` ou `apply_impact`, confirme no
 > Blender com `'apply_impact' in dir(bpy.ops.motionlens)`. Para atualizar, existe `instalar_motion_lens.py`: sem
 > `--instalar` ele só mostra o que faria; com `--instalar` copia e guarda um `.bak`. Instalar e ativar exigem consentimento
-> do responsável. O documento [BLENDER_ADDONS_MOTION_LENS.md](BLENDER_ADDONS_MOTION_LENS.md) descreve a versão 0.3.1 e
-> ainda não registra essa diferença.
+> do responsável. O documento [BLENDER_ADDONS_MOTION_LENS.md](BLENDER_ADDONS_MOTION_LENS.md) registra separadamente
+> a fonte e a cópia instalada.
 
 Os operadores do Motion Lens instalado (todos de análise): `ghosts`, `trails`, `report`, `graphs`, `contact_sheet`,
 `silhouette_sheet`, `skeleton_sheet`, `reference_overlay`, `pose_diff`, `html_report`, `save_profile`, `load_profile`,
@@ -452,7 +452,6 @@ no Blender instalado.
 
 ## 14. Histórico
 
-| Versão | Data | Mudança |
-|---|---|---|
-| V1.0 | 30/10/2026 | Versão inicial (DOCX), [preservada](ARENAMON_Manual_Blender_Para_Agentes_IA_V1_original.docx) |
-| V2.0 | 30/10/2026 | Revisão após a [auditoria](AUDITORIA_MANUAL_BLENDER_2026-10-30.md): inventário das ferramentas existentes; modos A/B/C; Blender 5.2.2 e API de slots; Motion Lens repositório × instalado; MCP real; janelas de combate corrigidas (`overlayProfileWindows`); direitos conforme AGENTS.md com ressalva de licença; Bridge descartado em favor de estender o que existe |
+- **V1.0 — 30/10/2026:** versão inicial (DOCX), [preservada](ARENAMON_Manual_Blender_Para_Agentes_IA_V1_original.docx).
+- **V2.0 — 30/10/2026:** auditoria técnica e governança.
+- **V2.1 — 31/10/2026:** Motion Lens 0.3.3.

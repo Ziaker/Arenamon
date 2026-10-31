@@ -61,11 +61,11 @@ def install(dest, source=AQUI):
         if os.path.isdir(parts_target):
             shutil.copytree(parts_target, old_parts, ignore=shutil.ignore_patterns("__pycache__"))
 
-        if os.path.exists(entry_target):
-            os.remove(entry_target)
-        if os.path.isdir(parts_target):
-            shutil.rmtree(parts_target)
         try:
+            if os.path.exists(entry_target):
+                os.remove(entry_target)
+            if os.path.isdir(parts_target):
+                shutil.rmtree(parts_target)
             os.replace(os.path.join(stage, "motion_lens.py"), entry_target)
             os.replace(os.path.join(stage, "motion_lens_parts"), parts_target)
         except Exception:
@@ -74,9 +74,9 @@ def install(dest, source=AQUI):
             if os.path.isdir(parts_target):
                 shutil.rmtree(parts_target)
             if os.path.isfile(old_entry):
-                os.replace(old_entry, entry_target)
+                shutil.copy2(old_entry, entry_target)
             if os.path.isdir(old_parts):
-                os.replace(old_parts, parts_target)
+                shutil.copytree(old_parts, parts_target, ignore=shutil.ignore_patterns("__pycache__"))
             raise
 
         if os.path.isfile(old_entry):
