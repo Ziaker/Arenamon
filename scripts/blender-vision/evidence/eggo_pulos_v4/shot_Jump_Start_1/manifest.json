@@ -1,0 +1,295 @@
+{
+ "blend": "C:\\Users\\zerke\\OneDrive\\Área de Trabalho\\Arenamon\\chars\\Eggo\\eggo pulos v4.blend",
+ "armature": "AlienRig",
+ "meshes": [
+  "output_unwrapped"
+ ],
+ "mode_run": "shot",
+ "engine": "BLENDER_WORKBENCH",
+ "size": 200,
+ "offset": 0,
+ "frame_note": "frame_autoral = frame_timeline - offset",
+ "render_note": "Workbench headless, NAO e o viewport real do Blender. Camera, luz e grade de chao sao proprias da ferramenta.",
+ "views": {
+  "side_nX": "lado, camera em -X (lado DIREITO do personagem)",
+  "front": "frente (camera em -Y)"
+ },
+ "items": [
+  {
+   "file": "side_nX_solid_t001_g001.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     -6.0539,
+     0.9272,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.922,
+    0.867,
+    0.802
+   ]
+  },
+  {
+   "file": "front_solid_t001_g001.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     0.2861,
+     -5.4129,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": -0.042,
+   "bbox_size_m": [
+    0.922,
+    0.867,
+    0.802
+   ]
+  },
+  {
+   "file": "side_nX_solid_t002_g002.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     -6.0539,
+     0.9272,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": -0.053,
+   "bbox_size_m": [
+    0.918,
+    0.867,
+    0.953
+   ]
+  },
+  {
+   "file": "front_solid_t002_g002.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     0.2861,
+     -5.4129,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": -0.053,
+   "bbox_size_m": [
+    0.918,
+    0.867,
+    0.953
+   ]
+  },
+  {
+   "file": "side_nX_solid_t003_g003.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     -6.0539,
+     0.9272,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": -0.001,
+   "bbox_size_m": [
+    0.933,
+    0.824,
+    0.989
+   ]
+  },
+  {
+   "file": "front_solid_t003_g003.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     0.2861,
+     -5.4129,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": -0.001,
+   "bbox_size_m": [
+    0.933,
+    0.824,
+    0.989
+   ]
+  },
+  {
+   "file": "side_nX_solid_t004_g004.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     -6.0539,
+     0.9272,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": 0.057,
+   "bbox_size_m": [
+    0.921,
+    0.841,
+    0.928
+   ]
+  },
+  {
+   "file": "front_solid_t004_g004.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.78,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.4491
+    ],
+    "location": [
+     0.2861,
+     -5.4129,
+     0.4491
+    ]
+   },
+   "bbox_min_z_m": 0.057,
+   "bbox_size_m": [
+    0.921,
+    0.841,
+    0.928
+   ]
+  }
+ ],
+ "extra": {},
+ "action": "Jump Start 1",
+ "smart_reasons": {},
+ "align": "root",
+ "scale_ref_m": 1.589,
+ "camera_policy": "alinhamento=root; escala e lente fixas para todos os frames",
+ "blend_untouched": true,
+ "blend_sha256": "3f35da62372750b4b25ee38afb0563c44490fa4fd42e9005008495fe29b3207c",
+ "proveniencia": {
+  "codigo_sha256_16": {
+   "vision.py": "71458c847f9fac6a",
+   "check_inside.py": "0993180e3af357f9",
+   "inside_blender.py": "50ad1505d16eb142",
+   "dense_inside.py": "d6177b61c174fcef",
+   "vision_common.py": "4be620e547d6faca"
+  },
+  "blend": "eggo pulos v4.blend",
+  "blend_sha256_16": "3f35da62372750b4",
+  "entradas_sha256_16": {
+   "interp_envelope.json": "e018d38c8cec3d46",
+   "corpus_envelope.json": "02a8e8ebe7f10265"
+  },
+  "quando": "2026-10-31 15:36:04"
+ },
+ "sheets": [
+  "sheet_side_nX_solid.png",
+  "sheet_front_solid.png"
+ ]
+}

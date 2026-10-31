@@ -1,0 +1,605 @@
+{
+ "blend": "C:\\Users\\zerke\\OneDrive\\Área de Trabalho\\Arenamon\\chars\\Eggo\\eggo pulos v4.blend",
+ "armature": "AlienRig",
+ "meshes": [
+  "output_unwrapped"
+ ],
+ "mode_run": "shot",
+ "engine": "BLENDER_WORKBENCH",
+ "size": 200,
+ "offset": 0,
+ "frame_note": "frame_autoral = frame_timeline - offset",
+ "render_note": "Workbench headless, NAO e o viewport real do Blender. Camera, luz e grade de chao sao proprias da ferramenta.",
+ "views": {
+  "side_nX": "lado, camera em -X (lado DIREITO do personagem)",
+  "front": "frente (camera em -Y)"
+ },
+ "items": [
+  {
+   "file": "side_nX_solid_t001_g001.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.057,
+   "bbox_size_m": [
+    0.921,
+    0.859,
+    0.922
+   ]
+  },
+  {
+   "file": "front_solid_t001_g001.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 1,
+   "frame_autoral": 1,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.057,
+   "bbox_size_m": [
+    0.921,
+    0.859,
+    0.922
+   ]
+  },
+  {
+   "file": "side_nX_solid_t002_g002.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.076,
+   "bbox_size_m": [
+    0.927,
+    0.864,
+    0.891
+   ]
+  },
+  {
+   "file": "front_solid_t002_g002.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 2,
+   "frame_autoral": 2,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.076,
+   "bbox_size_m": [
+    0.927,
+    0.864,
+    0.891
+   ]
+  },
+  {
+   "file": "side_nX_solid_t003_g003.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.097,
+   "bbox_size_m": [
+    0.93,
+    0.869,
+    0.859
+   ]
+  },
+  {
+   "file": "front_solid_t003_g003.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 3,
+   "frame_autoral": 3,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.097,
+   "bbox_size_m": [
+    0.93,
+    0.869,
+    0.859
+   ]
+  },
+  {
+   "file": "side_nX_solid_t004_g004.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.119,
+   "bbox_size_m": [
+    0.929,
+    0.876,
+    0.825
+   ]
+  },
+  {
+   "file": "front_solid_t004_g004.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 4,
+   "frame_autoral": 4,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.119,
+   "bbox_size_m": [
+    0.929,
+    0.876,
+    0.825
+   ]
+  },
+  {
+   "file": "side_nX_solid_t005_g005.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.14,
+   "bbox_size_m": [
+    0.925,
+    0.881,
+    0.79
+   ]
+  },
+  {
+   "file": "front_solid_t005_g005.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 5,
+   "frame_autoral": 5,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.14,
+   "bbox_size_m": [
+    0.925,
+    0.881,
+    0.79
+   ]
+  },
+  {
+   "file": "side_nX_solid_t006_g006.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 6,
+   "frame_autoral": 6,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.119,
+   "bbox_size_m": [
+    0.929,
+    0.876,
+    0.825
+   ]
+  },
+  {
+   "file": "front_solid_t006_g006.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 6,
+   "frame_autoral": 6,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.119,
+   "bbox_size_m": [
+    0.929,
+    0.876,
+    0.825
+   ]
+  },
+  {
+   "file": "side_nX_solid_t007_g007.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 7,
+   "frame_autoral": 7,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.097,
+   "bbox_size_m": [
+    0.93,
+    0.869,
+    0.859
+   ]
+  },
+  {
+   "file": "front_solid_t007_g007.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 7,
+   "frame_autoral": 7,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.097,
+   "bbox_size_m": [
+    0.93,
+    0.869,
+    0.859
+   ]
+  },
+  {
+   "file": "side_nX_solid_t008_g008.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 8,
+   "frame_autoral": 8,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.076,
+   "bbox_size_m": [
+    0.927,
+    0.864,
+    0.891
+   ]
+  },
+  {
+   "file": "front_solid_t008_g008.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 8,
+   "frame_autoral": 8,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.076,
+   "bbox_size_m": [
+    0.927,
+    0.864,
+    0.891
+   ]
+  },
+  {
+   "file": "side_nX_solid_t009_g009.png",
+   "view": "side_nX",
+   "mode": "solid",
+   "frame_timeline": 9,
+   "frame_autoral": 9,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "side_nX",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     -5.9593,
+     0.9272,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.057,
+   "bbox_size_m": [
+    0.921,
+    0.859,
+    0.922
+   ]
+  },
+  {
+   "file": "front_solid_t009_g009.png",
+   "view": "front",
+   "mode": "solid",
+   "frame_timeline": 9,
+   "frame_autoral": 9,
+   "zoom": null,
+   "zoom_radius_m": null,
+   "camera": {
+    "view": "front",
+    "type": "ORTHO",
+    "ortho_scale": 1.7485,
+    "lens": 50.0,
+    "center": [
+     0.2861,
+     0.9272,
+     0.5254
+    ],
+    "location": [
+     0.2861,
+     -5.3182,
+     0.5254
+    ]
+   },
+   "bbox_min_z_m": 0.057,
+   "bbox_size_m": [
+    0.921,
+    0.859,
+    0.922
+   ]
+  }
+ ],
+ "extra": {},
+ "action": "Jump Rise 1",
+ "smart_reasons": {},
+ "align": "root",
+ "scale_ref_m": 1.561,
+ "camera_policy": "alinhamento=root; escala e lente fixas para todos os frames",
+ "blend_untouched": true,
+ "blend_sha256": "3f35da62372750b4b25ee38afb0563c44490fa4fd42e9005008495fe29b3207c",
+ "proveniencia": {
+  "codigo_sha256_16": {
+   "vision.py": "71458c847f9fac6a",
+   "check_inside.py": "0993180e3af357f9",
+   "inside_blender.py": "50ad1505d16eb142",
+   "dense_inside.py": "d6177b61c174fcef",
+   "vision_common.py": "4be620e547d6faca"
+  },
+  "blend": "eggo pulos v4.blend",
+  "blend_sha256_16": "3f35da62372750b4",
+  "entradas_sha256_16": {
+   "interp_envelope.json": "e018d38c8cec3d46",
+   "corpus_envelope.json": "02a8e8ebe7f10265"
+  },
+  "quando": "2026-10-31 15:36:11"
+ },
+ "sheets": [
+  "sheet_side_nX_solid.png",
+  "sheet_front_solid.png"
+ ]
+}
