@@ -184,8 +184,9 @@ Contratos implementados:
 
 ---
 
-## 3. Demonstração do Fluxo Ponta a Ponta
+## 3. Demonstração e Homologação Prática
 
+### 3.1 Pipeline Sintético Ponta a Ponta
 O teste automatizado [`test_f03_f15_end_to_end.py`](../scripts/blender-vision/tests/test_f03_f15_end_to_end.py) demonstra o pipeline completo operando em fixtures sintéticas:
 1. **Entrada:** Lista de ossos do armature e canais de pose.
 2. **F03:** Mapeamento automático de papéis via `build_rig_map(...)` com preservação dos nomes originais de ossos e isolamento de membros ausentes.
@@ -193,8 +194,24 @@ O teste automatizado [`test_f03_f15_end_to_end.py`](../scripts/blender-vision/te
 4. **F15:** Construção do relatório estruturado via `build_agent_report(...)` com taxonomia epistêmica e evidências criptografadas.
 5. **Validação:** Validação estrita via `validate_agent_report(report, verify_files=True)` garantindo conformidade matemática, ausência de frases genéricas e impossibilidade de auto-aplicação não autorizada.
 
+### 3.2 Homologação com Assets Reais (`test_f03_f15_real_assets.py`)
+O teste [`test_f03_f15_real_assets.py`](../scripts/blender-vision/tests/test_f03_f15_real_assets.py) homologa os contratos contra arquivos reais dos três ecossistemas do projeto:
+1. **Gigantic Real (`Pakko_Animations.blend`):**
+   - Extrai via Blender 5.2.2 headless a lista exata de 83 ossos de Pakko (`b_Root`, `b_Pelvis`, `b_Bicep_L`, `b_Elbow_L`, `b_Wrist_L`, `b_Thigh_L`, `b_Knee_L`, `b_Ankle_L`, etc.).
+   - Mapeia via F03 com template `GIGANTIC_UNREAL`.
+   - Lê a curva de deslocamento de raiz da Action `Skill_RushAttack` via channelbag do Blender 5, medindo exatamente 400.0 cm ($4.00\text{ m}$).
+   - Vincula a folha de contato real PNG publicada (`GIG-P1-PAKKO-Skill_RushAttack-FRONT.png`), validando a existência física e o hash SHA-256 no disco.
+2. **Arenamon Real (`Eggo idle.blend`):**
+   - Extrai via Blender 5.2.2 headless a lista exata de 20 ossos do armature `AlienRig` do Eggo (`Root`, `Hips`, `Spine`, `Chest`, `Neck`, `Head`, `LeftArm`, `LeftFoot`, etc.).
+   - Mapeia via F03 com template `ALIEN_RIG`.
+   - Avalia a Action real de repouso `Idle 5 Organica` (101 frames a 24 FPS) e valida o relatório F15 gerado.
+3. **Pokémon Z-A Real (`paridade_fk_2026-10-25.json`):**
+   - Extrai dados reais do benchmark de paridade de cinemática direta FK (Golisopod `pm0867`).
+   - Mapeia os ossos via F03 com template `POKEMON_ZA` (`Root`, `Waist`, `ArmL`, `FootL`).
+   - Registra as métricas reais de altura ($1.98\text{ m}$) e erro relativo de FK ($0.0005\% H$).
+
 ### Como Executar os Testes
 ```bash
-# Executa todos os testes unitários de F03, F15 e integração ponta a ponta
+# Executa todos os 17 testes unitários, ponta a ponta e de assets reais
 python -m unittest discover -s scripts/blender-vision/tests -p "test_f*.py"
 ```
