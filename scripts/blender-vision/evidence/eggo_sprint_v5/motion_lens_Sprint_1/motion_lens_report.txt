@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..33 (33) | 24.000 FPS | 1.375 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [MEDIO] f4    deslizamento  LeftFoot   0.075 m entre frames baixos consecutivos
+  [MEDIO] f20   deslizamento  RightFoot  0.075 m entre frames baixos consecutivos
+  [MEDIO] f32   equilibrio    COM        centro aproximado 0.290 m fora do apoio simplificado
+  [MEDIO] f16   equilibrio    COM        centro aproximado 0.272 m fora do apoio simplificado
+  [MEDIO] f6    reversao      LeftLeg    inversao brusca de direcao (dot -0.94)
+  [MEDIO] f1    equilibrio    COM        centro aproximado 0.250 m fora do apoio simplificado
+  [MEDIO] f33   equilibrio    COM        centro aproximado 0.250 m fora do apoio simplificado
+  [MEDIO] f3    arco          LeftFoot   quebra de curvatura 133.4 graus
+  [MEDIO] f2    equilibrio    COM        centro aproximado 0.238 m fora do apoio simplificado
+  [MEDIO] f19   arco          RightFoot  quebra de curvatura 128.4 graus
+  [MEDIO] f4    reversao      LeftLeg    inversao brusca de direcao (dot -0.91)
+  [MEDIO] f17   equilibrio    COM        centro aproximado 0.233 m fora do apoio simplificado
+  ... 78 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.080 m/frame em f3 | media 0.056
+  Head       pico 0.079 m/frame em f3 | media 0.056
+  LeftHand   pico 0.080 m/frame em f3 | media 0.056
+  RightHand  pico 0.081 m/frame em f2 | media 0.056
+  LeftFoot   pico 0.136 m/frame em f13 | media 0.070
+  RightFoot  pico 0.135 m/frame em f29 | media 0.070
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 6 baixos, 1 quase travados, slide max 0.075 m/frame, z<=0.032
+  RightFoot: 5 baixos, 0 quase travados, slide max 0.075 m/frame, z<=0.033
+  Malha: z minimo -0.0650 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

@@ -1,15 +1,15 @@
 # Eggo · sprint (Sprint 1)
 
-Estado: **v4 aguardando opinião do responsável** (31/10/2026). Pedido da v4: mais suave, 40 frames, volta das pernas mais suave e inclinar 5° para o lado da perna. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
+Estado: **v5 aguardando opinião do responsável** (31/10/2026). Pedido da v5: braços consistentemente atrás, o tombo de 5° de verdade (corpo inteiro) e um pouco mais rápido. A v1 (4 m por pisada) foi recusada («4 metros parece imenso, eu digo 0,8 metros»); a v2 também («mudou tudo além de só a distância» e as pernas não esticavam). Ideia escolhida: **1 corrida para a frente** +
 corpo girando no jogo (pernas para onde corre, tronco/cabeça para o rival). A parte do jogo só começa depois da
 animação aprovada.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo sprint v4.blend` (Action `Sprint 1`).
-- Folhas dos 40 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v4/shot_Sprint_1/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v4/motion_lens_Sprint_1/`.
-- Histórico: `eggo sprint v1.blend` (4 m), `v2` (0,8 m com tudo mudado) e `v3` (26 f, LINEAR), evidências em `eggo_sprint_v1/` a `v3/`.
+- Arquivo: `chars/Eggo/eggo sprint v5.blend` (Action `Sprint 1`).
+- Folhas dos 32 frames (lado e frente): `scripts/blender-vision/evidence/eggo_sprint_v5/shot_Sprint_1/report.html`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_sprint_v5/motion_lens_Sprint_1/`.
+- Histórico: `eggo sprint v1.blend` (4 m), `v2` (0,8 m com tudo mudado), `v3` (26 f, LINEAR) e `v4` (40 f), evidências em `eggo_sprint_v1/` a `v4/`.
 
 ## Como foi feito
 
@@ -24,6 +24,18 @@ animação aprovada.
 - Braços: o braço do Eggo aponta para trás; ao inclinar o tronco ele levantaria, então gira para a frente o mesmo
   ângulo e balança ±12° oposto às pernas; cotovelo ~20° mais dobrado que na idle.
 - Chaves LINEAR, 15 por osso.
+
+## v5 (braços atrás, tombo no corpo inteiro, 32 frames)
+
+- **Braços fixos atrás:** sem a compensação e sem o balanço da v4 (que fazia o braço ir e voltar e às vezes passar para a
+  frente). O braço fica atrás do corpo, 21–24° abaixo da horizontal em todos os frames, com só um atraso leve de 3° no
+  sobe/desce do pulinho; cotovelo continua mais dobrado.
+- **Tombo de 5° de verdade:** a inclinação saiu do quadril/coluna/peito e foi para o **Root** (personagem inteiro, pernas
+  corrigidas pelo IK com os pés no lugar): +5° para a esquerda no toque do pé esquerdo, −5° para a direita no direito.
+- **Mais rápido:** ciclo de **32 frames** (16 por pisada; pé direito toca no f17), tempos escalados; resto igual à v4.
+- Depois do impulso o quadril fica 6 cm mais alto e desce em 8 frames (corpo esticado seguindo o empurrão), para a
+  perna de trás ficar reta sem arrastar o pé (dobra só até 78% e volta a 95%).
+- Motion Lens: **nenhum alerta ALTO**; Direction Lines: quadril sem retrocesso, desvio máx. 5 cm.
 
 ## v4 (40 frames, suave, inclinação lateral)
 
