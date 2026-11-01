@@ -102,14 +102,15 @@ export function commandOutcome(/** @type {ReturnType<typeof snapshotBefore>} */ 
 //   state-enter / state-exit : entrada e saída de um estado de animação (identidade = serial da execução, ex. «tackle#1»);
 //   epilogue-start / epilogue-end : início e fim NATURAL da conclusão visual;
 //   epilogue-interrupted : a conclusão foi cortada (cause = reasonCode: locomotion-cancel, action-accepted, combat-reaction…).
-// eventId = «<executionId>#<tipo>»: sai no máximo UMA vez por Character; a prévia do Editor não gera evento; a restauração de
+// eventId = «<executionId>@<tick>#<tipo>»: sai no máximo UMA vez por Character (o tick separa reentradas de estados sem serial, como neutral#0); a prévia do Editor não gera evento; a restauração de
 // save/load (resumeEpilogue) fica muda, então carregar uma partida não repete enter/start. Só apresentação: nada aqui escreve
 // no lutador nem decide combate (efeitos mecânicos continuam sendo de Game).
 // ---------------------------------------------------------------------------------------------------------------------
 /** Eventos tipados de UMA entrada do log (0 a 3 eventos). */
 export function animEventsOf(/** @type {any} */ ev) {
   const base = {tick: ev.tick ?? null, from: ev.from ?? null, to: ev.to ?? null, reasonCode: ev.reasonCode ?? reasonCodeOf(ev)};
-  const mk = (type, executionId, state, extra = {}) => executionId ? [{type, executionId, eventId: `${executionId}#${type}`, state, ...base, ...extra}] : [];
+  const when = ev.tick ?? `t${ev.t}`;   // estados sem serial próprio (neutral#0, walk#0) reentram: o tick distingue as visitas
+  const mk = (type, executionId, state, extra = {}) => executionId ? [{type, executionId, eventId: `${executionId}@${when}#${type}`, state, ...base, ...extra}] : [];
   if (ev.reason === 'conclusão visual') return mk('epilogue-start', ev.execTo, ev.to);
   if (ev.reason === 'conclusão natural') return mk('epilogue-end', ev.execFrom, ev.from);
   const out = [];
@@ -127,6 +128,6 @@ export function emitAnimEvents(/** @type {any} */ ch, /** @type {any} */ ev) {
     if (ids.has(e.eventId)) continue;
     ids.add(e.eventId);list.push(e);
     if (list.length > 400) ids.delete(list.shift().eventId);
-    ch.onAnimEvent?.(e);
+    try {ch.onAnimEvent?.(e);} catch (err) {ch.animEventErrors = (ch.animEventErrors ?? 0) + 1;}   // erro num ouvinte visual nunca derruba a animação nem o jogo
   }
 }

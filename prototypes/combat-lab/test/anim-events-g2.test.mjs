@@ -16,6 +16,7 @@ const lock = {target: 1, locked: true};
 const shortTackle = () => {C.actions.tackle.duration = C.test.step * 8;};
 const p = f => fileURLToPath(new URL('../../../chars/' + f, import.meta.url));
 const TYPES = ['state-enter', 'state-exit', 'epilogue-start', 'epilogue-end', 'epilogue-interrupted'];
+const idOf = (E, type) => e => e.executionId === E && e.type === type;
 const sig = ev => ev.map(e => [e.type, e.eventId, e.tick, e.state, e.reasonCode ?? null]);
 
 const eg = await loadConfiguredSource(p('Eggo/eggo.glb'), 'eggo.glb'), w = await loadConfiguredSource(p('wookada/wookada.glb'), 'wookada.glb'), co = await loadConfiguredSource(p('mosh/Cogumelo.glb'), 'Cogumelo.glb');
@@ -40,7 +41,7 @@ for (const [name, src, other] of [['Eggo', eg, co], ['Wookada', w, co], ['Cogume
     assert.deepEqual(mine, ['state-enter', 'epilogue-start', 'epilogue-end', 'state-exit'], `${name}: ciclo da execução ${E}: ${mine}`);
     assert.equal(new Set(ch.animEvents.map(e => e.eventId)).size, ch.animEvents.length, `${name}: eventId único`);
     assert.deepEqual(seen.map(e => e.eventId), ch.animEvents.map(e => e.eventId), `${name}: o ouvinte recebeu os mesmos eventos, na mesma ordem`);
-    assert.ok(ch.animEvents.every(e => TYPES.includes(e.type) && e.eventId === `${e.executionId}#${e.type}`), `${name}: tipos e ids bem formados`);
+    assert.ok(ch.animEvents.every(e => TYPES.includes(e.type) && e.eventId.startsWith(`${e.executionId}@`) && e.eventId.endsWith(`#${e.type}`)), `${name}: tipos e ids bem formados`);
     assert.equal(of(m, 'epilogue-end', E)[0].reasonCode, 'epilogue-end-natural');
     ok(`${name}: conclusão natural de ${E}: enter → epilogue-start → epilogue-end → exit (uma vez cada)`);
   }
@@ -122,6 +123,18 @@ for (const [name, src, other] of [['Eggo', eg, co], ['Wookada', w, co], ['Cogume
     assert.equal(of(m2, 'epilogue-end', E).length, 1, `${name}: conclui uma vez depois do load`);
     assert.equal(of(m2, 'epilogue-end', E)[0].tick, endTick1, `${name}: conclui no mesmo tick (${endTick1})`);
     ok(`${name}: save/load no meio do epílogo — sem repetição, conclusão no mesmo tick (${endTick1})`);
+  }
+
+  // ---- 9. reentradas: estados sem serial próprio (neutral#0, walk#0) emitem a cada visita; ouvinte com erro não derruba nada ----
+  {
+    const m = fresh(), ch = m.chars[0];
+    ch.onAnimEvent = () => {throw new Error('ouvinte quebrado');};
+    m.run(10);
+    for (let r = 0; r < 3; r++) {m.run(40, () => cmd({move: vec(1, 0)}));m.run(40, () => cmd());}
+    const visits = ch.log.filter(e => e.execTo && e.reason !== 'conclusão visual').length, enters = ch.animEvents.filter(e => e.type === 'state-enter').length;
+    assert.ok(enters >= 6 && enters === visits, `${name}: cada entrada do log gerou um state-enter (${enters}/${visits})`);
+    assert.ok(ch.animEventErrors > 0, `${name}: o erro do ouvinte foi contido`);
+    ok(`${name}: ${enters} entradas (neutral/walk repetidos) → ${enters} eventos; ouvinte com erro contido`);
   }
 
   // ---- 8. replay determinístico e simulação idêntica com e sem ouvinte ----

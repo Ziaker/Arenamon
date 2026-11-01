@@ -1,6 +1,6 @@
 # Melee — G0 (baseline), G1 (MotionState + IASA observável) e G2 (eventos visuais do Anim)
 
-Plano: `docs/ARENAMON_PLANO_MOTOR_ANIMACOES_MELEE_AUDITADO_v1_2.docx` (a v1.2 prevalece sobre a v1.1). Versão do jogo: **1.49.26**. Branch `feat/melee-g1`. G0/G1 entregues em 1.49.25 (`5efa89c7`); G2 em 1.49.26.
+Plano: `docs/ARENAMON_PLANO_MOTOR_ANIMACOES_MELEE_AUDITADO_v1_2.docx` (a v1.2 prevalece sobre a v1.1). Versão do jogo: **1.49.27**. Branch `feat/melee-g1`. G0/G1 entregues em 1.49.25 (`5efa89c7`); G2 em 1.49.26, revisado e corrigido em 1.49.27.
 
 ## G0 — o que o código real mostra (sem mudar comportamento)
 
@@ -54,12 +54,12 @@ Integração com o que já existia: nada foi criado fora do `Character.log` e do
 
 - `motion-state.js`: `animEventsOf(entrada do log)` e `emitAnimEvents(character, entrada)`.
 - Tipos: `state-enter`, `state-exit`, `epilogue-start`, `epilogue-end` (conclusão natural) e `epilogue-interrupted` (com `cause` = código do motivo: `locomotion-cancel`, `action-accepted`, `combat-reaction`…).
-- Identidade: `eventId = <executionId>#<tipo>` (ex.: `tackle#1#epilogue-end`). Cada evento sai no máximo uma vez por Character. Consumo: `character.animEvents` (lista) e `character.onAnimEvent(e)` (ouvinte).
+- Identidade: `eventId = <executionId>@<tick>#<tipo>` (ex.: `tackle#1@497#epilogue-end`). O tick separa as reentradas de estados sem serial próprio (`neutral#0`, `walk#0`). Cada evento sai no máximo uma vez por Character. Um ouvinte que lance erro é contido (`animEventErrors`) e não derruba a animação. Consumo: `character.animEvents` (lista) e `character.onAnimEvent(e)` (ouvinte).
 - Isolamento: a prévia do Editor/Move não gera evento. Comando recusado ou bufferizado não gera evento.
 - Save/load: `resumeEpilogue` restaura em silêncio, então carregar uma partida no meio do epílogo **não repete** `state-enter` nem `epilogue-start` e a conclusão sai uma vez, no mesmo tick da partida original. `f.__visualEpilogue`, variante e clipe continuam como estavam.
 - Sem efeito mecânico: o save do Game é idêntico com e sem ouvinte.
 
-Teste novo `prototypes/combat-lab/test/anim-events-g2.test.mjs` (30 verificações, Eggo, Wookada e Cogumelo reais): ciclo completo da conclusão natural, interrupção por locomoção e por esquiva aceita, comando não aceito, prévia isolada, recorte, reverso e recorte+reverso com um único `epilogue-end`, save/load no meio do epílogo e replay determinístico.
+Teste novo `prototypes/combat-lab/test/anim-events-g2.test.mjs` (33 verificações, Eggo, Wookada e Cogumelo reais): ciclo completo da conclusão natural, interrupção por locomoção e por esquiva aceita, comando não aceito, prévia isolada, recorte, reverso e recorte+reverso com um único `epilogue-end`, save/load no meio do epílogo e replay determinístico.
 
 Rodados e verdes junto: `motion-state-g1`, `animation-epilogue` (+`-casos`, `-contract`, `-persist`), `clip-fidelity`, `animation-variants`, `animation-loop-controls`, `animation-viewport-vs-jogo`; `tsc` do combat-lab com 0 erros.
 
@@ -70,3 +70,9 @@ Rodados e verdes junto: `motion-state-g1`, `animation-epilogue` (+`-casos`, `-co
 - Navegador/app real, `rapido:tudo`, `verify` e benchmarks não foram rodados.
 
 **Para o G3:** conectar o Editor ao contrato (mostrar execução, motivo e eventos), provar no navegador com Wookada e Cogumelo e decidir quais campos pendentes ativar.
+
+### Revisão do G2 (v1.49.27)
+
+- **Bug achado e corrigido:** o id `<execução>#<tipo>` repetia para estados sem serial (`neutral#0`, `walk#0`) e a deduplicação engolia as reentradas: 7 entradas no log geravam só 2 eventos. Agora o id leva o tick, e um teste cobre as reentradas (cada entrada do log gera um `state-enter`).
+- **Endurecido:** erro lançado por um ouvinte `onAnimEvent` é contido.
+- Os 3 testes novos de reentrada rodaram com Eggo, Wookada e Cogumelo; regressões de animação seguem verdes.
