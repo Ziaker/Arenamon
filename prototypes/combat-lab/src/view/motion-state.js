@@ -67,7 +67,7 @@ export function reasonCodeOf(/** @type {{reason?: string, to?: string, epilogue?
 
 /** Foto do lutador ANTES do passo do Game (referências, nada é copiado fundo nem alterado). */
 export function snapshotBefore(/** @type {any} */ f) {
-  return {action: f.action ?? null, flight: !!f.flight, charge: f.charge ?? null, buffer: f.inputBuffer?.kind ?? null};
+  return {action: f.action ?? null, flight: !!f.flight, charge: f.charge ?? null, tackleCharge: f.tackleCharge ?? null, buffer: f.inputBuffer?.kind ?? null};
 }
 
 /**
@@ -83,7 +83,7 @@ export function commandOutcome(/** @type {ReturnType<typeof snapshotBefore>} */ 
   if (c.skill != null) requested.push('skill');
   const created = f.action && f.action !== before.action ? f.action : null;
   const isAccepted = {
-    tackle: created?.kind === 'tackle' || (!!created && created.kind === 'move' && !c.skill),
+    tackle: created?.kind === 'tackle' || (!!created && created.kind === 'move' && !c.skill) || (!!f.tackleCharge && f.tackleCharge !== before.tackleCharge),   // X segurado começa a CARREGAR (f.tackleCharge): também é aceito
     dodge: created?.kind === 'dodge',
     jump: !!f.flight && !before.flight,
     skill: (created?.kind === 'move') || (!!f.charge && f.charge !== before.charge),
@@ -124,6 +124,7 @@ export function animEventsOf(/** @type {any} */ ev) {
 export function emitAnimEvents(/** @type {any} */ ch, /** @type {any} */ ev) {
   if (ch.muteAnimEvents || ch.preview || ch.movePreview || ev.to === '__preview' || ev.from === '__preview') return;
   const list = ch.animEvents ??= [], ids = ch.animEventIds ??= new Set();
+  if (ev.tick != null) {if (ch.animLastTick != null && ev.tick < ch.animLastTick) ids.clear();ch.animLastTick = ev.tick;}   // linha do tempo recomeçou (reinício da partida, load de um save mais antigo): ids antigos não suprimem a nova
   for (const e of animEventsOf(ev)) {
     if (ids.has(e.eventId)) continue;
     ids.add(e.eventId);list.push(e);

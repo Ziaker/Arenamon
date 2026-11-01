@@ -115,6 +115,19 @@ for (const [name, src, other] of await sources()) {
     ok(`${name}: interruptor moveCancels desligado preservado`);
   }
 
+  // ---- 4b. X segurado (carga do tackle), esquiva e pulo contam como ACEITOS ----
+  {
+    const m = fresh();m.run(10);
+    const a = step(m, cmd({tackle: true, tackleHeld: true, ...lock}));
+    assert.ok(m.g.fighters[0].tackleCharge, `${name}: o Game começou a carregar o tackle`);
+    assert.deepEqual(a.out.accepted, ['tackle'], `${name}: X segurado (carga) é aceito, não recusado (${JSON.stringify(a.out)})`);
+    const d = fresh();d.run(10);
+    assert.deepEqual(step(d, cmd({dodge: true, move: vec(1, 0)})).out.accepted, ['dodge']);
+    const j = fresh();j.run(10);
+    assert.deepEqual(step(j, cmd({jump: true})).out.accepted, ['jump']);
+    ok(`${name}: carga do tackle, esquiva e pulo contam como aceitos`);
+  }
+
   // ---- 5. a simulação é idêntica com e sem o observador ----
   {
     const run = observe => {

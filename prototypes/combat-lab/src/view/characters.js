@@ -342,7 +342,7 @@ export class Character {
   setPrimary(id, index) {if (index === null) {delete this.variants[id];} else {if (!this.clipInfo[index]?.compatible) return false;const extras = (this.variants[id] || []).slice(1).filter(i => i !== index);this.variants[id] = [index, ...extras];}this.refreshVisual();this.save();return true;}
   /** Para e descarta todas as ações do mixer (atual e camadas). Antes, trocar uma associação só esquecia a ação atual, que
    * continuava tocando com peso 1 misturada a todas as outras (“forçando” uma pose). */
-  resetVisual() {for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;this.epilogue = null;this.epilogueInterrupt = false;this.loopHold = null;this.epilogueNaturalEnd = false;if (this.seamAction) {this.seamAction.stop();this.seamAction = null;}clearEpilogueMark(this.lastF);}
+  resetVisual() {this.animEvents = [];this.animEventIds = new Set();this.animLastTick = null;for (const l of [...this.layers, this.current].filter(Boolean)) {l.action.stop();this.mixer.uncacheAction(l.clip);}this.layers = [];this.current = null;this.stableLoco = null;this.epilogue = null;this.epilogueInterrupt = false;this.loopHold = null;this.epilogueNaturalEnd = false;if (this.seamAction) {this.seamAction.stop();this.seamAction = null;}clearEpilogueMark(this.lastF);}
   moveVariant(id, index, delta) {const l = this.variants[id] || [], i = l.indexOf(index), j = i + delta;if (i < 0 || j < 0 || j >= l.length) return;[l[i], l[j]] = [l[j], l[i]];this.refreshVisual();this.save();}
   storeKey() {return STORE + (this.source.name || 'sem-nome');}
   /** Associações, velocidades e offsets em formato portátil (clipes por nome). */

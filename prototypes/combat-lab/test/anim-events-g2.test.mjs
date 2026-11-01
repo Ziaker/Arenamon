@@ -137,6 +137,21 @@ for (const [name, src, other] of [['Eggo', eg, co], ['Wookada', w, co], ['Cogume
     ok(`${name}: ${enters} entradas (neutral/walk repetidos) → ${enters} eventos; ouvinte com erro contido`);
   }
 
+  // ---- 10. reinício da partida com os mesmos Characters: a nova linha do tempo emite de novo ----
+  {
+    const m = fresh(), ch = m.chars[0];
+    const round = () => {m.run(10);m.run(30, () => cmd({move: vec(1, 0)}));m.run(30, () => cmd());};
+    round();
+    const first = ch.animEvents.length;
+    m.g.reset({positions: [vec(0, -3), vec(0, 3)]});
+    const t0 = ch.animEvents.length;
+    round();
+    assert.ok(ch.animEvents.length - t0 >= first - 1, `${name}: depois do reinício os eventos voltam a sair (${ch.animEvents.length - t0} novos de ${first} esperados)`);
+    ch.resetVisual();
+    assert.equal(ch.animEvents.length, 0, `${name}: resetVisual zera os eventos`);
+    ok(`${name}: reinício da partida e resetVisual — eventos não ficam suprimidos`);
+  }
+
   // ---- 8. replay determinístico e simulação idêntica com e sem ouvinte ----
   {
     const run = listen => {
