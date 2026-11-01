@@ -31,6 +31,20 @@ ok('velocidade global 1× (e o 1,75× salvo migra para 1×)');
 }
 
 {
+  // Depois da esquiva, andando: a locomoção entra na hora (o resto do clipe da esquiva é cortado).
+  const run = moving => {
+    const m = makeMatch(), ch = m.chars[0];m.run(10);
+    m.step(cmd({dodge: true, move: vec(1, 0), dodgeDirection: vec(1, 0)}));
+    let guard = 0;while (m.g.fighters[0].action && guard++ < 300) m.step(moving ? cmd({move: vec(0, 1)}) : cmd());
+    const keys = [];for (let i = 0; i < 12; i++) {m.step(moving ? cmd({move: vec(0, 1)}) : cmd());keys.push(ch.current?.key);}
+    return keys;
+  };
+  const andando = run(true);
+  assert.ok(andando.slice(-6).every(k => k === 'walk'), `andando: locomoção assume logo após a esquiva (${andando.join(',')})`);
+  ok(`andar corta o fim da esquiva: ${andando.join(', ')}`);
+}
+
+{
   const bone = (name, parent, y) => ({name, parent, isBone: true, position: {y, length: () => Math.abs(y)}});
   const top = bone('Hips', {isBone: false}, 1), under = bone('Hips', {isBone: true}, .3);
   const track = (dx) => ({tracks: [{name: 'Hips.position', values: [0, .3, 0, dx, .3, 0]}]});

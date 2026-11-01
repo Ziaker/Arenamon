@@ -321,7 +321,7 @@ export function displayDefaults() {
     // Indicador da janela C → X (apenas desenho; a regra é por tempo, ver docs).
     cancelRing: {inner: 1.05, width: .25, opacity: .75},
     // Transições da máquina de estados de animação (Personagens). Só visual: não mudam tempos, física ou regras.
-    animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1, timedNative: 1, hipSway: 1},   // timedNative/hipSway: fidelidade ao animado (view/clip-fidelity.js)
+    animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1, timedNative: 1, hipSway: 1, moveCancels: 1},   // timedNative/hipSway: fidelidade ao animado (view/clip-fidelity.js)
     // Diagnóstico de comandos (só apresentação): aviso na arena 0 = desligado, 1 = só o jogador, 2 = ambos.
     diagnostics: {toast: 0, toastMs: 1400, logExecuted: 0},
     // Habilidades passivas: aviso lateral e sparkles de ativação. Só apresentação; não altera regras ou atributos.

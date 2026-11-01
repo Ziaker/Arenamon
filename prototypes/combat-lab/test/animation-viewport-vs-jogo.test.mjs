@@ -5,6 +5,8 @@
 // o lutador-dummy está parado — diferença explicada, não defeito. Variações: configuração salva, Reverso e recorte.
 // Uso: node prototypes/combat-lab/test/animation-viewport-vs-jogo.test.mjs
 import assert from 'node:assert/strict';
+// Contrato ANTIGO da conclusão visual (o clipe da ação segue durante o movimento); o corte pela locomoção (padrão desde 31/10/2026) é coberto por clip-fidelity.test.mjs.
+globalThis.__animMoveLegacy = true;
 import {fileURLToPath} from 'node:url';
 import {makeMatch, cmd, vec, C, loadConfiguredSource} from './animation-runtime-harness.mjs';
 import {createPreviewCharacter} from '../src/view/animation-preview.js';

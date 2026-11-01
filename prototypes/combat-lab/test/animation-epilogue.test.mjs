@@ -4,6 +4,8 @@
 // (ação nova, impacto), síntese do pouso com recuperação zero e identidade própria de execuções consecutivas.
 // Uso: node prototypes/combat-lab/test/animation-epilogue.test.mjs
 import assert from 'node:assert/strict';
+// Contrato ANTIGO da conclusão visual (o clipe da ação segue durante o movimento); o corte pela locomoção (padrão desde 31/10/2026) é coberto por clip-fidelity.test.mjs.
+globalThis.__animMoveLegacy = true;
 import {makeMatch, cmd, vec, C} from './animation-runtime-harness.mjs';
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};

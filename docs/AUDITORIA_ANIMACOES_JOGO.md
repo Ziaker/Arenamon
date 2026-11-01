@@ -130,3 +130,18 @@ quadro 1 por 1/24 s a cada volta. Corrige-se exportando com «Slide to zero» e 
 `game-feel-rig` passam. Os testes do contrato antigo (`animation`, `animation-epilogue-contract`, `animation-runtime`)
 rodam com o modo antigo ligado explicitamente. `animation-runtime` tem uma falha que **já existia antes** destas mudanças
 (`jump_fall` não alcançado no roteiro sintético).
+
+## Correção seguinte (v1.49.19): andar e correr cortam o fim da animação anterior
+
+Relato: «as animações ficam esperando a anterior finalizar ao invés de cancelar em outra, especialmente quanto ao dodge,
+walk e sprint». Causa: a **conclusão visual** (`view/visual-epilogue.js`) segura o resto do clipe de uma ação quando a
+simulação já a liberou, e por desenho a locomoção não a cortava; com as ações tocando na velocidade original (v1.49.18) sobra
+mais clipe (ex.: dash de 1,38 s numa esquiva de 0,66 s), então o personagem corria com a pose da esquiva.
+
+Correção: com o lutador **se deslocando** (> 0,3 m/s, estado de andar/correr), a locomoção entra na hora e corta o resto do
+clipe (também no pouso já em movimento). Parado, o clipe termina como antes. Ação nova, reação e defesa já cortavam.
+Controle: Visualizar › «Animação: transições» › **«Andar e correr cortam o fim da animação anterior»** (desligar = regra antiga).
+
+Medição numa partida real com o Eggo: tempo que o clipe da ação continuou com o corpo já andando = **0 s** em todas as
+saídas de ação. Testes: `clip-fidelity.test.mjs` (andar logo após a esquiva = walk em todos os passos); os testes do contrato
+antigo (`animation-epilogue`, `animation-epilogue-casos`, `animation-viewport-vs-jogo`) rodam com a regra antiga ligada.

@@ -230,6 +230,7 @@ const ANIM = {
   actionFade: ['Transição de entrada em X, C e reações', 'Fade curto para as ações e reações prevalecerem visualmente. Só visual.', R(.02, .3, .01, sec)],
   locomotionHold: ['Estabilidade da locomoção (histerese)', 'Tempo mínimo de um estado de locomoção antes de trocar (contra oscilação). Só visual.', R(0, .4, .01, sec)],
   timedNative: ['Ações tocam na velocidade em que foram animadas', 'Ligado: esquiva, tackle, salto sobre o rival, recuo, atordoamento etc. tocam o clipe na velocidade original (o que sobra continua depois da ação). Desligado (antigo): o clipe inteiro é esticado/espremido na duração da ação. Só visual.', toggle],
+  moveCancels: ['Andar e correr cortam o fim da animação anterior', 'Ligado: depois de uma esquiva, tackle, pouso etc., se o lutador já está andando ou correndo, a locomoção entra na hora (o resto do clipe é cortado). Parado, o clipe termina. Desligado (antigo): a locomoção espera o fim do clipe. Só visual.', toggle],
   hipSway: ['Manter o balanço do quadril', 'Ligado: com um osso raiz acima do quadril (ex.: Eggo) só a raiz é presa à posição da física e o balanço do quadril animado aparece. Desligado (antigo): o quadril também é preso. Só visual.', toggle],
   speed: ['Velocidade geral das animações', 'Multiplica a velocidade de todos os clipes. Com “durações das animações definem as ações”, muda também as durações (regra explícita na aba Personagens).', R(.25, 3, .05, x)],
 };
