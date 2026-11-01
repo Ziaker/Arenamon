@@ -86,6 +86,7 @@ const COMMANDS = [
   "node prototypes/combat-lab/test/ai-eval.test.mjs",
   "node prototypes/combat-lab/test/organize.test.mjs",
   "node prototypes/combat-lab/test/clash-tech.test.mjs",
+  "node prototypes/combat-lab/test/clash-priority-noclash.test.mjs",
   "node prototypes/combat-lab/test/tackle-charge.test.mjs",
   "node prototypes/combat-lab/test/tackle-slam.test.mjs",
   "node prototypes/combat-lab/test/tackle-feint.test.mjs",
