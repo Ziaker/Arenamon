@@ -360,7 +360,7 @@ export function updateFighter(f, cmd, fighters, dt, world = null) {
       f.velocity = scale(direction(action.heading), distance * step / dt);f.state = 'recoil';
     }
   } else {
-    const walk = walkSpeed(f), vMax = f.sprinting ? f.attributes.speed * S.speedMultiplier : walk, before = f.locomotionVelocity;
+    const walk = walkSpeed(f), vMax = f.sprinting ? (f.locoSpeeds?.sprint ?? f.attributes.speed * S.speedMultiplier) : walk, before = f.locomotionVelocity;
     if (f.sandPush && (!(f.stun > 1e-8 || hasFlag(f, 'stunned')) || f.sandPush.continuesDuringStagger)) {   // empurrado pela areia: sem controle de deslocamento; a velocidade ganha se mantém depois (atrito normal)
       applySandPushStep(f, dt, {move, speed: walk});f.desiredVelocity = vec();f.locoPhase = 'sandPush';
     } else if (f.stun > 1e-8 || hasFlag(f, 'stunned')) {f.locomotionVelocity = vec();f.locoPhase = 'stun';f.desiredVelocity = vec();}

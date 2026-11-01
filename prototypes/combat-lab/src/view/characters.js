@@ -25,7 +25,7 @@ import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-window
 import {sniffFormat} from './validate.js';
 import {RigLayers} from './rig-layers.js';
 import {sprintUsesTurn, updateSprintTurn} from './sprint-turn.js';
-import {hipsCarriesTravel, nativeTimedTime} from './clip-fidelity.js';
+import {hipsCarriesTravel, nativeTimedTime} from './clip-fidelity.js';import {strideRate} from './loco-speed.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
@@ -359,7 +359,7 @@ export class Character {
     }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
       clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround,
-      ledgeOffset: {...this.ledgeOffset}, footEnabled: this.footEnabled, trackEnabled: this.trackEnabled, phaseOff: JSON.parse(JSON.stringify(this.phaseOff)), trackProfile: {...this.trackProfile}, sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
+      ledgeOffset: {...this.ledgeOffset}, footEnabled: this.footEnabled, trackEnabled: this.trackEnabled, phaseOff: JSON.parse(JSON.stringify(this.phaseOff)), trackProfile: {...this.trackProfile}, sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData, locoSpeed: this.locoSpeed ? {...this.locoSpeed} : undefined,
       animProfile: JSON.parse(JSON.stringify(this.animProfile)),
       animationProfileVersion: this.animationProfile?.version ?? null};
   }
@@ -408,7 +408,7 @@ export class Character {
     // Estados antigos podiam ter salvo a trava incompleta como desligada. A versão 2 estreia ligada uma vez; depois a escolha
     // feita no controle novo volta a ser respeitada normalmente.
     this.lockRootMotion = data.rootMotionLockVersion === 2 && typeof data.lockRootMotion === 'boolean' ? data.lockRootMotion : true;
-    if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;
+    if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;if (data.locoSpeed?.mode) this.locoSpeed = {...data.locoSpeed};
     if (data.moveAnims) {
       for (const [m, conf] of Object.entries(data.moveAnims)) {
         this.moveAnims[m] = {
@@ -892,7 +892,7 @@ export class Character {
       } else if (TIMED.has(this.current.key)) {
         const timed = nativeTimedTime(this, s) ?? Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
-        const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar
+        const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s * strideRate(this, f, this.current.key);a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar; passada acompanha o corpo (loco-speed.js)
       }
       // Editor › Congelamento: ao passar de «Congelamento em» (% do clipe) a pose fica parada por «duração» (hit-stop visual, uma vez por execução; só visual).
       const fAt = !p && !reversed ? this.profileValue(this.current.id, 'freezeAt', this.current.clip.name) : undefined, fFor = fAt == null ? 0 : this.profileValue(this.current.id, 'freezeFor', this.current.clip.name);

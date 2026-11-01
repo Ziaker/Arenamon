@@ -145,3 +145,21 @@ Controle: Visualizar › «Animação: transições» › **«Andar e correr cor
 Medição numa partida real com o Eggo: tempo que o clipe da ação continuou com o corpo já andando = **0 s** em todas as
 saídas de ação. Testes: `clip-fidelity.test.mjs` (andar logo após a esquiva = walk em todos os passos); os testes do contrato
 antigo (`animation-epilogue`, `animation-epilogue-casos`, `animation-viewport-vs-jogo`) rodam com a regra antiga ligada.
+
+## Velocidade do personagem acompanha a animação (v1.49.20)
+
+Pedido: opção 1 — «a velocidade vem da animação». Novo bloco **«Velocidade da locomoção»** no painel do personagem (aba
+Personagens, logo abaixo da barra de resumo do modelo), com três escolhas:
+
+- **Do jogo** — como sempre (andar = atributo de velocidade, sprint = andar × multiplicador). Padrão de todos os personagens.
+- **Da animação** — andar e sprint = metros por segundo que a walk e o sprint andam no próprio clipe (raiz do GLB). **Padrão do
+  Eggo**: andar **0,72 m/s** e sprint **2,40 m/s** (antes 4,8 e 7,4). Clipes no lugar (Wookada) não têm o que medir e seguem o jogo.
+- **Manual** — dois sliders (andar e sprint, m/s).
+
+Junto: **«Passada acompanha a velocidade do corpo»** (Visualizar › Animação: transições, com **«Limite da passada»** ±20%): o
+clipe de andar/correr com deslocamento gravado toca até 20% mais rápido/devagar para os pés acompanharem acelerações e freadas.
+
+A física recebe só os números (`game.setLocomotion` → `f.locoSpeeds`; save/replay guardam). Esquiva, tackle e demais ações não
+mudam. Código: `view/loco-speed.js`, `ui/loco-speed-panel.js`. Teste: `test/loco-speed.browser.mjs` (Eggo 0,72/2,40 m/s; Wookada
+na regra do jogo; numa partida o Eggo nunca anda acima da velocidade da walk). Não verificado: o equilíbrio da partida com um
+Eggo bem mais lento que os demais (IA, alcance, fuga).
