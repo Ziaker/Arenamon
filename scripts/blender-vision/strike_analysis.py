@@ -1,0 +1,459 @@
+"""Contrato e implementação F06: Análise de Golpe e Contato (arenamon.strike-analysis/1).
+
+Analisa o timing, aceleração dos efetores, bote e retenção (hit-stop) de uma Action de ataque.
+Diferencia com rigor factual:
+- Contato CANDIDATO: inferido cinematicamente por desaceleração ou extensão máxima do efetor.
+- Contato CONFIRMADO_ALVO: verificado por colisão com volume/alvo geométrico explícito.
+- Contato CONFIRMADO_EVENTO: verificado por frame de colisão/hitbox autorizado de gameplay.
+
+Integração com o contrato 'arenamon.agent-report/1' (F15).
+"""
+from __future__ import annotations
+
+import math
+from dataclasses import asdict, dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+SCHEMA_NAME = "arenamon.strike-analysis/1"
+
+CONFIRMATION_SOURCE_HEURISTIC = "KINEMATIC_HEURISTIC"
+CONFIRMATION_SOURCE_GEOMETRIC = "GEOMETRIC_TARGET"
+CONFIRMATION_SOURCE_EVENT = "AUTHORIZED_EVENT"
+
+CONTACT_STATUS_CANDIDATE = "CANDIDATO"
+CONTACT_STATUS_CONFIRMED_TARGET = "CONFIRMADO_ALVO"
+CONTACT_STATUS_CONFIRMED_EVENT = "CONFIRMADO_EVENTO"
+
+VERDICT_STATUS_OK = "OK"
+VERDICT_STATUS_WARNING = "AVISO"
+VERDICT_STATUS_ALERT = "ALERTA"
+
+
+class StrikeAnalysisError(Exception):
+    """Exceção específica para erros de dados ou validação da análise de golpe."""
+    pass
+
+
+@dataclass
+class StrikeMetrics:
+    windup_frame: int
+    contact_frame: int
+    strike_duration_frames: int
+    strike_duration_seconds: float
+    peak_speed_mps: float
+    contact_speed_mps: float
+    mean_strike_speed_mps: float
+    acceleration_ratio: float
+    hold_duration_frames: int
+    hold_duration_seconds: float
+    turns_count: int
+    contact_status: str
+    confirmation_source: str
+    target_role: str
+
+
+def _distance_3d(p1: List[float], p2: List[float]) -> float:
+    return math.sqrt(sum((a - b) ** 2 for a, b in zip(p1, p2)))
+
+
+def build_strike_analysis(
+    action_name: str,
+    armature_name: str,
+    frame_range: Tuple[int, int],
+    fps: float,
+    strike_effector_role: str,
+    effector_positions: Dict[int, List[float]],
+    pelvis_positions: Optional[Dict[int, List[float]]] = None,
+    head_positions: Optional[Dict[int, List[float]]] = None,
+    target_geometry: Optional[Dict[str, Any]] = None,
+    authorized_event_frame: Optional[int] = None,
+    target_strike_frames: int = 5,
+    target_hold_frames: int = 3,
+    hold_speed_threshold_mps: float = 0.5,
+) -> Dict[str, Any]:
+    """Constrói a análise cinemática de golpe em conformidade com 'arenamon.strike-analysis/1'.
+
+    Args:
+        action_name: Nome da Action de ataque.
+        armature_name: Nome do esqueleto.
+        frame_range: Intervalo de frames real (start, end).
+        fps: Taxa de quadros por segundo real.
+        strike_effector_role: Papel semântico do efetor do golpe (ex: 'right_hand', 'head').
+        effector_positions: Mapeamento de frame para coordenadas 3D [X, Y, Z] do efetor.
+        pelvis_positions: Opcional, posições da pelve para medir antecipação do tronco.
+        head_positions: Opcional, posições da cabeça para medir antecipação sagital.
+        target_geometry: Opcional, alvo geométrico (ex: {'type': 'SPHERE', 'center': [x,y,z], 'radius_m': r}).
+        authorized_event_frame: Opcional, frame de impacto autorizado pelas regras de combate do jogo.
+        target_strike_frames: Meta de quadros para a fase de bote rápido.
+        target_hold_frames: Meta de quadros para a fase de retenção/impacto.
+        hold_speed_threshold_mps: Limiar de velocidade em m/s considerado sustentação/pausa pós-contato.
+    """
+    if fps <= 0.0:
+        raise StrikeAnalysisError(f"FPS deve ser positivo. Recebido: {fps}")
+
+    start_frame, end_frame = frame_range
+    sorted_frames = sorted(effector_positions.keys())
+    if len(sorted_frames) < 3:
+        raise StrikeAnalysisError(f"Amostragem insuficiente de frames ({len(sorted_frames)}). Mínimo 3.")
+
+    # 1. Cálculo de velocidades do efetor (m/frame e m/s)
+    speeds_mps: Dict[int, float] = {}
+    speeds_mpf: Dict[int, float] = {}
+    speeds_mps[sorted_frames[0]] = 0.0
+    speeds_mpf[sorted_frames[0]] = 0.0
+
+    for i in range(1, len(sorted_frames)):
+        f_prev = sorted_frames[i - 1]
+        f_curr = sorted_frames[i]
+        dt = (f_curr - f_prev) / fps
+        dist = _distance_3d(effector_positions[f_curr], effector_positions[f_prev])
+        sp_mpf = dist / max(1, (f_curr - f_prev))
+        sp_mps = dist / dt if dt > 1e-6 else 0.0
+        speeds_mpf[f_curr] = round(sp_mpf, 4)
+        speeds_mps[f_curr] = round(sp_mps, 4)
+
+    # 2. Determinação do frame de contato e sua fonte epistêmica
+    contact_frame: int
+    contact_status: str
+    confirmation_source: str
+    detection_method: str
+
+    if authorized_event_frame is not None and authorized_event_frame in effector_positions:
+        contact_frame = authorized_event_frame
+        contact_status = CONTACT_STATUS_CONFIRMED_EVENT
+        confirmation_source = CONFIRMATION_SOURCE_EVENT
+        detection_method = f"Evento autorizado de combate no frame {authorized_event_frame}"
+    elif target_geometry is not None and target_geometry.get("type") == "SPHERE":
+        center = target_geometry["center"]
+        radius = float(target_geometry.get("radius_m", 0.15))
+        # Procura o primeiro frame onde o efetor entra no raio do alvo
+        entered_frames = [f for f in sorted_frames if _distance_3d(effector_positions[f], center) <= radius]
+        if entered_frames:
+            contact_frame = entered_frames[0]
+            contact_status = CONTACT_STATUS_CONFIRMED_TARGET
+            confirmation_source = CONFIRMATION_SOURCE_GEOMETRIC
+            detection_method = f"Colisão geométrica com alvo esférico (raio {radius:.2f} m) no frame {contact_frame}"
+        else:
+            # Não tocou o alvo: recai em candidato cinemático
+            peak_f = max(sorted_frames, key=lambda f: speeds_mps[f])
+            after_peak = [f for f in sorted_frames if f >= peak_f]
+            contact_frame = next((f for f in after_peak if speeds_mps[f] < speeds_mps[peak_f] * 0.40), sorted_frames[-1])
+            contact_status = CONTACT_STATUS_CANDIDATE
+            confirmation_source = CONFIRMATION_SOURCE_HEURISTIC
+            detection_method = "Alvo geométrico fornecido não atingido; candidato inferido por desaceleração"
+    else:
+        # Inferência puramente cinemática (queda de velocidade após pico)
+        peak_f = max(sorted_frames, key=lambda f: speeds_mps[f])
+        after_peak = [f for f in sorted_frames if f >= peak_f]
+        contact_frame = next((f for f in after_peak if speeds_mps[f] < speeds_mps[peak_f] * 0.40), sorted_frames[-1])
+        contact_status = CONTACT_STATUS_CANDIDATE
+        confirmation_source = CONFIRMATION_SOURCE_HEURISTIC
+        detection_method = "Candidato cinemático: queda de velocidade para menos de 40% do pico após a aceleração máxima"
+
+    # 3. Determinação da antecipação (windup)
+    frames_before_contact = [f for f in sorted_frames if f < contact_frame]
+    if frames_before_contact:
+        peak_speed_before = max([speeds_mps[f] for f in frames_before_contact] or [0.0])
+        # Ponto de menor velocidade ou pose mais recolhida antes da aceleração
+        slow_frames = [f for f in frames_before_contact if speeds_mps[f] <= peak_speed_before * 0.20]
+        windup_frame = max(slow_frames) if slow_frames else frames_before_contact[0]
+    else:
+        windup_frame = sorted_frames[0]
+
+    strike_duration_frames = max(1, contact_frame - windup_frame)
+    strike_duration_sec = round(strike_duration_frames / fps, 3)
+
+    # 4. Velocidades e Aceleração do bote
+    strike_frames = [f for f in sorted_frames if windup_frame <= f <= contact_frame]
+    peak_speed = max([speeds_mps[f] for f in strike_frames] or [0.0])
+    contact_speed = speeds_mps[contact_frame]
+    mean_speed = sum(speeds_mps[f] for f in strike_frames) / max(1, len(strike_frames))
+    accel_ratio = round(contact_speed / mean_speed, 2) if mean_speed > 1e-4 else 0.0
+
+    # 5. Duração da retenção / impacto (hold)
+    hold_frames_count = 0
+    frames_after = [f for f in sorted_frames if f > contact_frame]
+    for f in frames_after:
+        if speeds_mps[f] > hold_speed_threshold_mps:
+            break
+        hold_frames_count += 1
+    hold_duration_sec = round(hold_frames_count / fps, 3)
+
+    # 6. Antecipações sagitais / inversoes de sentido
+    turns = 0
+    if pelvis_positions and head_positions:
+        common_f = [f for f in sorted_frames if f <= windup_frame and f in pelvis_positions and f in head_positions]
+        if len(common_f) >= 3:
+            fwd = [(head_positions[f][1] - pelvis_positions[f][1]) for f in common_f]
+            prev = 0
+            for i in range(1, len(fwd)):
+                d = fwd[i] - fwd[i - 1]
+                s = 1 if d > 0.004 else (-1 if d < -0.004 else 0)
+                if s and prev and s != prev:
+                    turns += 1
+                if s:
+                    prev = s
+
+    # 7. Diagnósticos e pareceres analíticos
+    verdicts = []
+    if strike_duration_frames > target_strike_frames:
+        verdicts.append({
+            "code": "STRIKE_SLOW",
+            "status": VERDICT_STATUS_WARNING,
+            "message": f"Bote dura {strike_duration_frames} frames ({strike_duration_sec:.2f} s); meta recomendada até {target_strike_frames} frames.",
+        })
+    else:
+        verdicts.append({
+            "code": "STRIKE_TIMING_FAST",
+            "status": VERDICT_STATUS_OK,
+            "message": f"Bote ágil em {strike_duration_frames} frames ({strike_duration_sec:.2f} s; dentro da meta de {target_strike_frames}).",
+        })
+
+    if accel_ratio < 1.0:
+        verdicts.append({
+            "code": "STRIKE_DECELERATING",
+            "status": VERDICT_STATUS_WARNING,
+            "message": f"Efetor chega ao impacto desacelerando ({accel_ratio:.2f}x da média). Em golpes contundentes a mão/pé deve manter ou acelerar até o contato.",
+        })
+    else:
+        verdicts.append({
+            "code": "STRIKE_ACCELERATING",
+            "status": VERDICT_STATUS_OK,
+            "message": f"Efetor acelera até o contato ({accel_ratio:.2f}x da média).",
+        })
+
+    if hold_frames_count < target_hold_frames:
+        verdicts.append({
+            "code": "HOLD_INSUFFICIENT",
+            "status": VERDICT_STATUS_ALERT,
+            "message": f"Retenção de {hold_frames_count} frames ({hold_duration_sec:.2f} s); meta recomendada de pelo menos {target_hold_frames} frames de leitura do impacto.",
+        })
+    else:
+        verdicts.append({
+            "code": "HOLD_OK",
+            "status": VERDICT_STATUS_OK,
+            "message": f"Retenção pós-contato de {hold_frames_count} frames ({hold_duration_sec:.2f} s).",
+        })
+
+    if turns > 1:
+        verdicts.append({
+            "code": "WINDUP_DOUBLE_PUMP",
+            "status": VERDICT_STATUS_WARNING,
+            "message": f"Tronco inverte sentido {turns} vezes antes do bote (antecipação dupla/diluída).",
+        })
+
+    facts = [
+        f"Ação analisada: '{action_name}' no armature '{armature_name}' ({start_frame}..{end_frame} a {fps:.1f} FPS).",
+        f"Efetor de ataque: '{strike_effector_role}'.",
+        f"Marco de contato: Frame {contact_frame} (status: {contact_status}, fonte: {confirmation_source}).",
+        f"Método de detecção: {detection_method}.",
+        f"Marco de antecipação (windup): Frame {windup_frame}.",
+        f"Duração do bote: {strike_duration_frames} frames ({strike_duration_sec:.3f} s).",
+        f"Velocidade do efetor: pico {peak_speed:.3f} m/s, no contato {contact_speed:.3f} m/s (razão de aceleração: {accel_ratio:.2f}x).",
+        f"Retenção pós-contato: {hold_frames_count} frames ({hold_duration_sec:.3f} s abaixo de {hold_speed_threshold_mps} m/s).",
+    ]
+
+    metrics = StrikeMetrics(
+        windup_frame=windup_frame,
+        contact_frame=contact_frame,
+        strike_duration_frames=strike_duration_frames,
+        strike_duration_seconds=strike_duration_sec,
+        peak_speed_mps=peak_speed,
+        contact_speed_mps=contact_speed,
+        mean_strike_speed_mps=round(mean_speed, 3),
+        acceleration_ratio=accel_ratio,
+        hold_duration_frames=hold_frames_count,
+        hold_duration_seconds=hold_duration_sec,
+        turns_count=turns,
+        contact_status=contact_status,
+        confirmation_source=confirmation_source,
+        target_role=strike_effector_role,
+    )
+
+    limitations = [
+        "A análise cinemática avalia timing e trajetórias nos eixos físicos, sem emitir notas subjetivas de estética.",
+        "Se o status for CANDIDATO, o ponto de impacto é uma inferência cinemática baseada no perfil de desaceleração e não substitui hitbox autorizada.",
+    ]
+
+    return {
+        "schema": SCHEMA_NAME,
+        "action_name": action_name,
+        "armature_name": armature_name,
+        "frame_range": list(frame_range),
+        "fps": fps,
+        "effector_role": strike_effector_role,
+        "metrics": asdict(metrics),
+        "verdicts": verdicts,
+        "facts": facts,
+        "limitations": limitations,
+    }
+
+
+def validate_strike_analysis(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
+    """Valida se um documento cumpre as restrições de 'arenamon.strike-analysis/1'."""
+    errors = []
+    if not isinstance(data, dict):
+        return False, ["O documento deve ser um dicionário"]
+
+    if data.get("schema") != SCHEMA_NAME:
+        errors.append(f"Schema inválido: esperado '{SCHEMA_NAME}', recebido '{data.get('schema')}'")
+
+    for field in ("action_name", "armature_name", "frame_range", "fps", "effector_role", "metrics", "verdicts", "facts"):
+        if field not in data:
+            errors.append(f"Campo obrigatório ausente: '{field}'")
+
+    metrics = data.get("metrics", {})
+    for mfield in (
+        "windup_frame", "contact_frame", "strike_duration_frames",
+        "strike_duration_seconds", "peak_speed_mps", "contact_speed_mps",
+        "acceleration_ratio", "hold_duration_frames", "contact_status", "confirmation_source"
+    ):
+        if mfield not in metrics:
+            errors.append(f"Métrica obrigatória ausente em metrics: '{mfield}'")
+
+    valid_sources = {CONFIRMATION_SOURCE_HEURISTIC, CONFIRMATION_SOURCE_GEOMETRIC, CONFIRMATION_SOURCE_EVENT}
+    if metrics.get("confirmation_source") not in valid_sources:
+        errors.append(f"Fonte de confirmação inválida: {metrics.get('confirmation_source')}")
+
+    valid_statuses = {CONTACT_STATUS_CANDIDATE, CONTACT_STATUS_CONFIRMED_TARGET, CONTACT_STATUS_CONFIRMED_EVENT}
+    if metrics.get("contact_status") not in valid_statuses:
+        errors.append(f"Status de contato inválido: {metrics.get('contact_status')}")
+
+    return len(errors) == 0, errors
+
+
+def export_strike_to_agent_report(
+    analysis: Dict[str, Any],
+    source_file: str,
+    rig_mapping: Dict[str, Any],
+    visual_evidence: Optional[List[Dict[str, Any]]] = None,
+    report_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    """Exporta a análise de golpe para o contrato canônico 'arenamon.agent-report/1' (F15)."""
+    is_valid, errs = validate_strike_analysis(analysis)
+    if not is_valid:
+        raise StrikeAnalysisError(f"Não é possível exportar documento inválido: {errs}")
+
+    from agent_report import build_agent_report
+
+    act_name = analysis["action_name"]
+    rep_id = report_id or f"REP-F06-STRIKE-{act_name.upper().replace(' ', '_')}"
+    metrics = analysis["metrics"]
+    f_range = tuple(analysis["frame_range"])
+
+    measurements: List[Dict[str, Any]] = [
+        {
+            "metric": "strike_effector_role",
+            "value": analysis["effector_role"],
+            "unit": "role",
+            "method": "anatomical_role_declaration",
+            "confidence": 1.0,
+            "target_role": analysis["effector_role"],
+        },
+        {
+            "metric": "strike_contact_frame",
+            "value": metrics["contact_frame"],
+            "unit": "frames",
+            "method": "strike_kinematic_point_detection",
+            "confidence": 1.0 if metrics["contact_status"] != CONTACT_STATUS_CANDIDATE else 0.85,
+        },
+        {
+            "metric": "strike_windup_frame",
+            "value": metrics["windup_frame"],
+            "unit": "frames",
+            "method": "strike_kinematic_point_detection",
+            "confidence": 0.90,
+        },
+        {
+            "metric": "strike_duration_frames",
+            "value": metrics["strike_duration_frames"],
+            "unit": "frames",
+            "method": "frame_interval_difference",
+            "confidence": 1.0,
+        },
+        {
+            "metric": "strike_duration_seconds",
+            "value": metrics["strike_duration_seconds"],
+            "unit": "s",
+            "method": "frame_interval_to_seconds",
+            "confidence": 1.0,
+        },
+        {
+            "metric": "strike_peak_speed",
+            "value": metrics["peak_speed_mps"],
+            "unit": "m/s",
+            "method": "effector_finite_differences_speed",
+            "confidence": 0.95,
+        },
+        {
+            "metric": "strike_contact_speed",
+            "value": metrics["contact_speed_mps"],
+            "unit": "m/s",
+            "method": "effector_finite_differences_speed",
+            "confidence": 0.95,
+        },
+        {
+            "metric": "strike_acceleration_ratio",
+            "value": metrics["acceleration_ratio"],
+            "unit": "ratio",
+            "method": "contact_speed_over_mean_speed",
+            "confidence": 0.95,
+        },
+        {
+            "metric": "strike_hold_duration_frames",
+            "value": metrics["hold_duration_frames"],
+            "unit": "frames",
+            "method": "post_contact_low_speed_hold_count",
+            "confidence": 0.90,
+        },
+        {
+            "metric": "strike_contact_status",
+            "value": metrics["contact_status"],
+            "unit": "enum",
+            "method": "epistemic_contact_classification",
+            "confidence": 1.0,
+        },
+        {
+            "metric": "strike_confirmation_source",
+            "value": metrics["confirmation_source"],
+            "unit": "enum",
+            "method": "provenance_source_identification",
+            "confidence": 1.0,
+        },
+    ]
+
+    limitations = {
+        "missing_data": [],
+        "assumptions": [
+            f"Taxa de amostragem limitada a {analysis['fps']:.1f} FPS.",
+            f"Fonte de confirmação: {metrics['confirmation_source']}.",
+        ],
+        "risks": analysis["limitations"],
+        "confidence_score": 0.95 if metrics["contact_status"] != CONTACT_STATUS_CANDIDATE else 0.85,
+    }
+
+    findings = {
+        "facts": analysis["facts"],
+        "inferences": [v["message"] for v in analysis["verdicts"]],
+        "actionable": [v["message"] for v in analysis["verdicts"] if v["status"] != VERDICT_STATUS_OK],
+        "uncertainties": ["Ponto de contato inferido por cinemática"] if metrics["contact_status"] == CONTACT_STATUS_CANDIDATE else [],
+    }
+
+    report = build_agent_report(
+        report_id=rep_id,
+        target={
+            "source_file": source_file,
+            "action_name": act_name,
+            "action_slot": None,
+            "armature_name": analysis["armature_name"],
+            "frame_range": f_range,
+            "fps": float(analysis["fps"]),
+            "unit_system": "METRIC_METERS",
+        },
+        rig_mapping=rig_mapping,
+        measurements=measurements,
+        visual_evidence=visual_evidence or [],
+        findings=findings,
+        limitations_and_risks=limitations,
+    )
+    return report
