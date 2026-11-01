@@ -1,4 +1,4 @@
-# Motion Lens 0.4 — Exagero e Smear 3D
+# Motion Lens 0.4.1 — IA, Exagero e Smear 3D
 
 O Motion Lens agora combina diagnóstico e autoria não destrutiva. Ele não altera a Action original, rest pose, pesos, hierarquia, hitboxes ou mecânicas do combate.
 
@@ -6,12 +6,15 @@ O Motion Lens agora combina diagnóstico e autoria não destrutiva. Ele não alt
 
 No Blender, abra **View3D → Sidebar → Motion Lens → Criar exagero e smear**.
 
-1. Escolha os ossos, o intervalo e a forma.
-2. Use **Encontrar oportunidades** para medir trajetórias.
-3. Use **Criar malhas de smear** para gerar auxiliares na coleção `ML_Exaggeration`.
-4. Use **Criar variantes Sutil / Estilizada / Extrema** para criar três Actions derivadas.
-5. Use **Relatório para agentes** para salvar `motion_lens_exaggeration.json`.
-6. **Limpar auxiliares** remove somente os objetos gerados pelo Motion Lens.
+O caminho principal é **IA: melhorar animação completa**. A IA escolhe automaticamente o Action Slot com movimento, ossos, intervalo, passo de amostragem, forma, largura, velocidade mínima e intensidade; depois cria smear, variantes e relatório. Os controles permanecem disponíveis como opção, mas não são necessários para o fluxo da IA.
+
+1. Selecione o armature e a Action que deseja melhorar.
+2. Execute **IA: melhorar animação completa**.
+3. A IA cria as variantes Sutil, Estilizada e Extrema, deixa a recomendada ativa e gera as malhas na coleção `ML_Exaggeration`.
+4. O resultado completo fica em `ML_AI_Animation_Result` e `motion_lens_exaggeration.json`.
+5. **Limpar auxiliares** remove somente os objetos gerados pelo Motion Lens.
+
+Se o trabalho for conduzido por Claude, Codex ou outro agente, ele pode chamar diretamente `run_agent_animation_pipeline(context)` ou o operador `motionlens.ai_improve_animation`, sem pedir ajustes manuais ao usuário.
 
 ## As dez capacidades
 

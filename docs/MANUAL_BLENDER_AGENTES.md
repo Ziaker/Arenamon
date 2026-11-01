@@ -75,7 +75,7 @@ Documentação: [README do blender-vision](../scripts/blender-vision/README.md) 
 
 | Add-on | No repositório | Instalado no Blender (verificado em 30/10/2026) |
 |---|---|---|
-| **Motion Lens** | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/`. Versão 0.4.0, 21 operadores e 53 propriedades. Além do diagnóstico, cria smears auxiliares e três Actions derivadas de exagero | **0.3.3 modular, 17 operadores e 40 propriedades; o 0.4.0 aguarda autorização de instalação** |
+| **Motion Lens** | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/`. Versão 0.4.1, 22 operadores e 53 propriedades. A IA escolhe parâmetros e cria smears, três Actions derivadas e relatório; controles continuam opcionais | **0.3.3 modular, 17 operadores e 40 propriedades; o 0.4.1 aguarda autorização de instalação** |
 | **Direction Lines** | `scripts/blender-vision/addons/direction_lines.py` 0.1.2; 5 operadores; frame/subframe protegido sob falha | **0.1.2; 5 operadores** |
 
 > [!WARNING]
@@ -455,4 +455,4 @@ no Blender instalado.
 - **V1.0 — 30/10/2026:** versão inicial (DOCX), [preservada](ARENAMON_Manual_Blender_Para_Agentes_IA_V1_original.docx).
 - **V2.0 — 30/10/2026:** auditoria técnica e governança.
 - **V2.1 — 31/10/2026:** Motion Lens 0.3.3.
-- **V2.2 — 01/11/2026:** Motion Lens fonte 0.4.0 com autoria não destrutiva de exagero e smear.
+- **V2.2 — 01/11/2026:** Motion Lens fonte 0.4.1 com pipeline completo da IA, exagero e smear.

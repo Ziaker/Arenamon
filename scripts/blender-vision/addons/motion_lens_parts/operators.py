@@ -10,7 +10,7 @@ from .sheets import render_contact_sheet, render_skeleton_sheet
 from .strikes import analyze_strike, apply_impact
 from .exaggeration import (analyze_exaggeration, build_agent_exaggeration_report,
                            clear_exaggeration_generated, create_exaggeration_variants,
-                           create_smear_meshes)
+                           create_smear_meshes, run_agent_animation_pipeline)
 
 
 class ML_OT_ghosts(bpy.types.Operator):
@@ -285,6 +285,20 @@ class ML_OT_exaggeration_report(bpy.types.Operator):
         try:
             path, _result = build_agent_exaggeration_report(context)
             self.report({'INFO'}, "Salvo: " + path)
+            return {'FINISHED'}
+        except Exception as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class ML_OT_ai_improve_animation(bpy.types.Operator):
+    bl_idname = "motionlens.ai_improve_animation"
+    bl_label = "IA: melhorar animacao completa"
+    bl_description = "A IA escolhe ossos, frames, smear e exagero, cria variantes e entrega relatorio; a fonte nao muda"
+    def execute(self, context):
+        try:
+            result = run_agent_animation_pipeline(context)
+            self.report({'INFO'}, "IA criou %d smears e recomenda %s" % (len(result["smear"]["objects"]), result["recommended_action"]))
             return {'FINISHED'}
         except Exception as exc:
             self.report({'ERROR'}, str(exc))

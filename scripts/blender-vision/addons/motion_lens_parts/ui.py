@@ -3,7 +3,7 @@ import bpy
 from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, StringProperty
 from .comparison import save_baseline
 from .contract import load_profile, save_profile
-from .operators import ML_OT_analyze_exaggeration, ML_OT_apply_impact, ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_create_exaggeration_variants, ML_OT_create_smear, ML_OT_exaggeration_report, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_strike, ML_OT_trails
+from .operators import ML_OT_ai_improve_animation, ML_OT_analyze_exaggeration, ML_OT_apply_impact, ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_create_exaggeration_variants, ML_OT_create_smear, ML_OT_exaggeration_report, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_strike, ML_OT_trails
 from .version import VERSION_TEXT
 
 
@@ -86,6 +86,7 @@ class ML_PT_panel(bpy.types.Panel):
 
         col = self.layout.box().column(align=True)
         col.label(text="Criar exagero e smear")
+        col.operator("motionlens.ai_improve_animation")
         col.prop(scene, "motion_lens_smear_bones")
         col.prop(scene, "motion_lens_smear_use_tail")
         col.prop(scene, "motion_lens_smear_guide")
@@ -124,7 +125,8 @@ classes = (
     ML_OT_save_profile, ML_OT_load_profile, ML_OT_save_baseline, ML_OT_check_baseline,
     ML_OT_clear, ML_OT_strike, ML_OT_apply_impact,
     ML_OT_analyze_exaggeration, ML_OT_create_smear,
-    ML_OT_create_exaggeration_variants, ML_OT_exaggeration_report, ML_PT_panel,
+    ML_OT_create_exaggeration_variants, ML_OT_exaggeration_report,
+    ML_OT_ai_improve_animation, ML_PT_panel,
 )
 
 

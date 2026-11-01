@@ -113,5 +113,19 @@ with tempfile.TemporaryDirectory(prefix="motion-lens-exaggeration-", dir=Path(__
     assert len(report["proposals"]) == 3
 
 assert curves_snapshot(source) == before
+
+arm.animation_data.action = source
+arm.animation_data.action_slot = secondary_slot
+exaggeration.clear_exaggeration_generated()
+with tempfile.TemporaryDirectory(prefix="motion-lens-ai-pipeline-", dir=Path(__file__).parent) as temp_dir:
+    scene.motion_lens_output_dir = temp_dir
+    ai_result = exaggeration.run_agent_animation_pipeline(bpy.context)
+    assert ai_result["source"] == source.name
+    assert ai_result["recommended_action"] == ai_result["variants"]["active"]
+    assert len(ai_result["variants"]["actions"]) == 3
+    assert ai_result["smear"]["objects"]
+    assert os.path.isfile(ai_result["report"])
+assert curves_snapshot(source) == before
+
 ml.unregister()
-print("PASS: 8 formas, variantes A/B/C, relatorio e origem preservada")
+print("PASS: 8 formas, pipeline da IA, variantes A/B/C, relatorio e origem preservada")

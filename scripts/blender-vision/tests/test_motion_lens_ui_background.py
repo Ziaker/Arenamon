@@ -58,6 +58,7 @@ expected_operators = {
     "motionlens.strike", "motionlens.apply_impact",
     "motionlens.analyze_exaggeration", "motionlens.create_smear",
     "motionlens.create_exaggeration_variants", "motionlens.exaggeration_report",
+    "motionlens.ai_improve_animation",
 }
 expected_sections = {
     "Gerar evidencias", "Comparar animacoes", "Visualizar movimento",
@@ -100,6 +101,7 @@ for _cycle in range(2):
     assert hasattr(bpy.ops.motionlens, "apply_impact")
     assert hasattr(bpy.ops.motionlens, "create_smear")
     assert hasattr(bpy.ops.motionlens, "create_exaggeration_variants")
+    assert hasattr(bpy.ops.motionlens, "ai_improve_animation")
     ml.unregister()
     assert all(not hasattr(bpy.types.Scene, name) for name in ml.PROPERTIES)
 

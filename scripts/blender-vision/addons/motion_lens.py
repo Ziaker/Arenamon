@@ -32,9 +32,9 @@ from motion_lens_parts.sheets import (_bounds_for_frames, _camera_for_view, _cap
 from motion_lens_parts.comparison import (_metrics_from_analysis, _sample_action, compare_actions, compare_actions_data, compare_baseline, render_pose_diff_heatmap, render_reference_overlay_sheet, save_baseline)
 from motion_lens_parts.report import (_image_data_uri, build_html_report)
 from motion_lens_parts.ghosts import (_octahedron_mesh, create_ghosts, create_trails, write_report)
-from motion_lens_parts.operators import (ML_OT_analyze_exaggeration, ML_OT_apply_impact, ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_create_exaggeration_variants, ML_OT_create_smear, ML_OT_exaggeration_report, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_strike, ML_OT_trails)
+from motion_lens_parts.operators import (ML_OT_ai_improve_animation, ML_OT_analyze_exaggeration, ML_OT_apply_impact, ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_create_exaggeration_variants, ML_OT_create_smear, ML_OT_exaggeration_report, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_strike, ML_OT_trails)
 from motion_lens_parts.strikes import (STRIKE_TEXT, _action_fcurves, _strike_samples, analyze_strike, apply_impact)
-from motion_lens_parts.exaggeration import (COLLECTION as EXAGGERATION_COLL, PRESETS as SMEAR_PRESETS, analyze_exaggeration, build_agent_exaggeration_report, clear_exaggeration_generated, create_exaggeration_variants, create_smear_meshes)
+from motion_lens_parts.exaggeration import (COLLECTION as EXAGGERATION_COLL, PRESETS as SMEAR_PRESETS, analyze_exaggeration, build_agent_exaggeration_report, clear_exaggeration_generated, create_exaggeration_variants, create_smear_meshes, run_agent_animation_pipeline)
 from motion_lens_parts.ui import (ML_PT_panel, PROPERTIES, classes)
 
 

@@ -408,3 +408,71 @@ def build_agent_exaggeration_report(context=None):
     block.clear()
     block.write(json.dumps(analysis, ensure_ascii=False, indent=2))
     return path, analysis
+
+
+def run_agent_animation_pipeline(context=None):
+    """Escolhe parâmetros, gera smear/variantes e entrega relatório sem exigir ajuste manual."""
+    context = _context(context)
+    scene = context.scene
+    arm = _armature(context)
+    if arm is None or arm.animation_data is None or arm.animation_data.action is None:
+        raise RuntimeError("Selecione um armature com Action ativa")
+    action = arm.animation_data.action
+    mapping = _parse_mapping(scene.motion_lens_bone_map)
+    preferred = ("RightHand", "LeftHand", "RightFoot", "LeftFoot", "Head", "Hips")
+    available = [role for role in preferred if _resolve_bone(arm, role, mapping) is not None]
+    if not available:
+        raise RuntimeError("A IA nao encontrou papeis semanticos utilizaveis no rig")
+    scene.motion_lens_smear_bones = ",".join(available[:4])
+    start, end = action.frame_range
+    scene.motion_lens_smear_frame_start = math.floor(start)
+    scene.motion_lens_smear_frame_end = math.ceil(end)
+    scene.motion_lens_smear_frame_step = max(1, int(round(max(1.0, end - start) / 12.0)))
+    rig_size = max((abs(value) for value in arm.dimensions), default=1.0)
+    scene.motion_lens_smear_width = min(0.30, max(0.025, rig_size * 0.045))
+    scene.motion_lens_smear_min_speed = 0.0
+    first_analysis = analyze_exaggeration(context)
+    moving = [item for item in first_analysis["candidates"] if item["peak_m_per_frame"] > 1e-5]
+    chosen_slot = arm.animation_data.action_slot
+    if not moving:
+        for slot in getattr(action, "slots", ()):
+            arm.animation_data.action_slot = slot
+            candidate_analysis = analyze_exaggeration(context)
+            candidate_moving = [item for item in candidate_analysis["candidates"] if item["peak_m_per_frame"] > 1e-5]
+            if candidate_moving:
+                first_analysis = candidate_analysis
+                moving = candidate_moving
+                chosen_slot = slot
+                break
+    if not moving:
+        raise RuntimeError("A IA nao encontrou movimento suficiente para propor smear")
+    peak = max(item["peak_m_per_frame"] for item in moving)
+    travel = max(item["travel_m"] for item in moving)
+    scene.motion_lens_smear_min_speed = peak * 0.35
+    scene.motion_lens_exaggeration_strength = min(0.55, max(0.12, travel / max(rig_size, 1e-5) * 0.35))
+    scene.motion_lens_smear_shape = "BLADE" if len(moving) == 1 else ("HULL" if len(moving) >= 4 else "ARC")
+    smear = create_smear_meshes(context)
+    report_path, report = build_agent_exaggeration_report(context)
+    variants = create_exaggeration_variants(context)
+    result = {
+        "schema": "arenamon.motion-lens-agent-pipeline/1",
+        "source": action.name,
+        "decision": {
+            "bones": available[:4],
+            "frames": [scene.motion_lens_smear_frame_start, scene.motion_lens_smear_frame_end],
+            "shape": scene.motion_lens_smear_shape,
+            "action_slot": chosen_slot.identifier if chosen_slot else None,
+            "width_m": scene.motion_lens_smear_width,
+            "min_speed_m_per_frame": scene.motion_lens_smear_min_speed,
+            "exaggeration_strength": scene.motion_lens_exaggeration_strength,
+        },
+        "smear": smear,
+        "variants": variants,
+        "recommended_action": variants["active"],
+        "report": report_path,
+        "candidate_count": len(report["candidates"]),
+    }
+    block = bpy.data.texts.get("ML_AI_Animation_Result") or bpy.data.texts.new("ML_AI_Animation_Result")
+    block.clear()
+    block.write(json.dumps(result, ensure_ascii=False, indent=2))
+    return result
