@@ -113,7 +113,7 @@ export function createCharacterPanel({ui, view, $, onCharactersChanged, hooks = 
     for (const kind of ['height', 'width']) {
       const input = body.querySelector(`[data-${kind}-scale]`), out = body.querySelector(`[data-${kind}-out]`);
       input.oninput = () => {ch[kind + 'Scale'] = Number(input.value);out.textContent = `${ch[kind + 'Scale'].toFixed(2)}×`;};
-      input.onchange = () => ch.save();
+      input.onchange = () => {ch.save();onCharactersChanged();};   // o tamanho muda a velocidade «da animação» (loco-speed.js)
     }
     for (const cb of body.querySelectorAll('[data-free]')) cb.onchange = () => {
       const set = new Set(ch.freeVerticalMotion);

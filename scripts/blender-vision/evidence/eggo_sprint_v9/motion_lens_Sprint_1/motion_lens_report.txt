@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..33 (33) | 24.000 FPS | 1.375 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [ALTO] f27   reversao      RightLeg   inversao brusca de direcao (dot -0.94)
+  [ALTO] f11   reversao      RightLeg   inversao brusca de direcao (dot -0.94)
+  [ALTO] f3    reversao      LeftLeg    inversao brusca de direcao (dot -0.91)
+  [ALTO] f19   reversao      LeftLeg    inversao brusca de direcao (dot -0.91)
+  [MEDIO] f11   arco          RightFoot  quebra de curvatura 164.4 graus
+  [MEDIO] f27   arco          RightFoot  quebra de curvatura 163.9 graus
+  [MEDIO] f3    arco          LeftFoot   quebra de curvatura 162.7 graus
+  [MEDIO] f19   arco          LeftFoot   quebra de curvatura 162.3 graus
+  [MEDIO] f17   equilibrio    COM        centro aproximado 0.298 m fora do apoio simplificado
+  [MEDIO] f1    equilibrio    COM        centro aproximado 0.298 m fora do apoio simplificado
+  [MEDIO] f33   equilibrio    COM        centro aproximado 0.298 m fora do apoio simplificado
+  [MEDIO] f9    equilibrio    COM        centro aproximado 0.286 m fora do apoio simplificado
+  ... 124 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.201 m/frame em f3 | media 0.117
+  Head       pico 0.202 m/frame em f19 | media 0.120
+  LeftHand   pico 0.198 m/frame em f3 | media 0.117
+  RightHand  pico 0.198 m/frame em f3 | media 0.117
+  LeftFoot   pico 0.286 m/frame em f12 | media 0.147
+  RightFoot  pico 0.287 m/frame em f20 | media 0.147
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 7 baixos, 5 quase travados, slide max 0.000 m/frame, z<=0.047
+  RightFoot: 6 baixos, 4 quase travados, slide max 0.000 m/frame, z<=0.047
+  Malha: z minimo -0.0632 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

@@ -40,6 +40,11 @@ export function epilogueAuthority(f, cur = null) {
     || (f.knockRecovery ?? 0) > 0 || AUTHORITY_STATES.has(f.state));
 }
 
+/** Andar/correr corta o resto do clipe (opção «Andar e correr cortam o fim da animação anterior», padrão desde 31/10/2026): com o
+ * lutador se deslocando, a locomoção assume na hora em vez de esperar a conclusão visual. Parado, o clipe termina como antes. */
+export const moveCancels = (/** @type {string} */ raw, /** @type {any} */ f) => !!C.display.animation.moveCancels && LOCOMOTION.has(raw) && raw !== 'neutral' && raw !== 'turn'
+  && Math.hypot(f.velocity?.x ?? 0, f.velocity?.z ?? 0) > .3;
+
 /** Limpa o estado de epílogo (resetVisual, troca de associações, prévia). */
 export function clearEpilogue(ch) {ch.epilogue = null;ch.epilogueInterrupt = false;}
 export function epilogueActive(ch) {return !!ch.epilogue;}
@@ -109,6 +114,7 @@ export function tryStartEpilogue(ch, f, raw, dt, ctx) {
   if (loops(ch, cur.id, cur.key)) return false;   // laços autorais sem condição de término ficam de fora por ora
   if (ch.preview || ch.movePreview || ch.transient || epilogueAuthority(f, cur)) return false;
   if (SUCCESSORS.has(raw)) return false;   // recovery_tackle/dodge/move: o clipe dedicado assume com fade normal
+  if (moveCancels(raw, f)) return false;   // andando/correndo: a locomoção assume (não espera o fim do clipe)
   const cap = capOf(ch, cur), s = ch.speedOf(cur.id);
   if (remainingOf(ch, cur, cap) <= (ch.lastDt || dt || C.test.step) * s) return false;   // já concluída (ou a 1 quadro do fim)
   ch.epilogue = {key: cur.key, id: cur.id, entry: cur.entry, started: ch.clock, cap, baseElapsed: undefined};
@@ -144,7 +150,7 @@ export function stepEpilogue(ch, f, raw, ctx) {
     clearEpilogueMark(f);
     return 'ended';
   }
-  if (SUCCESSORS.has(raw) || epilogueAuthority(f, cur)) {
+  if (SUCCESSORS.has(raw) || epilogueAuthority(f, cur) || moveCancels(raw, f)) {
     // Interrupção por autoridade (reação, ação nova, defesa, voo…): a transição normal deste quadro assume;
     // o logTransition marca o evento com epilogueEnd: true para os testes distinguirem.
     ch.epilogue = null;
@@ -164,6 +170,7 @@ export function stepEpilogue(ch, f, raw, ctx) {
 export function synthesizeLanding(ch, f, raw, ctx) {
   if (f.hp <= 0 || f.wallSplat || f.ledge || (f.knockRecovery ?? 0) > 0 || f.state === 'landing') return false;
   if (!(raw === 'neutral' || LOCOMOTION.has(raw))) return false;
+  if (moveCancels(raw, f)) return false;   // pousando já em movimento: segue direto na locomoção
   const id = ch.actionFor('land');
   if (!id) return false;
   const entry = `landing#${++ch.actionSerial}`;

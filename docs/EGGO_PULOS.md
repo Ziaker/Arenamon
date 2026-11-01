@@ -1,44 +1,70 @@
-# Eggo · pulos (Jump, fases, Fall e Land)
+# Eggo · pulo (Jump 1)
 
-Estado: **aguardando aprovação do responsável** (31/10/2026). Modo B do [manual](MANUAL_BLENDER_AGENTES.md): Actions novas
-numa cópia nova; nenhum `.blend` existente sobrescrito.
+Estado: **Jump 1 v9 aprovado pelo responsável** (31/10/2026). Modo B do [manual](MANUAL_BLENDER_AGENTES.md): Action
+criada na sessão aberta e gravada numa cópia nova; nenhum `.blend` existente sobrescrito.
 
 ## Onde abrir
 
-- Arquivo: `chars/Eggo/eggo pulos v4.blend` (cópia da sessão aberta, com todas as Actions do Eggo + as 7 novas).
-- Folhas de todos os frames: `scripts/blender-vision/evidence/eggo_pulos_v4/shot_<Action>/report.html`.
-- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_pulos_v4/motion_lens_<Action>/`.
+- Arquivo: `chars/Eggo/eggo pulo v9.blend` (cópia da sessão, com todas as Actions do Eggo + `Jump 1`).
+- Folhas de todos os 30 frames: `scripts/blender-vision/evidence/eggo_pulo_v9/shot_Jump_1/report.html`.
+- Motion Lens / Direction Lines: `scripts/blender-vision/evidence/eggo_pulo_v9/motion_lens_Jump_1/`.
 
-## Como o jogo usa (lido em `combat-lab/src/sim/animation-profile.js` e `view/characters.js`)
+## Jump 1 v9 (aprovado)
 
-- O salto sobe 2 m pela física (`map.jumpHeight`, gravidade 17,5 na subida e 22 na descida): os clipes são **no lugar**.
-- Fases por velocidade vertical: `jump_start` (0,12 s após o impulso), `jump_rise` (loop), `jump_apex` (|vy| < 0,6 m/s,
-  toca uma vez e segura; o editor tem «Congelamento no pico»), `jump_fall` (loop) e `land`. Sem as fases, usa `jump`.
-- `fall` é a queda genérica (lançado, borda).
+30 frames, 24 fps, LINEAR, 12–15 chaves por osso. O Eggo **sai do lugar**: o Root sobe em parábola, decola no f6,
+pico de 0,60 m no f13 e pousa no f20.
 
-## Actions criadas
+| Frame | Pose |
+|---|---|
+| 1 | neutro (pose da Idle 5) |
+| 4 | agacha (antecipação) |
+| 6 | impulso: arqueia, olha para cima, pernas esticadas, pés ainda no chão |
+| 8 | subida: pernas para trás |
+| 13–15 | pico: encolhe as pernas (sem a coxa entrar na barriga) |
+| 18 | queda: pernas descem, olha o chão |
+| 20 | toca o chão |
+| 21–23 | impacto e amassado |
+| 27 | levanta |
+| 30 | neutro |
 
-| Action | Estado do jogo | Frames | Loop |
-|---|---|---|---|
-| `Jump 1` | `jump` (pulo inteiro) | 26 | não |
-| `Jump Start 1` | `jump_start` | 4 | não |
-| `Jump Rise 1` | `jump_rise` | 9 | sim |
-| `Jump Apex 1` | `jump_apex` | 5 | não |
-| `Jump Fall 1` | `jump_fall` | 9 | sim |
-| `Fall 1` | `fall` | 9 | sim |
-| `Land 1` | `land` | 16 | não |
+Os **braços ficam na pose de sempre** e só acompanham o corpo (pedido do responsável: nada de balanço de pulo
+humano).
 
-Poses: agacha (antecipação) → impulso com as pernas esticadas e braços subindo → subida com pernas para trás →
-pico encolhido (joelhos para a frente e para cima) → queda com braços abertos e pernas descendo → pouso: impacto em
-1 frame, agachamento máximo no f4, levanta e passa do ponto até a idle. Chaves LINEAR, até 12 por osso.
+## Fases do jogo (31/10/2026)
+
+O `Jump 1` ganhou **marcadores** com o nome da fase (chaves intactas): `jump_start` f4, `jump_rise` f6, `jump_apex` f12,
+`jump_fall` f16, `land` f20. Cada fase também virou uma **Action própria**, copiada do `Jump 1`, **no lugar** (o Root
+não sobe; no jogo a altura é da física). Arquivo: `chars/Eggo/eggo pulo v9 fases.blend`.
+
+| Action | Estado do jogo | Trecho do Jump 1 | Frames | Tipo |
+|---|---|---|---|---|
+| `Jump Start 1` | `jump_start` | f4–6 (agacha → impulso) | 3 | uma vez |
+| `Jump Rise 1` | `jump_rise` | f7 → f9 → f7 (vai e volta) | 5 | loop |
+| `Jump Apex 1` | `jump_apex` | f12–16 (encolhido) | 5 | uma vez (segura no fim) |
+| `Jump Fall 1` | `jump_fall` | f17 → f19 → f17 (vai e volta) | 5 | loop |
+| `Land 1` | `land` | f20–30 (impacto → neutro) | 11 | uma vez |
+
+Os loops de subida e queda são um vai-e-volta curto do meio do trecho, porque o trecho inteiro não fecha em ciclo.
+Motion Lens em cada fase: as únicas reversões são o ponto de volta dos loops (f4, movimentos de 3–5 cm) e os
+antebraços no fundo do amassado do pouso (f3); pés travados no `Land 1`. Folhas e relatórios:
+`scripts/blender-vision/evidence/eggo_pulo_v9_fases/`.
 
 ## Verificação
 
-- `vision.py shot` em todas as Actions (lado e frente), arquivo intacto (`blend_untouched`).
-- Corrigido durante a verificação: chicote das mãos no impulso (46 → 18 cm/frame), joelhos abrindo para os lados no
-  pico (canela girando 93°/frame → ≤ 30°/frame) e joelho entrando na barriga no encolhimento máximo.
-- Motion Lens: `Jump 1` só com a cabeça invertendo no estalo do impulso (f5); `Land 1` e `Jump Apex 1` sem alerta ALTO.
+- `vision.py shot` nos 30 frames (lado e 3/4), arquivo intacto (`blend_untouched`).
+- Motion Lens: mãos no máximo 0,16 m/frame; alertas ALTO só de reversão na antecipação (f5), na saída do encolhido
+  (f14) e no fundo do amassado (f22). Sola a 3–4 cm do chão (igual às clips aprovadas).
+- Direction Lines: quadril com desvio máximo de 2,7 cm da guia.
+
+## Histórico
+
+- v4 (7 Actions no lugar: Jump/Start/Rise/Apex/Fall, Fall, Land) foi **rejeitada** e as Actions apagadas da sessão;
+  o arquivo `chars/Eggo/eggo pulos v4.blend` e as evidências `eggo_pulos_v4/` ficam só como histórico.
+- v5–v8: tentativas intermediárias (braços para trás, malha rasgando no pico, balanço de braço humano), descartadas.
+- Correção de cena: o objeto `AlienRig` tinha descido para z 0,216 (todas as clips abaixo do chão); voltou para
+  z 0,532, como nos arquivos anteriores (x e y mantidos).
 
 ## Não verificado
 
-Exportação GLB, Animation Studio e Combat Lab (tempos reais das fases no jogo).
+Exportação GLB, Animation Studio e Combat Lab. No jogo a subida é feita pela física (2 m); com root motion travado,
+o Root deste clipe não desloca o personagem.

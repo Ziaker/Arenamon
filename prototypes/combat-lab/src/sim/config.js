@@ -85,6 +85,10 @@ function buildDefaults() {
       trackOn: 0, trackHeadYaw: 45, trackHeadPitch: 20, trackTorso: 35, trackSmooth: .12, trackRelease: .12, trackAimLimit: 50,
       phaseMode: 0, phaseActive: 0, phaseCancel: 0, phaseInvuln: 0,
     },
+    // Sprint em qualquer direção (view/sprint-turn.js). SÓ APRESENTAÇÃO. Personagem sem clipes de sprint para trás/esquerda/direita
+    // corre com o sprint para a frente e o corpo gira para onde corre (até sprintTurnLegRate °/s); tronco e cabeça torcem de volta
+    // para o rival (até sprintTurnTorsoMax / sprintTurnHeadMax °); acima de sprintTurnBackAngle ° o tronco solta e só a cabeça olha.
+    sprintTurn: {sprintTurnOn: 1, sprintTurnLegRate: 540, sprintTurnTorsoMax: 60, sprintTurnHeadMax: 45, sprintTurnBackAngle: 110},
     // Navegação experimental (Fase 3, Yuka): 0 = navegação atual (padrão, nada muda); 1 = a IA consulta um grafo de superfícies
     // (caminhada, salto e queda) planejado com Yuka SOMENTE quando o alvo não está em linha reta caminhável. A física continua do Arenamon.
     // spacing: grade de nós do chão (m) · replan: intervalo de replanejamento (s) · jumpReach: alcance horizontal de um salto (m) ·
@@ -317,7 +321,7 @@ export function displayDefaults() {
     // Indicador da janela C → X (apenas desenho; a regra é por tempo, ver docs).
     cancelRing: {inner: 1.05, width: .25, opacity: .75},
     // Transições da máquina de estados de animação (Personagens). Só visual: não mudam tempos, física ou regras.
-    animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1},
+    animation: {fade: .18, actionFade: .07, locomotionHold: .1, speed: 1, timedNative: 1, hipSway: 1, moveCancels: 1, strideSync: 1, strideSyncLimit: 20, vaultPhases: 1, jumpPhaseFade: .04},   // timedNative/hipSway: fidelidade ao animado (view/clip-fidelity.js)
     // Diagnóstico de comandos (só apresentação): aviso na arena 0 = desligado, 1 = só o jogador, 2 = ambos.
     diagnostics: {toast: 0, toastMs: 1400, logExecuted: 0},
     // Habilidades passivas: aviso lateral e sparkles de ativação. Só apresentação; não altera regras ou atributos.

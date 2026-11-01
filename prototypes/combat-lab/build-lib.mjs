@@ -22,7 +22,7 @@ async function initialWorkspaceTag() {
   } catch {return '';}
 }
 /** Modelos que vêm dentro do HTML (caminho a partir de prototypes/combat-lab/). Entram no store na abertura. */
-const EMBEDDED_MODELS = ['../../chars/wookada/wookada.glb'];
+const EMBEDDED_MODELS = ['../../chars/wookada/wookada.glb', '../../chars/Eggo/eggo.glb'];   // Eggo: animações aprovadas (scripts/blender-vision/exportar_eggo_glb.py)
 async function embeddedModelsTag() {
   const tags = [];
   for (const rel of EMBEDDED_MODELS) {

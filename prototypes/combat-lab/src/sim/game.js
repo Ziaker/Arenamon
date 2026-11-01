@@ -30,7 +30,7 @@ export class Game {
     // Passivas: loadout por lutador + identidade de espécie explícita (R15), mantidos entre partidas.
     this.passiveLoadouts = [[], []];
     this.passiveIdentity = [null, null];
-    this.combatWindows = [null, null];this.combatMods = [null, null];
+    this.combatWindows = [null, null];this.combatMods = [null, null];this.locomotion = [null, null];
     // R31: IDs estáveis de eventos (sequência determinística) e registro do passo de eventos de
     // passivas já processados (detecção de processamento duplicado do mesmo evento).
     this.eventSeq = 0;this.passiveProcessed = new Set();
@@ -48,6 +48,7 @@ export class Game {
       f.loadout = [...(this.loadouts[i] || [])];
       f.combatWindows = this.combatWindows?.[i] ? structuredClone(this.combatWindows[i]) : null;
       f.combatMods = this.combatMods?.[i] ? structuredClone(this.combatMods[i]) : null;
+      f.locoSpeeds = this.locomotion?.[i] ? {...this.locomotion[i]} : null;   // velocidade de andar/correr por personagem (view/loco-speed.js)
     });
     this.world = createWorld();
     this.world.mapState = this.mapState;
@@ -181,6 +182,12 @@ export class Game {
     this.combatMods[id] = mods && Object.keys(mods).length ? structuredClone(mods) : null;
     if (this.fighters?.[id]) this.fighters[id].combatMods = this.combatMods[id];
   }
+  /** Velocidade de andar/correr do personagem do lutador ({walk, sprint} m/s; null = regra do jogo). */
+  setLocomotion(id, speeds) {
+    this.locomotion ??= [null, null];
+    this.locomotion[id] = speeds && (speeds.walk || speeds.sprint) ? {...speeds} : null;
+    if (this.fighters?.[id]) this.fighters[id].locoSpeeds = this.locomotion[id] ? {...this.locomotion[id]} : null;
+  }
   /** Visão para o HUD e para testes (mesma forma do v6). */
   snapshot() {
     return {phase: this.phase, tick: this.tick, winner: this.winner, mode: this.mode, hitstop: this.hitstop, events: this.events,
@@ -193,7 +200,7 @@ export class Game {
     return structuredClone({fighters: this.fighters, tick: this.tick, events: this.events, winner: this.winner, hitstop: this.hitstop, phase: this.phase, eventSeq: this.eventSeq, eventIdSeq: this.eventIdSeq, world: this.world ?? createWorld(), mapState: this.mapState, loadouts: this.loadouts,
       passiveLoadouts: this.passiveLoadouts, passiveIdentity: this.passiveIdentity,
       mode: this.mode, seed: this.seed, profile: this.profile, enemyProfile: this.enemyProfile,   // contexto da partida (A-09): o save carrega modo, semente e perfis, não só o estado dos lutadores
-      combatWindows: this.combatWindows, combatMods: this.combatMods, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
+      combatWindows: this.combatWindows, combatMods: this.combatMods, locomotion: this.locomotion, brain: this.brain.save(), playerBrain: this.playerBrain.save(), lastStepEvents: this.lastStepEvents});
   }
   load(state) {
     const s = structuredClone(state);
@@ -214,6 +221,7 @@ export class Game {
     if (s.passiveIdentity) this.passiveIdentity = s.passiveIdentity;
     this.combatWindows = s.combatWindows ? structuredClone(s.combatWindows) : [null, null];
     this.combatMods = s.combatMods ? structuredClone(s.combatMods) : [null, null];
+    this.locomotion = s.locomotion ? structuredClone(s.locomotion) : [null, null];
     for (const f of this.fighters) {
       f.statuses ??= [];f.moveCooldowns ??= {};f.loadout ??= [];f.moveFx ??= [];
       f.charge ??= null;f.moveRecovery ??= 0;f.skillBuffer ??= null;f.moveEvents ??= [];f.counterStagger ??= 0;
@@ -230,6 +238,7 @@ export class Game {
       if (this.combatWindows?.[i]) this.fighters[i].combatWindows = structuredClone(this.combatWindows[i]);
       else this.fighters[i].combatWindows = null;
       this.fighters[i].combatMods = this.combatMods?.[i] ? structuredClone(this.combatMods[i]) : null;
+      this.fighters[i].locoSpeeds = this.locomotion?.[i] ? {...this.locomotion[i]} : null;
     }
   }
 }

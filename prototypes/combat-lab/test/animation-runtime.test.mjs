@@ -4,6 +4,8 @@
 // Também prova velocidade/recorte/laço do Editor aplicados ao mixer, persistência (salvar → recarregar) e determinismo (replay / save-load no meio).
 // Uso: node prototypes/combat-lab/test/animation-runtime.test.mjs      (≈ 10 s; a matriz completa: node scripts/gen-matriz-animacoes.mjs → docs/MATRIZ_ANIMACOES_RUNTIME.md)
 import assert from 'node:assert/strict';
+// Contrato do modo ANTIGO das ações cronometradas (clipe esticado na duração da ação); o modo novo (velocidade original) é coberto por clip-fidelity.test.mjs.
+globalThis.__animTimedLegacy = true;
 import {fileURLToPath} from 'node:url';
 import {runAll, rowsFor, RESERVA} from './animation-runtime-matrix.mjs';
 import {loadConfiguredSource, makeCharacter, makeMatch, configurableActions, setupRegistry, cmd, vec, C, listMoves, EDITOR_IDS} from './animation-runtime-harness.mjs';

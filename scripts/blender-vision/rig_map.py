@@ -141,29 +141,31 @@ KNOWN_TEMPLATES: Dict[str, Dict[str, Sequence[str]]] = {
         "tail_tip": ("Tail4",),
     },
     "POKEMON_ZA": {
-        "root": ("Origin", "Root", "pm_root"),
-        "pelvis": ("Waist", "Hips", "Center"),
-        "spine_lower": ("SpineA", "Spine1"),
-        "spine_middle": ("SpineB", "Spine2"),
-        "neck": ("Neck",),
-        "head": ("Head",),
-        "left_upper_arm": ("ArmL", "UpperArmL", "ShoulderL"),
-        "left_forearm": ("ForeArmL", "ArmL2"),
-        "left_hand": ("HandL",),
-        "right_upper_arm": ("ArmR", "UpperArmR", "ShoulderR"),
-        "right_forearm": ("ForeArmR", "ArmR2"),
-        "right_hand": ("HandR",),
-        "left_thigh": ("LegL", "ThighL", "UpLegL"),
-        "left_calf": ("KneeL", "CalfL", "LegL2"),
-        "left_foot": ("FootL",),
-        "left_toe": ("ToeL",),
-        "right_thigh": ("LegR", "ThighR", "UpLegR"),
-        "right_calf": ("KneeR", "CalfR", "LegR2"),
-        "right_foot": ("FootR",),
-        "right_toe": ("ToeR",),
-        "tail_base": ("TailA", "Tail1"),
-        "tail_mid": ("TailB", "Tail2"),
-        "tail_tip": ("TailC", "Tail3"),
+        "root": ("Origin", "Root", "origin", "root", "pm_root"),
+        "pelvis": ("Waist", "Hips", "waist", "hips", "Center", "center"),
+        "spine_lower": ("SpineA", "Spine1", "spine_01", "spine_1"),
+        "spine_middle": ("SpineB", "Spine2", "spine_02", "spine_2"),
+        "spine_upper": ("SpineC", "Spine3", "spine_03", "spine_3"),
+        "neck": ("Neck", "neck"),
+        "head": ("Head", "head"),
+        "jaw": ("Jaw", "jaw"),
+        "left_upper_arm": ("ArmL", "UpperArmL", "left_arm_a", "left_arm", "ShoulderL"),
+        "left_forearm": ("ForeArmL", "ArmL2", "left_arm_b_01", "left_forearm"),
+        "left_hand": ("HandL", "left_hand_a", "left_hand"),
+        "right_upper_arm": ("ArmR", "UpperArmR", "right_arm_a", "right_arm", "ShoulderR"),
+        "right_forearm": ("ForeArmR", "ArmR2", "right_arm_b_01", "right_forearm"),
+        "right_hand": ("HandR", "right_hand_a", "right_hand"),
+        "left_thigh": ("LegL", "ThighL", "left_leg_01", "left_thigh", "UpLegL"),
+        "left_calf": ("KneeL", "CalfL", "left_leg_02", "left_calf", "LegL2"),
+        "left_foot": ("FootL", "left_foot"),
+        "left_toe": ("ToeL", "left_toe"),
+        "right_thigh": ("LegR", "ThighR", "right_leg_01", "right_thigh", "UpLegR"),
+        "right_calf": ("KneeR", "CalfR", "right_leg_02", "right_calf", "LegR2"),
+        "right_foot": ("FootR", "right_foot"),
+        "right_toe": ("ToeR", "right_toe"),
+        "tail_base": ("TailA", "Tail1", "tail_01", "tail_a"),
+        "tail_mid": ("TailB", "Tail2", "tail_02", "tail_b"),
+        "tail_tip": ("TailC", "Tail3", "tail_03", "tail_c"),
     },
     "RIGIFY_BLENDER": {
         "root": ("root",),
@@ -251,7 +253,7 @@ def _detect_template(bone_names: Sequence[str], armature_name: str = "") -> Tupl
         elif t_name == "ALIEN_RIG" and any(b in ("Root", "root") for b in bones_set) and "Hips" in bones_set:
             base_score += 0.10
 
-        if t_name == "POKEMON_ZA" and any(b.startswith("pm") for b in bone_names):
+        if t_name == "POKEMON_ZA" and (any(b.startswith("pm") for b in bone_names) or "pm" in arm_lower or "pokemon" in arm_lower):
             base_score += 0.20
 
         scores[t_name] = base_score

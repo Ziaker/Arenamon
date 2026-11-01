@@ -1,0 +1,32 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..3 (3) | 24.000 FPS | 0.125 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [MEDIO] f3    arco          LeftFoot   quebra de curvatura 180.0 graus
+  [MEDIO] f3    arco          RightFoot  quebra de curvatura 180.0 graus
+  [MEDIO] f3    reversao      RightFoot  inversao brusca de direcao (dot -1.00)
+  [MEDIO] f3    arco          LeftHand   quebra de curvatura 122.7 graus
+  [MEDIO] f3    arco          RightHand  quebra de curvatura 103.4 graus
+  [MEDIO] f3    reversao      LeftFoot   inversao brusca de direcao (dot -1.00)
+  [BAIXO] f2    equilibrio    COM        centro aproximado 0.124 m fora do apoio simplificado
+
+RESUMO POR JUNTA
+  Hips       pico 0.085 m/frame em f2 | media 0.085
+  Head       pico 0.175 m/frame em f3 | media 0.147
+  LeftHand   pico 0.097 m/frame em f3 | media 0.071
+  RightHand  pico 0.091 m/frame em f3 | media 0.072
+  LeftFoot   pico 0.024 m/frame em f3 | media 0.024
+  RightFoot  pico 0.030 m/frame em f3 | media 0.030
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 3 baixos, 1 quase travados, slide max 0.000 m/frame, z<=0.033
+  RightFoot: 3 baixos, 1 quase travados, slide max 0.000 m/frame, z<=0.024
+  Malha: z minimo -0.0586 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

@@ -65,6 +65,9 @@ const stores = {};
 export function setupRegistry() {
   resetConfig(defaults());clearMoves();clearEffects();registerStandardMoves();
   C.extras.toggles.enableEnemyAI = 0;
+  // Testes do contrato ANTIGO (clipe esticado na duração da ação) ligam esta marca; o modo novo (velocidade original, padrão desde 31/10/2026) tem teste próprio.
+  if (globalThis.__animTimedLegacy) {C.display.animation.timedNative = 0;C.display.animation.moveCancels = 0;C.display.animation.vaultPhases = 0;}
+  if (globalThis.__animMoveLegacy) C.display.animation.moveCancels = 0;   // contrato antigo: o clipe da ação segue durante o movimento
 }
 
 /** Cria um Character com todas as ações associadas a um clipe próprio (como o Editor faria) e a velocidade/recorte DISTINTOS por ação para provar a aplicação. */

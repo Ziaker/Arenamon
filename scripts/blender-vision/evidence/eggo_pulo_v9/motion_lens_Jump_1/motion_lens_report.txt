@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..30 (30) | 24.000 FPS | 1.250 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [ALTO] f5    reversao      Head       inversao brusca de direcao (dot -1.00)
+  [ALTO] f5    reversao      LeftArm    inversao brusca de direcao (dot -1.00)
+  [ALTO] f5    reversao      RightArm   inversao brusca de direcao (dot -1.00)
+  [ALTO] f22   reversao      LeftForeArm inversao brusca de direcao (dot -1.00)
+  [ALTO] f22   reversao      RightForeArm inversao brusca de direcao (dot -0.99)
+  [ALTO] f5    reversao      LeftUpLeg  inversao brusca de direcao (dot -1.00)
+  [ALTO] f5    reversao      Hips       inversao brusca de direcao (dot -1.00)
+  [ALTO] f5    reversao      RightUpLeg inversao brusca de direcao (dot -1.00)
+  [ALTO] f14   reversao      LeftFoot   inversao brusca de direcao (dot -0.98)
+  [ALTO] f14   reversao      LeftLeg    inversao brusca de direcao (dot -0.95)
+  [MEDIO] f14   reversao      RightLeg   inversao brusca de direcao (dot -0.97)
+  [MEDIO] f14   reversao      RightFoot  inversao brusca de direcao (dot -0.99)
+  ... 81 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.152 m/frame em f8 | media 0.058
+  Head       pico 0.176 m/frame em f7 | media 0.069
+  LeftHand   pico 0.162 m/frame em f8 | media 0.060
+  RightHand  pico 0.159 m/frame em f8 | media 0.059
+  LeftFoot   pico 0.183 m/frame em f8 | media 0.062
+  RightFoot  pico 0.204 m/frame em f8 | media 0.062
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 17 baixos, 14 quase travados, slide max 0.000 m/frame, z<=0.033
+  RightFoot: 17 baixos, 14 quase travados, slide max 0.000 m/frame, z<=0.024
+  Malha: z minimo -0.0586 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

@@ -18,7 +18,7 @@ export function locomotionParams(f) {
     : {acceleration: L.acceleration, braking: L.braking, reversal: L.reversal, turnGrip: L.turnGrip, accelCurve: L.accelCurve, brakeCurve: L.brakeCurve, friction: L.friction, residualSpeed: L.residualSpeed, overspeedBraking: f.sprintCarry ? S.braking : L.braking};
 }
 /** Velocidade máxima de caminhada do lutador agora (defesa e exaustão reduzem). */
-export const walkSpeed = f => stat(f, 'speed', f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1) * (f.aim?.castLeft > 0 ? 1 - f.aim.params.castSlow : 1);
+export const walkSpeed = f => stat(f, 'speed', f.locoSpeeds?.walk ?? f.attributes.speed) * (f.guard ? C.rules.guardSpeed : 1) * (f.exhausted ? C.rules.exhaustedSpeed : 1) * (f.charge ? f.charge.params.moveSlow : 1) * (f.aim?.castLeft > 0 ? 1 - f.aim.params.castSlow : 1);
 /** Custo de stamina de uma ação com o modificador de status (sem status: o próprio custo). */
 // kind opcional ('dodge' | 'tech'): passivas como Technician alteram o custo efetivo de esquivas e recovery (R10);
 // X/tackles e Moves continuam usando o custo base (C.extras.toggles.enablePassives desligado = paridade exata).

@@ -1,4 +1,5 @@
 /** Novo núcleo do painel de personagens (substitui render/slot/statesBox/libraryBox do painel antigo). */
+import {locoSpeedBox} from './loco-speed-panel.js';
 
 // Grupos da lista de estados (cada estado do combate aponta para um bloco de animação).
 const GROUPS = [
@@ -63,6 +64,7 @@ export function installNewPanel(ctx) {
     if (ch.missingAssociations?.length) {const w = document.createElement('p');w.className = 'warn';w.textContent = `Associações salvas sem clipe (reimporte): ${ch.missingAssociations.join(', ')}.`;el.append(w);}
     const live = document.createElement('p');live.className = 'hint char-live';live.dataset.char = id;el.append(live);
     el.append(summaryBar(id, ch));
+    el.append(locoSpeedBox(id, ch, onCharactersChanged));   // velocidade de andar/correr: jogo, animação ou manual
     const grid = document.createElement('div');grid.className = 'cs-grid' + (view.libraryHidden ? ' library-hidden' : '');
     grid.append(statesList(id, ch));if (!view.libraryHidden) grid.append(libraryPane(id, ch));
     el.append(grid);

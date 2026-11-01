@@ -6,6 +6,8 @@
 //     com deslocamento físico idêntico com a conclusão visual ligada ou desligada.
 // Uso: node prototypes/combat-lab/test/animation-epilogue-casos.test.mjs
 import assert from 'node:assert/strict';
+// Contrato ANTIGO da conclusão visual (o clipe da ação segue durante o movimento); o corte pela locomoção (padrão desde 31/10/2026) é coberto por clip-fidelity.test.mjs.
+globalThis.__animMoveLegacy = true;
 import {fileURLToPath} from 'node:url';
 import {makeMatch, cmd, vec, C, loadConfiguredSource} from './animation-runtime-harness.mjs';
 import {setField} from '../src/sim/animation-profile.js';

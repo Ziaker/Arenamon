@@ -160,17 +160,24 @@ export class RigLayers {
   /**
    * Aplica as camadas. Chamar depois de a pose base e a posição visual do personagem estarem calculadas.
    * @param {any} f lutador da simulação (leitura) @param {number} dt
-   * @param {{foot: boolean, track: boolean, G: any, ground: (x:number,z:number,y:number)=>number, fighters: any[], facing: number, scaleY: number, bodyHeight: number, restMinY: number, mode?: 'head'|'headTorso'|'aim'|'off', occluded?: (a: any, b: any) => boolean}} o
+   * @param {{foot: boolean, track: boolean, twist?: {torso: number, head: number}|null, G: any, ground: (x:number,z:number,y:number)=>number, fighters: any[], facing: number, scaleY: number, bodyHeight: number, restMinY: number, mode?: 'head'|'headTorso'|'aim'|'off', occluded?: (a: any, b: any) => boolean}} o
    */
   apply(f, dt, o) {
     this.undo();   // sempre primeiro: mesmo desligada, a camada precisa devolver o que alterou
-    if (!o.foot && !o.track && this.fw < .005 && this.tw < .005) return;
+    if (!o.foot && !o.track && !o.twist && this.fw < .005 && this.tw < .005) return;
     this.checkAxes();
     this.model.updateMatrixWorld(true);
     const calm = !f.flight && !f.ledge && !f.action?.jump && !f.action?.vault && !f.action?.slam && !STUN.has(f.state ?? '') && f.hp > 0;
     if (this.footOk) this.applyFeet(f, dt, o, o.foot && calm);
+    if (o.twist && this.trackOk) this.applyTwist(o.twist);
     if (this.trackOk) this.applyTrack(f, dt, o);
     this.seal();
+  }
+  /** Sprint em qualquer direção (sprint-turn.js): tronco e cabeça torcem em torno da vertical de volta para o rival. */
+  applyTwist(/** @type {{torso: number, head: number}} */ t) {
+    const T = this.T, up = new T.Vector3(0, 1, 0), torsoBone = this.chest ?? this.neck;
+    if (torsoBone && Math.abs(t.torso) > 1e-4) this.rotateWorld(torsoBone, new T.Quaternion().setFromAxisAngle(up, t.torso));
+    if (this.head && Math.abs(t.head) > 1e-4) this.rotateWorld(this.head, new T.Quaternion().setFromAxisAngle(up, t.head));
   }
   applyFeet(/** @type {any} */ f, /** @type {number} */ dt, /** @type {any} */ o, /** @type {boolean} */ on) {
     const T = this.T, G = o.G, [A, B, Cp, Tg, N, tmp] = this.v;

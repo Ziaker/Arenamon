@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..27 (27) | 24.000 FPS | 1.125 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [ALTO] f23   reversao      RightFoot  inversao brusca de direcao (dot -0.92)
+  [ALTO] f10   reversao      LeftFoot   inversao brusca de direcao (dot -0.84)
+  [ALTO] f4    reversao      RightHand  inversao brusca de direcao (dot -0.77)
+  [ALTO] f15   reversao      RightLeg   inversao brusca de direcao (dot -0.75)
+  [MEDIO] f3    arco          LeftFoot   quebra de curvatura 165.1 graus
+  [MEDIO] f16   arco          RightFoot  quebra de curvatura 165.1 graus
+  [MEDIO] f23   arco          RightFoot  quebra de curvatura 157.6 graus
+  [MEDIO] f10   arco          LeftFoot   quebra de curvatura 146.7 graus
+  [MEDIO] f4    arco          RightHand  quebra de curvatura 140.6 graus
+  [MEDIO] f27   equilibrio    COM        centro aproximado 0.245 m fora do apoio simplificado
+  [MEDIO] f1    equilibrio    COM        centro aproximado 0.245 m fora do apoio simplificado
+  [MEDIO] f17   intersecao    braco R/torso capsulas a 0.001 m; confirmar na malha
+  ... 146 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.123 m/frame em f2 | media 0.069
+  Head       pico 0.119 m/frame em f2 | media 0.069
+  LeftHand   pico 0.125 m/frame em f2 | media 0.073
+  RightHand  pico 0.120 m/frame em f15 | media 0.073
+  LeftFoot   pico 0.319 m/frame em f3 | media 0.108
+  RightFoot  pico 0.319 m/frame em f16 | media 0.107
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 3 baixos, 2 quase travados, slide max 0.000 m/frame, z<=0.047
+  RightFoot: 2 baixos, 1 quase travados, slide max 0.000 m/frame, z<=0.047
+  Malha: z minimo -0.0424 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

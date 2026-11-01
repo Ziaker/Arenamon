@@ -1,0 +1,58 @@
+[
+ {
+  "estado": "vault [jump]",
+  "quadros": 493,
+  "taxa": 2.81,
+  "duracaoClipe": 1.25,
+  "velCorpo": 10.69
+ },
+ {
+  "estado": "dodge_back [dodge back]",
+  "quadros": 104,
+  "taxa": 2.11,
+  "duracaoClipe": 1.38,
+  "velCorpo": 5.73
+ },
+ {
+  "estado": "walk [walk]",
+  "quadros": 71,
+  "taxa": 2,
+  "duracaoClipe": 1.04,
+  "velCorpo": 3.35
+ },
+ {
+  "estado": "tackle_charge [idle]",
+  "quadros": 58,
+  "taxa": 1.58,
+  "duracaoClipe": 4.21,
+  "velCorpo": 3.64
+ },
+ {
+  "estado": "tackle [idle]",
+  "quadros": 52,
+  "taxa": 3.64,
+  "duracaoClipe": 4.21,
+  "velCorpo": 2.09
+ },
+ {
+  "estado": "pushed [idle]",
+  "quadros": 42,
+  "taxa": 1.62,
+  "duracaoClipe": 4.21,
+  "velCorpo": 0
+ },
+ {
+  "estado": "guardStun [idle]",
+  "quadros": 28,
+  "taxa": 7.48,
+  "duracaoClipe": 4.21,
+  "velCorpo": 0.07
+ },
+ {
+  "estado": "guard [idle]",
+  "quadros": 7,
+  "taxa": 1.75,
+  "duracaoClipe": 4.21,
+  "velCorpo": 1.56
+ }
+]

@@ -171,7 +171,7 @@ export const CALIBRATION_BASE = [
   ["display.animation.fade", 0.19, 0.18],
   ["display.animation.actionFade", 0.09, 0.07],
   ["display.animation.locomotionHold", 0.08, 0.1],
-  ["display.animation.speed", 1.75, 1],
+  // display.animation.speed 1,75 retirada em 31/10/2026 (pedido do responsável após a auditoria docs/AUDITORIA_ANIMACOES_JOGO.md): animações na velocidade em que foram feitas (1×).
   ["display.diagnostics.toast", 1, 0],
   // world
   ["world.bulletPunch.cast", 0.2, 0.75],

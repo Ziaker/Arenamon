@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..27 (27) | 24.000 FPS | 1.125 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [ALTO] f14   penetracao    Mesh       malha 0.073 m abaixo do plano de chao
+  [ALTO] f1    penetracao    Mesh       malha 0.071 m abaixo do plano de chao
+  [ALTO] f27   penetracao    Mesh       malha 0.071 m abaixo do plano de chao
+  [MEDIO] f27   equilibrio    COM        centro aproximado 0.305 m fora do apoio simplificado
+  [MEDIO] f1    equilibrio    COM        centro aproximado 0.305 m fora do apoio simplificado
+  [MEDIO] f14   equilibrio    COM        centro aproximado 0.290 m fora do apoio simplificado
+  [MEDIO] f17   intersecao    braco R/torso capsulas a 0.003 m; confirmar na malha
+  [MEDIO] f16   intersecao    braco R/torso capsulas a 0.006 m; confirmar na malha
+  [MEDIO] f2    equilibrio    COM        centro aproximado 0.229 m fora do apoio simplificado
+  [MEDIO] f18   intersecao    braco R/torso capsulas a 0.014 m; confirmar na malha
+  [MEDIO] f15   intersecao    braco R/torso capsulas a 0.015 m; confirmar na malha
+  [MEDIO] f19   intersecao    braco R/torso capsulas a 0.020 m; confirmar na malha
+  ... 77 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.358 m/frame em f14 | media 0.318
+  Head       pico 0.364 m/frame em f14 | media 0.318
+  LeftHand   pico 0.362 m/frame em f27 | media 0.319
+  RightHand  pico 0.366 m/frame em f14 | media 0.319
+  LeftFoot   pico 0.374 m/frame em f16 | media 0.319
+  RightFoot  pico 0.374 m/frame em f3 | media 0.319
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 3 baixos, 2 quase travados, slide max 0.000 m/frame, z<=0.047
+  RightFoot: 2 baixos, 1 quase travados, slide max 0.000 m/frame, z<=0.047
+  Malha: z minimo -0.1128 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

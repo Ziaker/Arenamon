@@ -35,6 +35,7 @@ function makeSource(extra = []) {
   return {name: 'teste-sintetico.glb', scene: root, animations, manifest: null, eventsByClip: []};
 }
 function setup(source = makeSource()) {
+  C.display.animation.timedNative = 0;   // contrato do modo ANTIGO (clipe esticado na ação); o modo novo é coberto por clip-fidelity.test.mjs
   const ch = new Character(source, {persist: false});const g = new Game();g.mode = 'inactive';g.reset({positions: [vec(-6, 0), vec(8, 8)]});
   for (const f of g.fighters) {f.facing = Math.PI / 2;f.visualFacing = Math.PI / 2;}
   return {ch, g};

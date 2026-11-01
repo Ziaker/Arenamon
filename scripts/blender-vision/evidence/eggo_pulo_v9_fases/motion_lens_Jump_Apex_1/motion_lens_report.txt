@@ -1,0 +1,38 @@
+MOTION LENS 0.3 - diagnostico priorizado
+Armature: AlienRig
+Frames: 1..5 (5) | 24.000 FPS | 0.208 s
+Ossos extras: Crest=ausente, Tail1=ausente, Tail2=ausente, Tail3=ausente, Tail4=ausente
+
+FRAMES SUSPEITOS (ordenados por relevancia; sao alertas, nao julgamento artistico)
+  [MEDIO] f4    arco          RightHand  quebra de curvatura 172.0 graus
+  [MEDIO] f4    arco          LeftHand   quebra de curvatura 172.0 graus
+  [MEDIO] f3    arco          LeftFoot   quebra de curvatura 163.6 graus
+  [MEDIO] f4    arco          Head       quebra de curvatura 128.8 graus
+  [BAIXO] f4    tangente      Head       mudanca de velocidade 96% junto a chave
+  [BAIXO] f3    tangente      Head       mudanca de velocidade 94% junto a chave
+  [BAIXO] f4    tangente      LeftFoot   mudanca de velocidade 93% junto a chave
+  [BAIXO] f2    tangente      LeftFoot   mudanca de velocidade 89% junto a chave
+  [BAIXO] f5    equilibrio    COM        centro aproximado 0.160 m fora do apoio simplificado
+  [BAIXO] f3    tangente      RightHand  mudanca de velocidade 83% junto a chave
+  [BAIXO] f3    tangente      LeftHand   mudanca de velocidade 83% junto a chave
+  [BAIXO] f1    equilibrio    COM        centro aproximado 0.147 m fora do apoio simplificado
+  ... 1 alertas de menor prioridade omitidos
+
+RESUMO POR JUNTA
+  Hips       pico 0.012 m/frame em f2 | media 0.005
+  Head       pico 0.033 m/frame em f2 | media 0.014
+  LeftHand   pico 0.025 m/frame em f2 | media 0.013
+  RightHand  pico 0.022 m/frame em f2 | media 0.012
+  LeftFoot   pico 0.067 m/frame em f5 | media 0.031
+  RightFoot  pico 0.070 m/frame em f5 | media 0.028
+
+CONTATO (limiar relativo ao minimo de cada pe)
+  LeftFoot: 2 baixos, 1 quase travados, slide max 0.000 m/frame, z<=0.212
+  RightFoot: 2 baixos, 1 quase travados, slide max 0.000 m/frame, z<=0.199
+  Malha: z minimo 0.1087 m
+
+CONTRATO
+  Nenhuma violacao objetiva detectada.
+  Nota: Nenhum contrato carregado.
+
+LIMITES: estes dados detectam descontinuidades e riscos mensuraveis; nao avaliam peso percebido, ritmo, intencao, silhueta ou gosto.

@@ -24,6 +24,8 @@ import {mulberry} from '../sim/ai.js';
 import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-windows.js';
 import {sniffFormat} from './validate.js';
 import {RigLayers} from './rig-layers.js';
+import {sprintUsesTurn, updateSprintTurn} from './sprint-turn.js';
+import {hipsCarriesTravel, nativeTimedTime, vaultPhaseKey, jumpPhaseFade} from './clip-fidelity.js';import {strideRate} from './loco-speed.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
@@ -161,7 +163,7 @@ export const VERTICAL_MOTION_FREE_GROUPS = [
 const WOOKADA_FREE_GROUPS = VERTICAL_MOTION_FREE_GROUPS.map(g => g.id);
 /** Escala visual padrão do Wookada (2× em altura e largura); qualquer modelo pode ajustar na aba Personagens. */
 const WOOKADA_SCALE = 2;
-const defaultSizeScale = source => /wookada/i.test(source?.name || '') ? WOOKADA_SCALE : 1;
+const defaultSizeScale = source => /wookada|eggo/i.test(source?.name || '') ? WOOKADA_SCALE : 1;   // Eggo: tão grande quanto o Wookada (pedido de 31/10/2026)
 
 export class Character {
   constructor(source, {tint = null, slot = 0, persist = true} = {}) {
@@ -203,10 +205,10 @@ export class Character {
     this.hipsRest = this.hips?.position.clone();
     // Alguns exportadores gravam o deslocamento no quadril; outros, num nó raiz acima do esqueleto. Guarda todos os alvos
     // de posição capazes de mover o personagem inteiro para neutralizá-los no mesmo quadro.
-    const rootMotionNodes = new Set(this.hips ? [this.hips] : []);
+    const hipsMoves = !C.display.animation.hipSway || hipsCarriesTravel(this.hips, this.clips), rootMotionNodes = new Set(this.hips && hipsMoves ? [this.hips] : []);   // com osso raiz acima, só ele é preso (o balanço do quadril fica; clip-fidelity.js)
     for (const clip of this.clips) for (const track of clip.tracks) if (track.name.endsWith('.position')) {
       const node = this.root.getObjectByName(track.name.slice(0, -9));
-      if (node && (node === this.hips || !node.parent?.isBone)) rootMotionNodes.add(node);
+      if (node && ((node === this.hips && hipsMoves) || !node.parent?.isBone)) rootMotionNodes.add(node);
     }
     this.rootMotionNodes = [...rootMotionNodes].map(node => ({node, rest: node.position.clone()}));
     this.rootMotionAnimated = new T.Vector3();this.rootMotionRestWorld = new T.Vector3();
@@ -357,7 +359,7 @@ export class Character {
     }
     return {variants: Object.fromEntries(Object.entries(this.variants).map(([id, l]) => [id, l.map(byName).filter(Boolean)])), speeds: {...this.speeds}, playback: JSON.parse(JSON.stringify(this.playback)),
       clipOffsets: Object.fromEntries(Object.entries(this.clipOffsets).map(([i, v]) => [byName(i), v]).filter(([k]) => k)), visualOffset: this.visualOffset, autoGround: this.autoGround, lockRootMotion: this.lockRootMotion, rootMotionLockVersion: 2, lockToGround: this.lockToGround,
-      ledgeOffset: {...this.ledgeOffset}, footEnabled: this.footEnabled, trackEnabled: this.trackEnabled, phaseOff: JSON.parse(JSON.stringify(this.phaseOff)), trackProfile: {...this.trackProfile}, sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData,
+      ledgeOffset: {...this.ledgeOffset}, footEnabled: this.footEnabled, trackEnabled: this.trackEnabled, phaseOff: JSON.parse(JSON.stringify(this.phaseOff)), trackProfile: {...this.trackProfile}, sizeScale: {height: this.heightScale, width: this.widthScale}, freeVerticalMotion: [...this.freeVerticalMotion], moveAnims: moveAnimsData, locoSpeed: this.locoSpeed ? {...this.locoSpeed} : undefined,
       animProfile: JSON.parse(JSON.stringify(this.animProfile)),
       animationProfileVersion: this.animationProfile?.version ?? null};
   }
@@ -397,8 +399,8 @@ export class Character {
     if (typeof data.footEnabled === 'boolean') this.footEnabled = data.footEnabled;if (typeof data.trackEnabled === 'boolean') this.trackEnabled = data.trackEnabled;
     if (data.sizeScale && typeof data.sizeScale === 'object') {
       const height = Number(data.sizeScale.height), width = Number(data.sizeScale.width);
-      if (Number.isFinite(height)) this.heightScale = Math.min(3, Math.max(.5, height));
-      if (Number.isFinite(width)) this.widthScale = Math.min(3, Math.max(.5, width));
+      if (Number.isFinite(height) && !(height === 1 && Number(data.sizeScale.width) === 1 && /eggo/i.test(this.source?.name || ''))) this.heightScale = Math.min(3, Math.max(.5, height));   // Eggo salvo com 1×/1× (antes do padrão 2×) fica no padrão
+      if (Number.isFinite(width) && !(width === 1 && Number(data.sizeScale.height) === 1 && /eggo/i.test(this.source?.name || ''))) this.widthScale = Math.min(3, Math.max(.5, width));
     }
     if (Array.isArray(data.freeVerticalMotion)) {
       this.freeVerticalMotion = [...new Set(data.freeVerticalMotion.filter(id => VERTICAL_MOTION_FREE_GROUPS.some(g => g.id === id)))];
@@ -406,7 +408,7 @@ export class Character {
     // Estados antigos podiam ter salvo a trava incompleta como desligada. A versão 2 estreia ligada uma vez; depois a escolha
     // feita no controle novo volta a ser respeitada normalmente.
     this.lockRootMotion = data.rootMotionLockVersion === 2 && typeof data.lockRootMotion === 'boolean' ? data.lockRootMotion : true;
-    if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;
+    if (typeof data.lockToGround === 'boolean') this.lockToGround = data.lockToGround;if (data.locoSpeed?.mode) this.locoSpeed = {...data.locoSpeed};
     if (data.moveAnims) {
       for (const [m, conf] of Object.entries(data.moveAnims)) {
         this.moveAnims[m] = {
@@ -433,7 +435,7 @@ export class Character {
       // Uma animação importada pode trazer root motion num nó raiz que não aparecia nos clipes do GLB principal.
       for (const track of c.tracks) if (track.name.endsWith('.position')) {
         const node = this.root.getObjectByName(track.name.slice(0, -9));
-        if (node && (node === this.hips || !node.parent?.isBone) && !this.rootMotionNodes.some(entry => entry.node === node)) this.rootMotionNodes.push({node, rest: node.position.clone()});
+        if (node && ((node === this.hips && (!C.display.animation.hipSway || hipsCarriesTravel(this.hips, [c]))) || !node.parent?.isBone) && !this.rootMotionNodes.some(entry => entry.node === node)) this.rootMotionNodes.push({node, rest: node.position.clone()});
       }
       const coverage = total ? found / total : 0, compatible = coverage >= .6 && c.tracks.length > 0;
       let name = `${c.name || 'clip'} [${file.name}]`, n = 2;while (this.clips.some(x => x.name === name)) name = `${c.name} [${file.name}] (${n++})`;c.name = name;
@@ -546,7 +548,7 @@ export class Character {
     if (f.action?.kind === 'tackle') return f.action.pl === 3 ? 'tackle_pl3' : f.action.pl === 2 ? 'tackle_pl2' : 'tackle';
     if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];
     if (f.action?.kind === 'dodge') {
-      if (f.action.vault) return 'vault';
+      if (f.action.vault) return vaultPhaseKey(this, f) ?? 'vault';   // com fases do pulo próprias, o salto sobre o rival usa as fases no arco do voo (clip-fidelity.js)
       // Finta de tackle (doFeint converte o tackle numa esquiva com action.feint): «Freio do tackle (finta)» — só com clipe próprio, senão segue a esquiva como sempre (o estado «brake» antigo nunca era produzido: brakeLeft não é escrito por ninguém).
       if (f.action.feint && this.variantsOf('brake').length) return 'brake';
       // Direção da esquiva decidida na entrada e mantida até o fim (o corpo pode girar durante a esquiva).
@@ -576,7 +578,7 @@ export class Character {
     const rel = angleDelta(f.faceGoal ?? f.facing, angleOf(f.velocity));
     const direction = Math.abs(rel) > 3 * Math.PI / 4 ? 'back' : Math.abs(rel) > Math.PI / 4 ? (rel > 0 ? 'left' : 'right') : '';
     // Só existem duas velocidades de locomoção: andar (C solto) e sprint (C segurado). “Correr” é o mesmo que andar.
-    if (f.sprinting) return direction ? `sprint_${direction}` : 'sprint';
+    if (f.sprinting) return direction && !sprintUsesTurn(this) ? `sprint_${direction}` : 'sprint';   // sem clipes direcionais: sprint para a frente + corpo girando (sprint-turn.js)
     return direction ? `walk_${direction}` : 'walk';
   }
   /** Histerese da locomoção: um estado de locomoção novo só vale depois de estável por locomotionHold segundos. */
@@ -781,12 +783,12 @@ export class Character {
   }
   /** Game feel 8 e 9: apoio visual dos pés e olhar aditivo, DEPOIS da pose base e do posicionamento (só visual; ver rig-layers.js). */
   applyRigLayers(f, dt, ctx) {
-    const G = C.extras.gameFeel, foot = !!G.footOn && this.footEnabled, track = !!G.trackOn && this.trackEnabled;
-    if (!foot && !track && !this.rigLayers) return;
+    const G = C.extras.gameFeel, foot = !!G.footOn && this.footEnabled, track = !!G.trackOn && this.trackEnabled, twist = updateSprintTurn(this, f, dt);
+    if (!foot && !track && !twist && !this.rigLayers) return;
     this.rigLayers ??= new RigLayers(T, this.model, this.hips);
     this.root.updateMatrixWorld(true);
     const mode = trackModeOf(f, this.trackProfile);
-    this.rigLayers.apply(f, dt, {foot, track, G, mode, occluded: ctx.occluded, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
+    this.rigLayers.apply(f, dt, {foot, track, twist, G, mode, occluded: ctx.occluded, ground: ctx.ground ?? (() => f.groundY ?? 0), fighters: ctx.fighters ?? [], facing: f.visualFacing + (this.extraYaw ?? 0) + (this.sprintTurn?.body ?? 0), scaleY: this.root.scale.y, bodyHeight: C.extras.visual.bodyHeight, restMinY: this.restMinY});
   }
   /** Texto de diagnóstico das camadas de pose (pés e olhar) para o painel do personagem. */
   rigDiagnostic() {return this.rigLayers ? this.rigLayers.diagnostics() : 'Camadas de pose (pés e olhar) ainda não ativadas: ligue-as em Ajustes › Visual › Game feel 5–9.';}
@@ -817,7 +819,7 @@ export class Character {
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
     // Loop avançado › Fade da conclusão natural: a transição seguinte a um epílogo concluído naturalmente usa o conclusionBlend do clipe que concluiu (perfil: variante → ação → global); vazio = o fade padrão.
     const cb = this.epilogueNaturalEnd && prev ? this.profileValue(prev.id, 'conclusionBlend', prev.clip.name) : undefined;this.afterNaturalEnd = this.epilogueNaturalEnd && !!prev;this.epilogueNaturalEnd = false;   // afterNaturalEnd: a telemetria desta troca não é corte (logTransition)
-    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: cb ?? this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
+    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: cb ?? this.profileValue(id, 'blendIn', clip.name) ?? jumpPhaseFade(key) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
     this.fade = 0;this.timer = 0;this.transitions++;
     if (key === 'jump_apex') this.visualFreeze = Math.max(this.visualFreeze, this.profileValue(id, 'jumpApexFreeze', clip.name) ?? 0);   // pico do salto: congelamento opcional
     // Telemetria da troca (lógica em visual-epilogue.js; interrupções de epílogo saem com epilogueEnd: true).
@@ -888,9 +890,9 @@ export class Character {
       } else if (this.current.key === 'ledge_climb' && this.current.id === 'ledge_climb') {   // clipe próprio: sem reinício nem pose estalada, termina junto com a subida
         a.time = Math.min(cap, Math.max(0, progressOf(this, f, 'ledge_climb')) * cap);
       } else if (TIMED.has(this.current.key)) {
-        const timed = Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
+        const timed = nativeTimedTime(this, s, f) ?? Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
-        const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar
+        const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s * strideRate(this, f, this.current.key);a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar; passada acompanha o corpo (loco-speed.js)
       }
       // Editor › Congelamento: ao passar de «Congelamento em» (% do clipe) a pose fica parada por «duração» (hit-stop visual, uma vez por execução; só visual).
       const fAt = !p && !reversed ? this.profileValue(this.current.id, 'freezeAt', this.current.clip.name) : undefined, fFor = fAt == null ? 0 : this.profileValue(this.current.id, 'freezeFor', this.current.clip.name);
@@ -1032,7 +1034,7 @@ export class Character {
     }
     this.root.rotation.set(0, this.squash.heading, 0);
     this.deformation.scale.set(this.squash.transverse, this.squash.transverse, this.squash.z);
-    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading + (this.extraYaw ?? 0), 0);   // extraYaw: giro visual do golpe no vazio (whiff-fx.js); nunca altera a simulação
+    this.presentation.rotation.set(0, f.visualFacing - this.squash.heading + (this.extraYaw ?? 0) + (this.sprintTurn?.body ?? 0), 0);   // extraYaw: giro do golpe no vazio (whiff-fx.js); sprintTurn: corpo rumo à corrida (sprint-turn.js); nunca alteram a simulação
   }
   /** Durações das regras derivadas dos clipes (primeira variante ÷ velocidade). Só ações com animação própria. */
   ruleDurations(moves = []) {
