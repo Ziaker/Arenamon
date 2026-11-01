@@ -27,8 +27,8 @@ export function clashPossible(a, b, normal, relative) {
   if (!facing) return false;
   // Power Levels diferentes: não há clash. O PL maior vence a disputa (o de baixo é neutralizado e só o dele conecta, pelo fluxo normal de acerto).
   const pa = a.action.pl ?? 1, pb = b.action.pl ?? 1;
-  const ca = combatModOf(a)?.combatPriority ?? 0, cb = combatModOf(b)?.combatPriority ?? 0;   // Editor › Prioridade de combate: desempata PL igual (maior vence, como o PL maior)
-  if (pa === pb && ca !== cb) {const loser = ca > cb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}
+  const ca = combatModOf(a)?.combatPriority ?? 0, cb = combatModOf(b)?.combatPriority ?? 0;   // Editor › Prioridade de combate: desempata PL igual (maior vence, como o PL maior; Slam e contra-golpe do Riposte ficam fora: a prioridade não os neutraliza)
+  if (pa === pb && ca !== cb && !noClash(a) && !noClash(b)) {const loser = ca > cb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}
   if (pa !== pb) {const loser = pa > pb ? b : a;loser.action.neutralized = true;loser.action.invulnerableFor = 0;loser.plDefeated = true;return false;}
   if (noClash(a) || noClash(b)) return false;   // Meteor Slam e contra-golpe do Riposte NUNCA fazem clash (mesmo com PL igual)   // o derrotado perde a invulnerabilidade do início do tackle: o golpe do vencedor conecta
   return true;

@@ -30,14 +30,15 @@ const pair = (a = {}, b = {}, pa = 0, pb = 0) => ({a: fighter(0, a, pa), b: figh
   assert.equal(clashPossible(a, b, normal, relative), false);
   assert.ok(!a.action.neutralized && !b.action.neutralized);ok('Riposte × tackle de mesmo PL: sem clash e ninguém neutralizado');
 }
-{ // RISCO: mesmo PL, mas combatPriority diferente → o de menor prioridade é neutralizado ANTES de noClash, inclusive o Slam/Riposte
+{ // CORRIGIDO: mesmo PL e combatPriority diferente → Slam/Riposte não são neutralizados pela prioridade
   const {a, b} = pair({slam: true, slamPrepDone: true, pl: 2}, {pl: 2}, 0, 5);
   assert.equal(clashPossible(a, b, normal, relative), false);
-  assert.equal(a.action.neutralized, true, 'Slam com prioridade menor é neutralizado pelo tackle');
-  assert.equal(a.plDefeated, true);ok('REPRODUZIDO: combatPriority maior neutraliza o Slam antes de noClash()');
+  assert.ok(!a.action.neutralized && !b.action.neutralized && !a.plDefeated);ok('combatPriority maior não neutraliza o Slam');
   const r = pair({riposteStrike: true, pl: 4}, {pl: 4}, 0, 5);
   assert.equal(clashPossible(r.a, r.b, normal, relative), false);
-  assert.equal(r.a.action.neutralized, true);ok('REPRODUZIDO: combatPriority maior neutraliza o contra-golpe do Riposte antes de noClash()');
+  assert.ok(!r.a.action.neutralized && !r.b.action.neutralized);ok('combatPriority maior não neutraliza o contra-golpe do Riposte');
+  const t = pair({}, {}, 0, 5);   // tackle × tackle: a prioridade continua desempatando
+  assert.equal(clashPossible(t.a, t.b, normal, relative), false);assert.equal(t.a.action.neutralized, true);ok('tackle × tackle: combatPriority continua desempatando (menor neutralizado)');
 }
 { // Diferença de PL também passa por cima do noClash (decisão por PL é o desenho documentado)
   const {a, b} = pair({slam: true, slamPrepDone: true, pl: 2}, {pl: 3});
