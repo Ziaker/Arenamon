@@ -204,6 +204,7 @@ def build_pose_silhouette_analysis(
                 evidence_by_frame[f] = ev
 
     silhouettes: List[Dict[str, Any]] = []
+    missing_evidence_frames: List[int] = []
     facts: List[str] = [
         f"Ação analisada: '{action_name}' no armature '{armature_name}' ({frame_range[0]}..{frame_range[1]} a {fps:.1f} FPS).",
         f"Total de poses estruturais avaliadas: {len(eval_frames)} (seleção: {detection_mode}).",
@@ -224,7 +225,26 @@ def build_pose_silhouette_analysis(
             else:
                 role = KEYFRAME_ROLE_STRIKE
 
-        ev_ref = evidence_by_frame.get(f)
+        ev_match = evidence_by_frame.get(f)
+        ev_ref: Optional[Dict[str, Any]] = None
+
+        if ev_match:
+            ev_ref = dict(ev_match)
+            ev_ref["match_type"] = "EXACT"
+            ev_info = f" [Evidência exata: {ev_match['evidence_id']}]"
+        else:
+            missing_evidence_frames.append(f)
+            # Procura frame documentado mais próximo na folha para transparência
+            nearest_info = ""
+            if visual_evidences:
+                for ev in visual_evidences:
+                    shown = ev.get("frames_shown", [])
+                    if shown:
+                        closest = min(shown, key=lambda sf: abs(sf - f))
+                        diff = f - closest
+                        if abs(diff) <= 6:
+                            nearest_info = f" (quadro vizinho na folha '{ev['evidence_id']}': f{closest}, offset: {diff:+d})"
+            ev_info = f" [Sem evidência no frame exato{nearest_info}]"
 
         ks = KeyframeSilhouette(
             frame=f,
@@ -237,7 +257,6 @@ def build_pose_silhouette_analysis(
         )
         silhouettes.append(asdict(ks))
 
-        ev_info = f" [Evidência: {ev_ref['evidence_id']}]" if ev_ref else " [Sem evidência visual vinculada]"
         facts.append(
             f"Frame {f} ({t_sec:.2f} s, {role}): Bounding Box Esquelética frontal {front_bb.width_m}x{front_bb.height_m} m (AR: {front_bb.aspect_ratio}), inclinação sagital {tilt}°{ev_info}."
         )
@@ -246,6 +265,10 @@ def build_pose_silhouette_analysis(
         "DISTINÇÃO CATEGÓRICA: As dimensões reportadas são projeções 2D da caixa delimitadora do esqueleto (posições dos ossos). Não representam silhuetas renderizadas por contorno de malha/pixels.",
         "Inclinação sagital usa a linha pelve-tronco no plano lateral.",
     ]
+    if missing_evidence_frames:
+        limitations.append(
+            f"Marcos sem imagem no frame exato na folha visual: quadros {sorted(missing_evidence_frames)}."
+        )
 
     return {
         "schema": SCHEMA_NAME,

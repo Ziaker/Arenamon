@@ -158,8 +158,9 @@ class TestF06F07F09Regression(unittest.TestCase):
         # Caso B: dict sem verificação formal (is_verified=False)
         unauth_event = {
             "event_name": "HITBOX_TRIGGER",
+            "event_type": "RUNTIME_RESOLVED_HIT",
             "frame": 8,
-            "source": "UNKNOWN_SCRIPT",
+            "source": "RUNTIME_COMBAT_ENGINE",
             "is_verified": False,
         }
         analysis_dict = build_strike_analysis(
@@ -178,6 +179,7 @@ class TestF06F07F09Regression(unittest.TestCase):
         # Caso C: tentativa de burlar com string 'false' ou 'true'
         string_bool_event = {
             "event_name": "IMPACT_FAKE",
+            "event_type": "RUNTIME_RESOLVED_HIT",
             "frame": 8,
             "source": "RUNTIME_COMBAT_ENGINE",
             "is_verified": "false",  # string não booleana
@@ -212,13 +214,54 @@ class TestF06F07F09Regression(unittest.TestCase):
             authorized_event=hitbox_window_event,
         )
         self.assertEqual(analysis_win["metrics"]["contact_status"], CONTACT_STATUS_CANDIDATE)
-        self.assertTrue(any("apenas ativação/janela de hitbox" in f for f in analysis_win["facts"]))
+        self.assertTrue(any("diferente de RUNTIME_RESOLVED_HIT" in f for f in analysis_win["facts"]))
+
+        # Caso E: notificação comum de animação (ANIMATION_KEY_NOTIFY) recai para CANDIDATO
+        anim_notify_event = {
+            "event_name": "NOTIFY_PUNCH_APEX",
+            "frame": 8,
+            "source": "RUNTIME_COMBAT_ENGINE",
+            "event_type": "ANIMATION_KEY_NOTIFY",
+            "is_verified": True,
+        }
+        analysis_notif = build_strike_analysis(
+            action_name="Jab_Anim_Notify",
+            armature_name="HeroRig",
+            frame_range=(0, 10),
+            fps=30.0,
+            strike_effector_role="right_hand",
+            effector_positions=effector_traj,
+            authorized_event=anim_notify_event,
+        )
+        self.assertEqual(analysis_notif["metrics"]["contact_status"], CONTACT_STATUS_CANDIDATE)
+        self.assertTrue(any("diferente de RUNTIME_RESOLVED_HIT" in f for f in analysis_notif["facts"]))
+
+        # Caso F: RUNTIME_RESOLVED_HIT sem registro auditável (runtime_hit_record) recai para CANDIDATO
+        missing_record_event = {
+            "event_name": "OPPONENT_HIT_UNPROVED",
+            "frame": 8,
+            "source": "RUNTIME_COMBAT_ENGINE",
+            "event_type": "RUNTIME_RESOLVED_HIT",
+            "is_verified": True,
+            # sem runtime_hit_record
+        }
+        analysis_norec = build_strike_analysis(
+            action_name="Jab_No_Record",
+            armature_name="HeroRig",
+            frame_range=(0, 10),
+            fps=30.0,
+            strike_effector_role="right_hand",
+            effector_positions=effector_traj,
+            authorized_event=missing_record_event,
+        )
+        self.assertEqual(analysis_norec["metrics"]["contact_status"], CONTACT_STATUS_CANDIDATE)
+        self.assertTrue(any("falta registro de impacto auditável do engine" in f for f in analysis_norec["facts"]))
 
     # -----------------------------------------------------------------------
     # Regressão 3: F06 — Evento autenticado confirma CONFIRMADO_EVENTO
     # -----------------------------------------------------------------------
     def test_regression_f06_authenticated_event_confirms_with_provenance(self):
-        """Regressão 3: Evento autenticado do runtime comprovando acerto efetivo gera CONFIRMADO_EVENTO."""
+        """Regressão 3: Evento autenticado do runtime comprovando acerto efetivo com registro gera CONFIRMADO_EVENTO."""
         effector_traj = {
             0: [0.0, 0.0, 1.0],
             4: [0.0, 0.5, 1.0],
@@ -232,6 +275,10 @@ class TestF06F07F09Regression(unittest.TestCase):
             "frame": 8,
             "source": "RUNTIME_COMBAT_ENGINE",
             "is_verified": True,
+            "runtime_hit_record": {
+                "target_id": "OPPONENT_HERO_HURTBOX",
+                "resolution": "HIT_RESOLVED",
+            },
         }
 
         analysis = build_strike_analysis(

@@ -330,11 +330,28 @@ class TestF06F07F09RealAssets(unittest.TestCase):
         self.assertIn(KEYFRAME_ROLE_STRIKE, kfs)
         self.assertIn(KEYFRAME_ROLE_RECOVERY, kfs)
 
-        # Comprova coerência temporal dos marcos descobertos na Action real
+        # Comprova coerência temporal e valores exatos dos marcos descobertos na Action real
         self.assertEqual(kfs[KEYFRAME_ROLE_START], 0)
-        self.assertLess(kfs[KEYFRAME_ROLE_ANTICIPATION], kfs[KEYFRAME_ROLE_STRIKE])
-        self.assertGreater(kfs[KEYFRAME_ROLE_STRIKE], kfs[KEYFRAME_ROLE_START])
-        self.assertGreater(kfs[KEYFRAME_ROLE_RECOVERY], kfs[KEYFRAME_ROLE_STRIKE])
+        self.assertEqual(kfs[KEYFRAME_ROLE_ANTICIPATION], 3)
+        self.assertEqual(kfs[KEYFRAME_ROLE_STRIKE], 36)
+        self.assertEqual(kfs[KEYFRAME_ROLE_RECOVERY], 132)
+
+        # Verificação com rigor factual de vinculação de evidência visual:
+        # 1. Frame 0 possui correspondência exata na folha visual ([0, 20, 40, 80])
+        kf_0 = next(k for k in analysis["keyframes"] if k["frame"] == 0)
+        self.assertIsNotNone(kf_0["evidence_ref"])
+        self.assertEqual(kf_0["evidence_ref"]["match_type"], "EXACT")
+        self.assertEqual(kf_0["evidence_ref"]["evidence_id"], "ZA-FOLHA-GOLISOPOD-ATTACK01")
+
+        # 2. Marcos 3, 36 e 132 NÃO estão na folha visual (não possuem imagem exata)
+        for frame_no in (3, 36, 132):
+            kf_other = next(k for k in analysis["keyframes"] if k["frame"] == frame_no)
+            self.assertIsNone(kf_other["evidence_ref"])
+
+        # 3. Limitações registram explicitamente com transparência os marcos sem imagem exata
+        lim_str = " ".join(analysis["limitations"])
+        self.assertIn("Marcos sem imagem no frame exato na folha visual", lim_str)
+        self.assertIn("[3, 36, 132]", lim_str)
 
         rig_map = build_rig_map(
             bone_names=data["bones"],

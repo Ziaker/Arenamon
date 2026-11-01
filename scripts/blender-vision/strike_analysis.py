@@ -180,26 +180,38 @@ def build_strike_analysis(
         ev_frame = authorized_event.get("frame")
         ev_name = str(authorized_event.get("event_name") or authorized_event.get("event_id") or "")
         ev_source = str(authorized_event.get("source") or "")
-        ev_type = str(authorized_event.get("event_type") or authorized_event.get("type") or EVENT_TYPE_RUNTIME_RESOLVED_HIT).upper()
+        raw_ev_type = authorized_event.get("event_type") or authorized_event.get("type")
+        ev_type = str(raw_ev_type).upper() if raw_ev_type is not None else ""
         # Verificação booleana estrita: DEVE ser exatamente True (evita que 'false' vire True via bool())
         is_verified_strict = (authorized_event.get("is_verified") is True)
+        hit_record = authorized_event.get("runtime_hit_record")
 
-        # Distinção entre ativação de hitbox e acerto efetivo no oponente
-        if ev_type == EVENT_TYPE_HITBOX_WINDOW or "WINDOW" in ev_name.upper() or "ACTIVE" in ev_name.upper():
+        # 1. Exigência categórica do tipo RUNTIME_RESOLVED_HIT
+        if ev_type != EVENT_TYPE_RUNTIME_RESOLVED_HIT:
             unauthenticated_event_warning = (
-                f"Evento '{ev_name}' indica apenas ativação/janela de hitbox ({ev_type}), "
-                "o que não comprova acerto contra oponente no gameplay; classificado como CANDIDATO."
+                f"Evento '{ev_name}' rejeitado: possui tipo '{ev_type or 'NÃO_ESPECIFICADO'}' (diferente de {EVENT_TYPE_RUNTIME_RESOLVED_HIT}). "
+                "Apenas impactos comprovados contra hurtbox de oponente confirmam evento de golpe; classificado como CANDIDATO."
             )
+        # 2. Verificação estrita de booleano
         elif not is_verified_strict:
             unauthenticated_event_warning = (
                 f"Evento '{ev_name}' no frame {ev_frame} rejeitado: 'is_verified' deve ser estritamente o booleano True "
                 f"(recebido: {repr(authorized_event.get('is_verified'))}); revertido para candidato cinemático."
             )
+        # 3. Fonte do runtime de combate
         elif ev_source not in AUTHORIZED_RUNTIME_SOURCES:
             unauthenticated_event_warning = (
                 f"Evento '{ev_name}' rejeitado: origem '{ev_source}' não pertence às fontes autorizadas do runtime de combate "
                 f"({sorted(AUTHORIZED_RUNTIME_SOURCES)}); revertido para candidato cinemático."
             )
+        # 4. Verificação de integridade não-declarativa (runtime_hit_record)
+        elif not isinstance(hit_record, dict) or not hit_record.get("target_id") or hit_record.get("resolution") not in ("HIT_RESOLVED", "DAMAGE_APPLIED"):
+            unauthenticated_event_warning = (
+                f"Evento '{ev_name}' rejeitado: falta registro de impacto auditável do engine "
+                "(runtime_hit_record com 'target_id' e resolution='HIT_RESOLVED'/'DAMAGE_APPLIED'); "
+                "declarações isoladas do chamador não comprovam acerto no runtime; classificado como CANDIDATO."
+            )
+        # 5. Coerência do frame
         elif not (isinstance(ev_frame, int) and ev_frame in effector_positions):
             unauthenticated_event_warning = (
                 f"Evento '{ev_name}' no frame {ev_frame} inválido: frame fora das posições amostradas do efetor."
@@ -209,7 +221,11 @@ def build_strike_analysis(
             contact_frame = int(ev_frame)
             contact_status = CONTACT_STATUS_CONFIRMED_EVENT
             confirmation_source = CONFIRMATION_SOURCE_EVENT
-            detection_method = f"Acerto comprovado de combate '{ev_name}' ({ev_type}) via {ev_source} no frame {contact_frame}"
+            tgt = hit_record.get("target_id")
+            res = hit_record.get("resolution")
+            detection_method = (
+                f"Acerto comprovado no runtime do evento '{ev_name}' contra '{tgt}' ({res}) via {ev_source} no frame {contact_frame}"
+            )
     elif authorized_event_frame is not None:
         unauthenticated_event_warning = (
             f"Parâmetro numérico authorized_event_frame ({authorized_event_frame}) recebido sem proveniência ou "

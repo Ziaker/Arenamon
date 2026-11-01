@@ -133,6 +133,10 @@ class TestF06F07F09(unittest.TestCase):
             "frame": 8,
             "source": "RUNTIME_COMBAT_ENGINE",
             "is_verified": True,
+            "runtime_hit_record": {
+                "target_id": "OPPONENT_HURTBOX_01",
+                "resolution": "HIT_RESOLVED",
+            },
         }
 
         analysis = build_strike_analysis(
