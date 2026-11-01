@@ -25,7 +25,7 @@ import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-window
 import {sniffFormat} from './validate.js';
 import {RigLayers} from './rig-layers.js';
 import {sprintUsesTurn, updateSprintTurn} from './sprint-turn.js';
-import {hipsCarriesTravel, nativeTimedTime} from './clip-fidelity.js';import {strideRate} from './loco-speed.js';
+import {hipsCarriesTravel, nativeTimedTime, vaultPhaseKey, jumpPhaseFade} from './clip-fidelity.js';import {strideRate} from './loco-speed.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
@@ -163,7 +163,7 @@ export const VERTICAL_MOTION_FREE_GROUPS = [
 const WOOKADA_FREE_GROUPS = VERTICAL_MOTION_FREE_GROUPS.map(g => g.id);
 /** Escala visual padrão do Wookada (2× em altura e largura); qualquer modelo pode ajustar na aba Personagens. */
 const WOOKADA_SCALE = 2;
-const defaultSizeScale = source => /wookada/i.test(source?.name || '') ? WOOKADA_SCALE : 1;
+const defaultSizeScale = source => /wookada|eggo/i.test(source?.name || '') ? WOOKADA_SCALE : 1;   // Eggo: tão grande quanto o Wookada (pedido de 31/10/2026)
 
 export class Character {
   constructor(source, {tint = null, slot = 0, persist = true} = {}) {
@@ -399,8 +399,8 @@ export class Character {
     if (typeof data.footEnabled === 'boolean') this.footEnabled = data.footEnabled;if (typeof data.trackEnabled === 'boolean') this.trackEnabled = data.trackEnabled;
     if (data.sizeScale && typeof data.sizeScale === 'object') {
       const height = Number(data.sizeScale.height), width = Number(data.sizeScale.width);
-      if (Number.isFinite(height)) this.heightScale = Math.min(3, Math.max(.5, height));
-      if (Number.isFinite(width)) this.widthScale = Math.min(3, Math.max(.5, width));
+      if (Number.isFinite(height) && !(height === 1 && Number(data.sizeScale.width) === 1 && /eggo/i.test(this.source?.name || ''))) this.heightScale = Math.min(3, Math.max(.5, height));   // Eggo salvo com 1×/1× (antes do padrão 2×) fica no padrão
+      if (Number.isFinite(width) && !(width === 1 && Number(data.sizeScale.height) === 1 && /eggo/i.test(this.source?.name || ''))) this.widthScale = Math.min(3, Math.max(.5, width));
     }
     if (Array.isArray(data.freeVerticalMotion)) {
       this.freeVerticalMotion = [...new Set(data.freeVerticalMotion.filter(id => VERTICAL_MOTION_FREE_GROUPS.some(g => g.id === id)))];
@@ -548,7 +548,7 @@ export class Character {
     if (f.action?.kind === 'tackle') return f.action.pl === 3 ? 'tackle_pl3' : f.action.pl === 2 ? 'tackle_pl2' : 'tackle';
     if (f.action?.kind === 'move') return MOVE_KEYS[Math.max(0, Math.min(3, f.action.slot ?? 0))];
     if (f.action?.kind === 'dodge') {
-      if (f.action.vault) return 'vault';
+      if (f.action.vault) return vaultPhaseKey(this, f) ?? 'vault';   // com fases do pulo próprias, o salto sobre o rival usa as fases no arco do voo (clip-fidelity.js)
       // Finta de tackle (doFeint converte o tackle numa esquiva com action.feint): «Freio do tackle (finta)» — só com clipe próprio, senão segue a esquiva como sempre (o estado «brake» antigo nunca era produzido: brakeLeft não é escrito por ninguém).
       if (f.action.feint && this.variantsOf('brake').length) return 'brake';
       // Direção da esquiva decidida na entrada e mantida até o fim (o corpo pode girar durante a esquiva).
@@ -819,7 +819,7 @@ export class Character {
     action.reset().play();action.paused = true;action.enabled = true;action.setEffectiveWeight(prev ? 0 : 1);
     // Loop avançado › Fade da conclusão natural: a transição seguinte a um epílogo concluído naturalmente usa o conclusionBlend do clipe que concluiu (perfil: variante → ação → global); vazio = o fade padrão.
     const cb = this.epilogueNaturalEnd && prev ? this.profileValue(prev.id, 'conclusionBlend', prev.clip.name) : undefined;this.afterNaturalEnd = this.epilogueNaturalEnd && !!prev;this.epilogueNaturalEnd = false;   // afterNaturalEnd: a telemetria desta troca não é corte (logTransition)
-    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: cb ?? this.profileValue(id, 'blendIn', clip.name) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
+    this.current = {key, id, index, clip, action, entry, started: this.clock, weight: prev ? 0 : 1, curve: this.profileValue(id, 'blendCurve', clip.name) ?? 'linear', fade: cb ?? this.profileValue(id, 'blendIn', clip.name) ?? jumpPhaseFade(key) ?? (ACTION_KEYS.has(key) || COMBAT_KEYS.has(key) ? Character.options.actionFade : Character.options.fade)};
     this.fade = 0;this.timer = 0;this.transitions++;
     if (key === 'jump_apex') this.visualFreeze = Math.max(this.visualFreeze, this.profileValue(id, 'jumpApexFreeze', clip.name) ?? 0);   // pico do salto: congelamento opcional
     // Telemetria da troca (lógica em visual-epilogue.js; interrupções de epílogo saem com epilogueEnd: true).
@@ -890,7 +890,7 @@ export class Character {
       } else if (this.current.key === 'ledge_climb' && this.current.id === 'ledge_climb') {   // clipe próprio: sem reinício nem pose estalada, termina junto com a subida
         a.time = Math.min(cap, Math.max(0, progressOf(this, f, 'ledge_climb')) * cap);
       } else if (TIMED.has(this.current.key)) {
-        const timed = nativeTimedTime(this, s) ?? Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
+        const timed = nativeTimedTime(this, s, f) ?? Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
         const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s * strideRate(this, f, this.current.key);a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar; passada acompanha o corpo (loco-speed.js)
       }

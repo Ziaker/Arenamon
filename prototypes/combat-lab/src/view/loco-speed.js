@@ -9,7 +9,9 @@
 import {C} from '../sim/config.js';
 
 const cache = new WeakMap();
-/** Metros por segundo que o clipe anda (deslocamento horizontal da raiz do início ao fim ÷ duração), já na escala do personagem. */
+/** Escala do modelo no jogo (ajuste à altura do corpo × escala do personagem): o que o clipe anda no arquivo vezes isto = o que anda no jogo. */
+export const visualScale = (/** @type {any} */ ch) => (ch.constructor.options?.fit ? C.extras.visual.bodyHeight / Math.max(1e-6, ch.restHeight || 1) : 1) * (ch.heightScale || 1);
+/** Metros por segundo que o clipe anda no arquivo (deslocamento horizontal da raiz do início ao fim ÷ duração). */
 export function clipTravelSpeed(/** @type {any} */ ch, /** @type {number} */ index) {
   const clip = ch.clips[index];if (!clip || !ch.hips) return 0;
   let per = cache.get(ch);if (!per) cache.set(ch, per = new Map());
@@ -20,13 +22,13 @@ export function clipTravelSpeed(/** @type {any} */ ch, /** @type {number} */ ind
     const a = probe.mixer.clipAction(clip), P = ch.root.position.constructor;probe.mixer.stopAllAction();a.reset();a.play();
     const at = (/** @type {number} */ t) => {a.time = t;probe.mixer.update(0);probe.root.updateMatrixWorld(true);return node.getWorldPosition(new P());};
     const p0 = at(0), p1 = at(clip.duration || 0);a.stop();
-    v = (clip.duration > 0 ? Math.hypot(p1.x - p0.x, p1.z - p0.z) / clip.duration : 0) * (ch.root.scale.y || 1);
+    v = clip.duration > 0 ? Math.hypot(p1.x - p0.x, p1.z - p0.z) / clip.duration : 0;   // no tamanho do arquivo; a escala do jogo entra em visualScale()
   }
   per.set(index, v);return v;
 }
 /** Velocidade do clipe de um estado de locomoção, já com a velocidade de reprodução (global × editor). */
 export function stateClipSpeed(/** @type {any} */ ch, /** @type {string} */ id) {
-  const i = ch.variantsOf(id)[0];return i == null ? 0 : clipTravelSpeed(ch, i) * ch.speedOf(id);
+  const i = ch.variantsOf(id)[0];return i == null ? 0 : clipTravelSpeed(ch, i) * visualScale(ch) * ch.speedOf(id);
 }
 /** Configuração do personagem (padrão: Eggo «animacao», demais «jogo»). */
 export function locoSettingOf(/** @type {any} */ ch) {
@@ -49,7 +51,7 @@ export function locoSpeedsOf(/** @type {any} */ ch) {
 export function strideRate(ch, f, key) {
   const A = C.display.animation;
   if (!A.strideSync || !(key?.startsWith('walk') || key?.startsWith('sprint')) || !ch.current) return 1;
-  const clipV = clipTravelSpeed(ch, ch.current.index) * ch.speedOf(ch.current.id), body = Math.hypot(f.velocity?.x ?? 0, f.velocity?.z ?? 0);
+  const clipV = clipTravelSpeed(ch, ch.current.index) * visualScale(ch) * ch.speedOf(ch.current.id), body = Math.hypot(f.velocity?.x ?? 0, f.velocity?.z ?? 0);
   if (clipV < .05 || body < .05) return 1;
   const lim = Math.max(0, A.strideSyncLimit ?? 20) / 100;
   return Math.max(1 - lim, Math.min(1 + lim, body / clipV));

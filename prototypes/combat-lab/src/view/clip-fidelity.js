@@ -5,13 +5,15 @@
 // 2) O quadril só é preso à posição da física quando é ele que carrega o deslocamento; com um osso raiz acima dele (ex.: Eggo),
 //    só a raiz é presa e o balanço do quadril dentro da pose fica.
 import {C} from '../sim/config.js';
+import {progressOf} from './visual-epilogue.js';
 
 /**
  * Tempo do clipe numa ação cronometrada com a opção ligada (null = regra antiga: progresso da ação × duração do clipe).
- * @param {any} ch personagem @param {number} speed velocidade do clipe (global × editor)
+ * @param {any} ch personagem @param {number} speed velocidade do clipe (global × editor) @param {any} [f] lutador
  */
-export function nativeTimedTime(ch, speed) {
+export function nativeTimedTime(ch, speed, f) {
   if (!C.display.animation.timedNative || !ch.current) return null;
+  const key = ch.current.key;if (key === 'vault' || (key === 'jump' && f?.flight)) return null;   // pulo e salto sobre o rival seguem o arco do voo (física)
   return Math.max(0, ch.clock - ch.current.started) * speed;
 }
 
@@ -30,4 +32,23 @@ export function hipsCarriesTravel(hips, clips) {
     if (Math.max(x1 - x0, z1 - z0) > .25 * ref) return true;
   }
   return false;
+}
+
+const PHASES = ['jump_start', 'jump_rise', 'jump_apex', 'jump_fall'];
+/**
+ * Salto sobre o rival com fases do pulo próprias (ex.: Eggo): a fase sai do progresso do arco do salto (0–1), igual ao pulo normal
+ * — início, subida, pico e queda — em vez de tocar o clipe «jump» inteiro (preparação + pouso) dentro de um voo curto. null = como antes.
+ * @param {any} ch @param {any} f
+ */
+export function vaultPhaseKey(ch, f) {
+  if (!C.display.animation.vaultPhases || !f.action?.jump || !ch.hasJumpPhases()) return null;
+  const p = Math.max(0, Math.min(1, progressOf(ch, f, 'vault')));
+  const k = p < .12 ? 'jump_start' : p < .42 ? 'jump_rise' : p < .58 ? 'jump_apex' : 'jump_fall';
+  const own = id => ch.variants[id]?.length ? id : null;
+  return own(k) ?? (k === 'jump_apex' ? own('jump_rise') : null);
+}
+/** Transição curta entre as fases do pulo (os clipes de fase são curtos: com a transição comum de ~0,2 s nenhuma aparecia inteira). */
+export function jumpPhaseFade(/** @type {string} */ key) {
+  const v = C.display.animation.jumpPhaseFade;
+  return PHASES.includes(key) && Number.isFinite(v) ? Math.max(.02, v) : null;
 }

@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import {makeMatch, cmd, vec, C} from './animation-runtime-harness.mjs';
 import {defaults} from '../src/sim/config.js';
 import {migrateFlat} from '../src/ui/actions-meta.js';
-import {hipsCarriesTravel} from '../src/view/clip-fidelity.js';
+import {hipsCarriesTravel, jumpPhaseFade, vaultPhaseKey} from '../src/view/clip-fidelity.js';
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};
 
@@ -52,5 +52,16 @@ ok('velocidade global 1× (e o 1,75× salvo migra para 1×)');
   assert.equal(hipsCarriesTravel(under, [track(.02)]), false, 'quadril com raiz acima e só balanço: não é preso');
   assert.equal(hipsCarriesTravel(under, [track(1.5)]), true, 'quadril com raiz acima mas que viaja: é preso');
   ok('quadril: preso só quando carrega o deslocamento');
+}
+
+{
+  // Pulo: transição curta entre as fases; salto sobre o rival usa as fases no arco (personagem com fases próprias).
+  assert.equal(jumpPhaseFade('jump_rise'), C.display.animation.jumpPhaseFade, 'fases do pulo: transição curta');
+  assert.equal(jumpPhaseFade('walk'), null, 'outros estados: transição comum');
+  const fake = {variants: {jump_start: [0], jump_rise: [1], jump_apex: [2], jump_fall: [3]}, hasJumpPhases: () => true, clock: 0, current: null};
+  const at = p => vaultPhaseKey(fake, {action: {jump: true, elapsed: p * 2 * C.actions.dodge.vaultUp / C.actions.dodge.vaultGravity}});
+  assert.deepEqual([.05, .3, .5, .8].map(at), ['jump_start', 'jump_rise', 'jump_apex', 'jump_fall'], 'arco do salto → início, subida, pico, queda');
+  assert.equal(vaultPhaseKey({...fake, hasJumpPhases: () => false}, {action: {jump: true, elapsed: 0}}), null, 'sem fases próprias: clipe de salto como antes');
+  ok('pulo: fases com transição curta; salto sobre o rival nas fases do arco');
 }
 console.log(`\n${n} verificações de fidelidade ao animado aprovadas.`);

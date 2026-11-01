@@ -31,7 +31,7 @@ try {
   });
   console.log(JSON.stringify({eggo, wook, eggo2, play}, null, 1));
   assert.equal(eggo.mode, 'animacao', 'Eggo: velocidade vem da animação por padrão');
-  assert.ok(Math.abs(eggo.fighter.walk - .72) < .03 && Math.abs(eggo.fighter.sprint - 2.4) < .05, 'Eggo: andar ≈ 0,72 m/s e sprint ≈ 2,40 m/s (medidos no clipe)');
+  assert.ok(Math.abs(eggo.fighter.walk - 1.71) < .05 && Math.abs(eggo.fighter.sprint - 5.71) < .1, 'Eggo (2× como o Wookada): andar ≈ 1,71 m/s e sprint ≈ 5,71 m/s (o que os clipes andam na escala do jogo)');
   assert.equal(wook.mode, 'jogo', 'Wookada: regra do jogo');assert.equal(wook.fighter, null, 'Wookada: sem velocidade própria');
   assert.ok(eggo.panel, 'bloco «Velocidade da locomoção» no painel');
   if (play.nWalk) assert.ok(play.walkMax <= eggo.fighter.walk * 1.05, `Eggo andando no máximo na velocidade do clipe (${play.walkMax.toFixed(2)} m/s)`);

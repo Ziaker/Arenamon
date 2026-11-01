@@ -153,7 +153,7 @@ Personagens, logo abaixo da barra de resumo do modelo), com três escolhas:
 
 - **Do jogo** — como sempre (andar = atributo de velocidade, sprint = andar × multiplicador). Padrão de todos os personagens.
 - **Da animação** — andar e sprint = metros por segundo que a walk e o sprint andam no próprio clipe (raiz do GLB). **Padrão do
-  Eggo**: andar **0,72 m/s** e sprint **2,40 m/s** (antes 4,8 e 7,4). Clipes no lugar (Wookada) não têm o que medir e seguem o jogo.
+  Eggo**: andar **0,72 m/s** e sprint **2,40 m/s** (antes 4,8 e 7,4; na v1.49.21 passou a contar o tamanho: 1,71/5,71). Clipes no lugar (Wookada) não têm o que medir e seguem o jogo.
 - **Manual** — dois sliders (andar e sprint, m/s).
 
 Junto: **«Passada acompanha a velocidade do corpo»** (Visualizar › Animação: transições, com **«Limite da passada»** ±20%): o
@@ -163,3 +163,21 @@ A física recebe só os números (`game.setLocomotion` → `f.locoSpeeds`; save/
 mudam. Código: `view/loco-speed.js`, `ui/loco-speed-panel.js`. Teste: `test/loco-speed.browser.mjs` (Eggo 0,72/2,40 m/s; Wookada
 na regra do jogo; numa partida o Eggo nunca anda acima da velocidade da walk). Não verificado: o equilíbrio da partida com um
 Eggo bem mais lento que os demais (IA, alcance, fuga).
+
+## Pulo e tamanho do Eggo (v1.49.21)
+
+Pedido: «a animação de pulo não funciona direito» e «ele tem que ser tão grande quanto o Wookada».
+
+- **Fases do pulo** (início, subida, pico, queda) duram 0,08–0,17 s, menos que a transição comum (~0,19 s): nenhuma chegava a
+  aparecer inteira. Agora a troca entre fases usa uma transição curta (**0,04 s**) e cada fase chega a peso 1. Controle:
+  Visualizar › «Animação: transições» › **«Transição entre as fases do pulo»** (s).
+- **Salto sobre o rival** tocava o Jump 1 inteiro (preparação + pouso) dentro de um voo curto e depois o epílogo no chão. Agora
+  usa as fases pelo progresso do arco (início → subida → pico → queda). Controle: **«Salto sobre o rival usa as fases do pulo»**
+  (desligar = regra antiga). O pulo no ar segue o arco da física (não toca em velocidade nativa).
+- **Tamanho**: o Eggo abre em **2×** como o Wookada (os dois com 2,6 m no jogo). Eggo salvo com 1×/1× (de antes) volta ao padrão.
+  O slider de tamanho do painel do personagem continua valendo.
+- **Velocidade da animação com a escala**: a velocidade medida no clipe agora inclui o tamanho no jogo → Eggo anda **1,71 m/s** e
+  corre **5,71 m/s** (antes 0,72/2,40, medidos no tamanho do arquivo). Mudar o slider de tamanho recalcula.
+
+Testes: `clip-fidelity.test.mjs` (fases e salto), `loco-speed.browser.mjs`, `eggo-sprint-turn.browser.mjs`. Não verificado:
+jogar à mão; equilíbrio da partida com o Eggo maior e mais rápido; o salto sobre o rival termina sem clipe de pouso (vai direto ao idle).
