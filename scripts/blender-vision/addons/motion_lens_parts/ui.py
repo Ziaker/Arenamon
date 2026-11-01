@@ -1,9 +1,9 @@
 # Motion Lens — parte «ui» (dividida de motion_lens.py; a API pública continua em motion_lens.py).
 import bpy
-from bpy.props import BoolProperty, FloatProperty, IntProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, FloatProperty, FloatVectorProperty, IntProperty, StringProperty
 from .comparison import save_baseline
 from .contract import load_profile, save_profile
-from .operators import ML_OT_apply_impact, ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_strike, ML_OT_trails
+from .operators import ML_OT_analyze_exaggeration, ML_OT_apply_impact, ML_OT_check_baseline, ML_OT_clear, ML_OT_contact_sheet, ML_OT_create_exaggeration_variants, ML_OT_create_smear, ML_OT_exaggeration_report, ML_OT_ghosts, ML_OT_graphs, ML_OT_html_report, ML_OT_load_profile, ML_OT_pose_diff, ML_OT_reference_overlay, ML_OT_report, ML_OT_save_baseline, ML_OT_save_profile, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet, ML_OT_strike, ML_OT_trails
 from .version import VERSION_TEXT
 
 
@@ -85,6 +85,27 @@ class ML_PT_panel(bpy.types.Panel):
         col.operator("motionlens.apply_impact")
 
         col = self.layout.box().column(align=True)
+        col.label(text="Criar exagero e smear")
+        col.prop(scene, "motion_lens_smear_bones")
+        col.prop(scene, "motion_lens_smear_use_tail")
+        col.prop(scene, "motion_lens_smear_guide")
+        col.prop(scene, "motion_lens_smear_shape")
+        row = col.row(align=True)
+        row.prop(scene, "motion_lens_smear_frame_start")
+        row.prop(scene, "motion_lens_smear_frame_end")
+        col.prop(scene, "motion_lens_smear_frame_step")
+        col.prop(scene, "motion_lens_smear_width")
+        col.prop(scene, "motion_lens_smear_min_speed")
+        col.prop(scene, "motion_lens_smear_color")
+        col.prop(scene, "motion_lens_smear_opacity")
+        col.prop(scene, "motion_lens_smear_emission")
+        col.prop(scene, "motion_lens_exaggeration_strength")
+        col.operator("motionlens.analyze_exaggeration")
+        col.operator("motionlens.create_smear")
+        col.operator("motionlens.create_exaggeration_variants")
+        col.operator("motionlens.exaggeration_report")
+
+        col = self.layout.box().column(align=True)
         col.label(text="Perfis")
         col.prop(scene, "motion_lens_profile_path")
         row = col.row(align=True)
@@ -101,7 +122,9 @@ classes = (
     ML_OT_contact_sheet, ML_OT_silhouette_sheet, ML_OT_skeleton_sheet,
     ML_OT_reference_overlay, ML_OT_pose_diff, ML_OT_html_report,
     ML_OT_save_profile, ML_OT_load_profile, ML_OT_save_baseline, ML_OT_check_baseline,
-    ML_OT_clear, ML_OT_strike, ML_OT_apply_impact, ML_PT_panel,
+    ML_OT_clear, ML_OT_strike, ML_OT_apply_impact,
+    ML_OT_analyze_exaggeration, ML_OT_create_smear,
+    ML_OT_create_exaggeration_variants, ML_OT_exaggeration_report, ML_PT_panel,
 )
 
 
@@ -152,4 +175,26 @@ PROPERTIES = {
     ),
     "motion_lens_strike_frames": IntProperty(name="Bote alvo (frames)", default=4, min=1, max=120),
     "motion_lens_hold_frames": IntProperty(name="Segurada alvo (frames)", default=2, min=0, max=120),
+    "motion_lens_smear_bones": StringProperty(name="Ossos do smear", default="RightHand,LeftHand", description="Papeis ou nomes de ossos separados por virgula"),
+    "motion_lens_smear_use_tail": BoolProperty(name="Usar ponta dos ossos", default=True),
+    "motion_lens_smear_guide": StringProperty(name="Curva guia opcional", default="", description="Nome de uma Curve do Direction Lines ou outra curva editavel"),
+    "motion_lens_smear_shape": EnumProperty(name="Forma", items=[
+        ('RIBBON', "Fita", "Faixa plana ao longo da trajetoria"),
+        ('TUBE', "Tubo", "Volume tubular fechado"),
+        ('CONE', "Cone", "Volume que afunila"),
+        ('DROP', "Gota", "Volume largo no centro"),
+        ('BLADE', "Lamina", "Fita afiada nas pontas"),
+        ('ARC', "Arco", "Fita de largura suave para golpes curvos"),
+        ('ECHO', "Ecos", "Volumes sucessivos ao longo do movimento"),
+        ('HULL', "Silhueta inteira", "Casca convexa envolvendo a trajetoria"),
+    ], default='RIBBON'),
+    "motion_lens_smear_frame_start": IntProperty(name="Inicio", default=1, min=-100000, max=100000),
+    "motion_lens_smear_frame_end": IntProperty(name="Fim", default=41, min=-100000, max=100000),
+    "motion_lens_smear_frame_step": IntProperty(name="Passo (frames)", default=1, min=1, max=30),
+    "motion_lens_smear_width": FloatProperty(name="Espessura (m)", default=0.12, min=0.001, max=5.0, unit='LENGTH'),
+    "motion_lens_smear_min_speed": FloatProperty(name="Velocidade minima (m/frame)", default=0.01, min=0.0, max=100.0, precision=4),
+    "motion_lens_smear_color": FloatVectorProperty(name="Cor", subtype='COLOR', size=4, default=(0.15, 0.65, 1.0, 1.0), min=0.0, max=1.0),
+    "motion_lens_smear_opacity": FloatProperty(name="Opacidade", subtype='FACTOR', default=0.65, min=0.0, max=1.0),
+    "motion_lens_smear_emission": FloatProperty(name="Emissao", default=1.5, min=0.0, max=50.0),
+    "motion_lens_exaggeration_strength": FloatProperty(name="Intensidade do exagero", subtype='FACTOR', default=0.25, min=0.0, max=1.0),
 }

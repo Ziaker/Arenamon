@@ -8,6 +8,9 @@ from .graphs import render_graphs
 from .report import build_html_report
 from .sheets import render_contact_sheet, render_skeleton_sheet
 from .strikes import analyze_strike, apply_impact
+from .exaggeration import (analyze_exaggeration, build_agent_exaggeration_report,
+                           clear_exaggeration_generated, create_exaggeration_variants,
+                           create_smear_meshes)
 
 
 class ML_OT_ghosts(bpy.types.Operator):
@@ -198,6 +201,7 @@ class ML_OT_clear(bpy.types.Operator):
     bl_label = "Limpar auxiliares"
     def execute(self, context):
         clear_generated()
+        clear_exaggeration_generated()
         return {'FINISHED'}
 
 
@@ -225,6 +229,62 @@ class ML_OT_apply_impact(bpy.types.Operator):
         try:
             r = apply_impact(context)
             self.report({'INFO'}, "%s: bote f%d-f%d, segura ate f%d" % (r["action"], r["windup"], r["contact"], r["hold_end"]))
+            return {'FINISHED'}
+        except Exception as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class ML_OT_analyze_exaggeration(bpy.types.Operator):
+    bl_idname = "motionlens.analyze_exaggeration"
+    bl_label = "Encontrar oportunidades"
+    bl_description = "Mede trajetorias e sugere candidatos de smear ou exagero sem editar a animacao"
+    def execute(self, context):
+        try:
+            result = analyze_exaggeration(context)
+            self.report({'INFO'}, "%d candidatos medidos" % len(result["candidates"]))
+            return {'FINISHED'}
+        except Exception as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class ML_OT_create_smear(bpy.types.Operator):
+    bl_idname = "motionlens.create_smear"
+    bl_label = "Criar malhas de smear"
+    bl_description = "Cria malhas auxiliares na colecao ML_Exaggeration; nao altera rig, Action ou hitbox"
+    def execute(self, context):
+        try:
+            result = create_smear_meshes(context)
+            self.report({'INFO'}, "%d malhas %s criadas" % (len(result["objects"]), result["shape"]))
+            return {'FINISHED'}
+        except Exception as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class ML_OT_create_exaggeration_variants(bpy.types.Operator):
+    bl_idname = "motionlens.create_exaggeration_variants"
+    bl_label = "Criar variantes Sutil / Estilizada / Extrema"
+    bl_description = "Cria tres Actions derivadas e deixa a variante Estilizada ativa; a Action fonte nao muda"
+    def execute(self, context):
+        try:
+            result = create_exaggeration_variants(context)
+            self.report({'INFO'}, "Variantes: " + ", ".join(result["actions"]))
+            return {'FINISHED'}
+        except Exception as exc:
+            self.report({'ERROR'}, str(exc))
+            return {'CANCELLED'}
+
+
+class ML_OT_exaggeration_report(bpy.types.Operator):
+    bl_idname = "motionlens.exaggeration_report"
+    bl_label = "Relatorio para agentes"
+    bl_description = "Exporta JSON rastreavel com candidatos, controles, limites e propostas"
+    def execute(self, context):
+        try:
+            path, _result = build_agent_exaggeration_report(context)
+            self.report({'INFO'}, "Salvo: " + path)
             return {'FINISHED'}
         except Exception as exc:
             self.report({'ERROR'}, str(exc))

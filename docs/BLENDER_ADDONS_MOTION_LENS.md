@@ -6,7 +6,7 @@ Cópia versionada dos dois addons personalizados usados nos testes de animação
 
 | Addon | Caminho no repositório | Versão | SHA-256 |
 |---|---|---|---|
-| Motion Lens | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/` | 0.3.3 | ponto de entrada: `f4f948b6029e3bb3912150c9cd4da010bd3dfb8c9badc8258a69fedb69091bb3`; as partes possuem hashes próprios |
+| Motion Lens | `scripts/blender-vision/addons/motion_lens.py` + `motion_lens_parts/` | 0.4.0 | pacote modular; hashes conferidos na instalação |
 | Direction Lines | `scripts/blender-vision/addons/direction_lines.py` | 0.1.2 | `4a592e3d910d17363dc217123fc6152c66120b271c3bcddbb96ce05c3c8bac5f` |
 
 Estes arquivos são as fontes oficiais versionadas. A cópia instalada no Blender 5.2 só muda quando o instalador é executado explicitamente.
@@ -68,12 +68,13 @@ Para respeitar o limite de 2.000 linhas por arquivo (AGENTS.md), `scripts/blende
 
 **Instalar:** copie `motion_lens.py` **e** a pasta `motion_lens_parts/` juntos (ou rode `python scripts/blender-vision/instalar_motion_lens.py`, que por padrão só simula). Com `--instalar`, o instalador valida a sintaxe, prepara o pacote fora do destino e troca entrada e módulos como uma unidade. Se a troca falhar, restaura os dois; se houver versão anterior, guarda `motion_lens.py.bak` e `motion_lens_parts.bak`.
 
-## Robustez e interface (v0.3.3 / v0.1.1)
+## Robustez e interface (Motion Lens v0.4.0 / Direction Lines v0.1.2)
 
 - Direction Lines rejeita intervalo invertido e coluna com menos de dois pontos antes de criar uma guia.
 - Guias degeneradas, ossos ausentes e armature ausente são ignorados com diagnóstico legível durante a comparação, sem derrubar o operador.
 - Nenhum handler ou retorno automático de frame foi adicionado.
 - O painel Motion Lens preserva os 15 comandos anteriores e expõe os dois operadores de golpe já existentes: 17 operadores e 40 propriedades.
+- A versão 0.4.0 preserva esses 17/40 e adiciona quatro operadores e treze propriedades: total de 21 operadores e 53 propriedades.
 - O diagnóstico de golpe rotula contato como **CANDIDATO**, mostra frames, segundos, m/frame e m/s, e não infere colisão sem alvo/evento.
 - Comparações, incluindo o overlay de referência, preservam Action Slot e frame/subframe. Em sucesso, `apply_impact` mantém a derivada ativa para inspeção; em falha, remove a derivada parcial e restaura a Action/slot anteriores.
 - Direction Lines 0.1.2 restaura frame e subframe também quando uma comparação falha.
@@ -90,3 +91,5 @@ python scripts/blender-vision/tests/test_instalar_motion_lens.py
 ```
 
 Auditoria detalhada: [MOTION_LENS_AUDITORIA_EVOLUCAO_2026-10-31.md](MOTION_LENS_AUDITORIA_EVOLUCAO_2026-10-31.md).
+
+Autoria de exagero e smear: [MOTION_LENS_EXAGERO_SMEAR.md](MOTION_LENS_EXAGERO_SMEAR.md).

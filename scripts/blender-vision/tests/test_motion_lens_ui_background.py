@@ -56,15 +56,25 @@ expected_operators = {
     "motionlens.ghosts", "motionlens.save_profile", "motionlens.load_profile",
     "motionlens.save_baseline", "motionlens.check_baseline", "motionlens.clear",
     "motionlens.strike", "motionlens.apply_impact",
+    "motionlens.analyze_exaggeration", "motionlens.create_smear",
+    "motionlens.create_exaggeration_variants", "motionlens.exaggeration_report",
 }
 expected_sections = {
     "Gerar evidencias", "Comparar animacoes", "Visualizar movimento",
-    "Diagnosticar movimento", "Analisar e derivar golpe", "Perfis", "Limpeza",
+    "Diagnosticar movimento", "Analisar e derivar golpe", "Criar exagero e smear", "Perfis", "Limpeza",
 }
 
 expected_strike_properties = {
     "motion_lens_strike_effectors", "motion_lens_hold_speed",
     "motion_lens_strike_frames", "motion_lens_hold_frames",
+}
+
+expected_exaggeration_properties = {
+    "motion_lens_smear_bones", "motion_lens_smear_use_tail", "motion_lens_smear_guide",
+    "motion_lens_smear_shape", "motion_lens_smear_frame_start", "motion_lens_smear_frame_end",
+    "motion_lens_smear_frame_step", "motion_lens_smear_width", "motion_lens_smear_min_speed",
+    "motion_lens_smear_color", "motion_lens_smear_opacity", "motion_lens_smear_emission",
+    "motion_lens_exaggeration_strength",
 }
 
 assert set(layout.props) == set(ml.PROPERTIES), (
@@ -77,6 +87,7 @@ assert set(layout.operators) == expected_operators, (
 )
 assert expected_sections.issubset(set(layout.labels)), sorted(set(layout.labels))
 assert expected_strike_properties.issubset(set(layout.props)), sorted(set(layout.props))
+assert expected_exaggeration_properties.issubset(set(layout.props)), sorted(set(layout.props))
 
 version_text = ".".join(str(part) for part in ml.bl_info["version"])
 assert ml.ML_PT_panel.bl_label == "Motion Lens " + version_text, ml.ML_PT_panel.bl_label
@@ -87,6 +98,8 @@ for _cycle in range(2):
     assert all(hasattr(bpy.types.Scene, name) for name in ml.PROPERTIES)
     assert hasattr(bpy.ops.motionlens, "strike")
     assert hasattr(bpy.ops.motionlens, "apply_impact")
+    assert hasattr(bpy.ops.motionlens, "create_smear")
+    assert hasattr(bpy.ops.motionlens, "create_exaggeration_variants")
     ml.unregister()
     assert all(not hasattr(bpy.types.Scene, name) for name in ml.PROPERTIES)
 
