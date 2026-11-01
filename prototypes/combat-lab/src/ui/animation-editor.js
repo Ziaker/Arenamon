@@ -488,7 +488,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     const t = previewTime();
     head.style.left = `calc(110px + (100% - 110px) * ${Math.min(1, Math.max(0, t / dur))})`;
     const lab = root.querySelector('[data-time]');
-    if (lab && !lab.textContent.includes('→')) lab.textContent = `${t.toFixed(3)} s · ${(t / dur * 100).toFixed(0)} % · quadro ${Math.round(t * 30)}`;
+    if (lab && !lab.textContent.includes('→')) lab.textContent = `${t.toFixed(3)} s · ${(t / dur * 100).toFixed(0)} % · quadro ${timeFrame(t, clipFps(c.clips[i]))}`;
     const play = root.querySelector('[data-play]');if (play) play.textContent = playing ? '⏸ Pausar' : '▶ Tocar';
     // Régua de seek e relógio da viewport 3D.
     const vs = root.querySelector('[data-vstatus]');
@@ -498,7 +498,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     }
     const seek = root.querySelector('[data-vpseek]'), clock = root.querySelector('[data-vptime]');
     if (vpOn() && seek && document.activeElement !== seek) {seek.max = String(dur);seek.value = String(Math.min(dur, Math.max(0, t)));}
-    if (vpOn() && clock) clock.textContent = `${t.toFixed(3)} / ${dur.toFixed(3)} s · quadro ${Math.round(t * 30)}`;
+    if (vpOn() && clock) clock.textContent = `${t.toFixed(3)} / ${dur.toFixed(3)} s · quadro ${timeFrame(t, clipFps(c.clips[i]))}`;
   }
 
   // ---------- Montagem ----------
