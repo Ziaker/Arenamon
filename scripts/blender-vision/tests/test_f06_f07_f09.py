@@ -124,8 +124,15 @@ class TestF06F07F09(unittest.TestCase):
         self.assertEqual(metrics["contact_frame"], 9)
 
     def test_f06_strike_confirmed_authorized_event(self):
-        """F06: Confirmação de contato por evento autorizado de combate na timeline."""
+        """F06: Confirmação de contato por evento autorizado de combate na timeline com proveniência."""
         effector_traj = {i: [0.0, i * 0.1, 1.0] for i in range(0, 16, 2)}
+
+        auth_event = {
+            "event_name": "MELEE_STRIKE_HITBOX",
+            "frame": 8,
+            "source": "COMBAT_TIMELINE_TABLE",
+            "is_verified": True,
+        }
 
         analysis = build_strike_analysis(
             action_name="Kick_Event",
@@ -134,7 +141,7 @@ class TestF06F07F09(unittest.TestCase):
             fps=30.0,
             strike_effector_role="right_foot",
             effector_positions=effector_traj,
-            authorized_event_frame=8,
+            authorized_event=auth_event,
         )
 
         metrics = analysis["metrics"]

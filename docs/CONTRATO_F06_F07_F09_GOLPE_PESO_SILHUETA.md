@@ -1,7 +1,7 @@
 # Contratos F06, F07 e F09 — Análise de Golpe, Peso/Impulso e Orquestração de Silhuetas
 
-Data: 31/10/2026.
-Versão: 1.0.0.
+Data: 01/11/2026.
+Versão: 1.1.0 (Auditada com Rigor Epistêmico).
 Arquitetura: Motion Lens / Blender Vision / Arenamon Agent Report (`arenamon.agent-report/1`).
 
 ---
@@ -11,8 +11,8 @@ Arquitetura: Motion Lens / Blender Vision / Arenamon Agent Report (`arenamon.age
 ### Objetivo
 Analisar o timing e a dinâmica de aceleração de golpes de combate (socos, chutes, cabeçadas, cortes), diferenciando categoricamente:
 1. **Contato CANDIDATO (`CANDIDATO`):** inferido por desaceleração cinemática ou aproximação de efetores.
-2. **Contato CONFIRMADO_ALVO (`CONFIRMADO_ALVO`):** verificado por colisão com alvo/volume geométrico explícito (ex.: esfera ou caixa delimitadora de colisão).
-3. **Contato CONFIRMADO_EVENTO (`CONFIRMADO_EVENTO`):** associado a um marcador ou frame de evento de combate autorizado na timeline de gameplay.
+2. **Contato CONFIRMADO_ALVO (`CONFIRMADO_ALVO`):** verificado por colisão contínua (CCD / Continuous Collision Detection) com alvo geométrico explícito (`SPHERE` ou `BOX`), detectando travessia do colisor entre amostras de quadros (sem falso-negativo por tunneling).
+3. **Contato CONFIRMADO_EVENTO (`CONFIRMADO_EVENTO`):** associado a um evento formalmente autenticado de combate na timeline de gameplay contendo obrigatoriamente `event_name`, `frame`, `source` (ex.: `"GAMEPLAY_TIMELINE"`, `"COMBAT_SIMULATOR"`) e `is_verified=True`. Passar apenas um número de frame solto é explicitamente rejeitado e recai em `CANDIDATO` com advertência formal.
 
 ### Métricas Principais
 - `strike_windup_frame`: frame de máxima antecipação / recolhimento do membro.
@@ -29,6 +29,9 @@ Analisar o timing e a dinâmica de aceleração de golpes de combate (socos, chu
 ### Objetivo
 Calcular a transferência de massa da pelve/tronco e a base de suporte dos pés durante ações de combate, expressando grandezas físicas puras (metros, m/s e m/s²) **sem notas artísticas subjetivas arbitrárias**.
 
+### Regra Epistêmica de Pés Ausentes
+- Quando as trajetórias dos pés não são fornecidas, a métrica `support_stability_ratio` é estritamente **`None`** (não avaliada), sendo registrada a ausência em `missing_data`. É terminantemente proibido atribuir `1.0` (estabilidade perfeita) sem dados reais medidos.
+
 ### Métricas Principais
 - `pelvis_total_travel_distance`: distância total percorrida pela pelve (m).
 - `pelvis_anticipation_recoil`: recuo sagital na direção oposta ao ataque antes do avanço (m).
@@ -37,20 +40,18 @@ Calcular a transferência de massa da pelve/tronco e a base de suporte dos pés 
 - `pelvis_peak_velocity`: velocidade máxima da pelve (m/s).
 - `pelvis_peak_acceleration`: aceleração máxima do quadril (m/s²).
 - `momentum_recovery_ratio`: razão entre tempo de absorção/retorno e tempo de avanço.
-- `support_stability_ratio`: proporção de quadros com pelo menos um pé apoiado no solo (calibrado por `ground_z_reference_m`).
+- `support_stability_ratio`: proporção de quadros com pelo menos um pé apoiado no solo (calibrado por `ground_z_reference_m`) ou `None` se pés não fornecidos.
 
 ---
 
 ## 3. F09 — Orquestração de Silhuetas e Poses-Chave (`arenamon.pose-silhouette/1`)
 
 ### Objetivo
-Identificar e orquestrar as poses estruturais fundamentais (`START_REST`, `ANTICIPATION_APEX`, `STRIKE_APEX`, `RECOVERY_POSE`), projetar suas caixas delimitadoras e proporções de aspecto (frontal e lateral), e vincular diretamente cada pose com a evidência visual correspondente no disco (com SHA-256 verificado).
+Identificar poses estruturais fundamentais (`START_REST`, `ANTICIPATION_APEX`, `STRIKE_APEX`, `RECOVERY_POSE`), calcular as dimensões das caixas delimitadoras e vincular diretamente cada pose com a evidência visual correspondente no disco (com SHA-256 verificado).
 
-### Métricas Principais
-- `keyframe_{f}_frontal_width_m` e `keyframe_{f}_frontal_height_m`: dimensões da silhueta frontal.
-- `aspect_ratio`: proporção de aspecto (Largura / Altura).
-- `keyframe_{f}_sagittal_tilt_deg`: inclinação sagital do vetor pelve $\to$ tronco em graus.
-- `evidence_ref`: referência à evidência visual rastreável (`evidence_id`, `file_path`, `sha256`, `view_type`).
+### Regras de Rigor Factual
+1. **Distinção Categórica de Bounding Box Esquelética:** As métricas representam a caixa delimitadora 2D projetada das articulações do esqueleto (`skeletal_projected_frontal_width_m`, `skeletal_projected_frontal_height_m`), distinguindo formalmente de rasterizações de contorno de malha densa.
+2. **Seleção Automática de Marcos:** O analisador conta com o algoritmo `auto_detect_keyframe_milestones()`, capaz de extrair os marcos fundamentais analiticamente a partir das curvas de velocidade e deslocamento, sem requerer marcos manuais hardcoded.
 
 ---
 

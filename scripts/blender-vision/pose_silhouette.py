@@ -37,10 +37,87 @@ class KeyframeSilhouette:
     frame: int
     time_seconds: float
     structural_role: str
-    frontal_bbox: BoundingBox2D
-    lateral_bbox: BoundingBox2D
+    frontal_skeletal_bbox: BoundingBox2D
+    lateral_skeletal_bbox: BoundingBox2D
     sagittal_tilt_deg: float
     evidence_ref: Optional[Dict[str, Any]] = None
+
+    @property
+    def frontal_bbox(self) -> BoundingBox2D:
+        return self.frontal_skeletal_bbox
+
+    @property
+    def lateral_bbox(self) -> BoundingBox2D:
+        return self.lateral_skeletal_bbox
+
+
+def auto_detect_keyframe_milestones(
+    keyframe_bone_poses: Dict[int, Dict[str, List[float]]],
+    attack_axis_idx: int = 1,
+) -> Dict[int, str]:
+    """Identifica automaticamente os marcos estruturais a partir das posições esqueléticas.
+
+    Marcos detectados analiticamente:
+    - START_REST: primeiro frame da ação.
+    - ANTICIPATION_APEX: pose de maior recuo ou compressão antes da projeção.
+    - STRIKE_APEX: pose de máxima extensão / avanço no eixo de ataque.
+    - RECOVERY_POSE: pose de retorno ou término da ação.
+    """
+    sorted_frames = sorted(keyframe_bone_poses.keys())
+    n = len(sorted_frames)
+    if n == 0:
+        return {}
+    if n == 1:
+        return {sorted_frames[0]: KEYFRAME_ROLE_START}
+    if n == 2:
+        return {sorted_frames[0]: KEYFRAME_ROLE_START, sorted_frames[1]: KEYFRAME_ROLE_STRIKE}
+    if n == 3:
+        return {
+            sorted_frames[0]: KEYFRAME_ROLE_START,
+            sorted_frames[1]: KEYFRAME_ROLE_STRIKE,
+            sorted_frames[2]: KEYFRAME_ROLE_RECOVERY,
+        }
+
+    # Analisa o centroide dos membros superiores / efetores ou pelve
+    eff_positions: Dict[int, float] = {}
+    pelvis_positions: Dict[int, float] = {}
+
+    for f in sorted_frames:
+        bones = keyframe_bone_poses[f]
+        # Pelve/quadril
+        pelv = next((c for name, c in bones.items() if any(k in name.lower() for k in ("pelvis", "hips", "waist"))), None)
+        if pelv:
+            pelvis_positions[f] = pelv[attack_axis_idx]
+
+        # Efetores de mão/braço/cabeça
+        hands = [c for name, c in bones.items() if any(k in name.lower() for k in ("hand", "arm", "wrist", "fist"))]
+        if hands:
+            eff_positions[f] = max(c[attack_axis_idx] for c in hands)
+        elif pelv:
+            eff_positions[f] = pelv[attack_axis_idx]
+        else:
+            eff_positions[f] = max(c[attack_axis_idx] for c in bones.values())
+
+    # 1. Start
+    start_f = sorted_frames[0]
+    # 2. Strike Apex (máxima projeção no eixo do ataque)
+    strike_f = max(sorted_frames[1:-1], key=lambda f: eff_positions.get(f, 0.0))
+    # 3. Anticipation Apex (maior recuo antes do strike)
+    frames_before_strike = [f for f in sorted_frames if f < strike_f]
+    if len(frames_before_strike) > 1:
+        anticipation_f = min(frames_before_strike[1:], key=lambda f: eff_positions.get(f, 0.0))
+    else:
+        anticipation_f = sorted_frames[1]
+    # 4. Recovery Pose
+    recovery_f = sorted_frames[-1]
+
+    milestones = {
+        start_f: KEYFRAME_ROLE_START,
+        anticipation_f: KEYFRAME_ROLE_ANTICIPATION,
+        strike_f: KEYFRAME_ROLE_STRIKE,
+        recovery_f: KEYFRAME_ROLE_RECOVERY,
+    }
+    return milestones
 
 
 def _calc_bbox_and_tilt(bone_positions: Dict[str, List[float]]) -> Tuple[BoundingBox2D, BoundingBox2D, float]:
@@ -109,6 +186,9 @@ def build_pose_silhouette_analysis(
     if not sorted_frames:
         raise PoseSilhouetteError("Nenhum frame fornecido para análise de pose.")
 
+    # Se os papéis não foram passados manualmente, detecta automaticamente via cinemática
+    detected_roles = auto_detect_keyframe_milestones(keyframe_bone_poses) if not keyframe_roles else {}
+
     evidence_by_frame: Dict[int, Dict[str, Any]] = {}
     if visual_evidences:
         for ev in visual_evidences:
@@ -116,9 +196,11 @@ def build_pose_silhouette_analysis(
                 evidence_by_frame[f] = ev
 
     silhouettes: List[Dict[str, Any]] = []
+    detection_mode = "manual" if keyframe_roles else "automática por cinemática"
     facts: List[str] = [
         f"Ação analisada: '{action_name}' no armature '{armature_name}' ({frame_range[0]}..{frame_range[1]} a {fps:.1f} FPS).",
-        f"Total de poses estruturais avaliadas: {len(sorted_frames)}.",
+        f"Total de poses estruturais avaliadas: {len(sorted_frames)} (seleção: {detection_mode}).",
+        "Nota taxonômica: Dimensões referem-se à Bounding Box Esquelética Projetada (posições dos centros dos ossos), não à silhueta rasterizada de malha poligonal densa.",
     ]
 
     for f in sorted_frames:
@@ -126,7 +208,7 @@ def build_pose_silhouette_analysis(
         front_bb, lat_bb, tilt = _calc_bbox_and_tilt(bones)
         t_sec = round((f - frame_range[0]) / fps, 3)
 
-        role = (keyframe_roles or {}).get(f)
+        role = (keyframe_roles or {}).get(f) or detected_roles.get(f)
         if not role:
             if f == sorted_frames[0]:
                 role = KEYFRAME_ROLE_START
@@ -141,8 +223,8 @@ def build_pose_silhouette_analysis(
             frame=f,
             time_seconds=t_sec,
             structural_role=role,
-            frontal_bbox=front_bb,
-            lateral_bbox=lat_bb,
+            frontal_skeletal_bbox=front_bb,
+            lateral_skeletal_bbox=lat_bb,
             sagittal_tilt_deg=tilt,
             evidence_ref=ev_ref,
         )
@@ -150,11 +232,11 @@ def build_pose_silhouette_analysis(
 
         ev_info = f" [Evidência: {ev_ref['evidence_id']}]" if ev_ref else " [Sem evidência visual vinculada]"
         facts.append(
-            f"Frame {f} ({t_sec:.2f} s, {role}): Silhueta frontal {front_bb.width_m}x{front_bb.height_m} m (AR: {front_bb.aspect_ratio}), inclinação sagital {tilt}°{ev_info}."
+            f"Frame {f} ({t_sec:.2f} s, {role}): Bounding Box Esquelética frontal {front_bb.width_m}x{front_bb.height_m} m (AR: {front_bb.aspect_ratio}), inclinação sagital {tilt}°{ev_info}."
         )
 
     limitations = [
-        "A silhueta é estimada via bounding box tridimensional das articulações do esqueleto (não pela malha rasterizada completa).",
+        "DISTINÇÃO CATEGÓRICA: As dimensões reportadas são projeções 2D da caixa delimitadora do esqueleto (posições dos ossos). Não representam silhuetas renderizadas por contorno de malha/pixels.",
         "Inclinação sagital usa a linha pelve-tronco no plano lateral.",
     ]
 
@@ -188,9 +270,13 @@ def validate_pose_silhouette(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
         errors.append("Lista 'keyframes' deve conter ao menos uma pose estrutural")
     else:
         for i, k in enumerate(keyframes):
-            for kf in ("frame", "time_seconds", "structural_role", "frontal_bbox", "lateral_bbox", "sagittal_tilt_deg"):
+            for kf in ("frame", "time_seconds", "structural_role", "sagittal_tilt_deg"):
                 if kf not in k:
                     errors.append(f"Keyframe {i} sem campo obrigatório: '{kf}'")
+            if "frontal_skeletal_bbox" not in k and "frontal_bbox" not in k:
+                errors.append(f"Keyframe {i} sem campo de bounding box frontal ('frontal_skeletal_bbox' ou 'frontal_bbox')")
+            if "lateral_skeletal_bbox" not in k and "lateral_bbox" not in k:
+                errors.append(f"Keyframe {i} sem campo de bounding box lateral ('lateral_skeletal_bbox' ou 'lateral_bbox')")
 
     return len(errors) == 0, errors
 
@@ -226,20 +312,20 @@ def export_pose_silhouette_to_agent_report(
     for k in analysis["keyframes"]:
         f = k["frame"]
         role = k["structural_role"]
-        f_bb = k["frontal_bbox"]
-        l_bb = k["lateral_bbox"]
+        f_bb = k.get("frontal_skeletal_bbox") or k.get("frontal_bbox", {})
+        l_bb = k.get("lateral_skeletal_bbox") or k.get("lateral_bbox", {})
         measurements.append({
-            "metric": f"keyframe_{f}_frontal_width_m",
+            "metric": f"keyframe_{f}_skeletal_projected_frontal_width_m",
             "value": f_bb["width_m"],
             "unit": "m",
-            "method": "bounding_box_projection",
+            "method": "skeletal_bounding_box_projection",
             "confidence": 0.95,
         })
         measurements.append({
-            "metric": f"keyframe_{f}_frontal_height_m",
+            "metric": f"keyframe_{f}_skeletal_projected_frontal_height_m",
             "value": f_bb["height_m"],
             "unit": "m",
-            "method": "bounding_box_projection",
+            "method": "skeletal_bounding_box_projection",
             "confidence": 0.95,
         })
         measurements.append({

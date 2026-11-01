@@ -56,6 +56,46 @@ def _distance_3d(p1: List[float], p2: List[float]) -> float:
     return math.sqrt(sum((a - b) ** 2 for a, b in zip(p1, p2)))
 
 
+def _dist_segment_to_point(p1: List[float], p2: List[float], center: List[float]) -> float:
+    """Calcula a menor distância euclidiana entre um segmento de reta [p1, p2] e um ponto center (para CCD)."""
+    v = [b - a for a, b in zip(p1, p2)]
+    w = [c - a for a, c in zip(p1, center)]
+    c1 = sum(a * b for a, b in zip(w, v))
+    if c1 <= 0:
+        return _distance_3d(p1, center)
+    c2 = sum(a * b for a, b in zip(v, v))
+    if c2 <= c1:
+        return _distance_3d(p2, center)
+    t = c1 / c2
+    proj = [p1[i] + t * v[i] for i in range(3)]
+    return _distance_3d(proj, center)
+
+
+def _segment_intersects_aabb(p1: List[float], p2: List[float], min_b: List[float], max_b: List[float]) -> bool:
+    """Verifica se o segmento [p1, p2] intercepta um volume AABB (Continuous Collision Detection / Slab Method)."""
+    t_min = 0.0
+    t_max = 1.0
+    for i in range(3):
+        d = p2[i] - p1[i]
+        if abs(d) < 1e-12:
+            if p1[i] < min_b[i] or p1[i] > max_b[i]:
+                return False
+        else:
+            t1 = (min_b[i] - p1[i]) / d
+            t2 = (max_b[i] - p1[i]) / d
+            if t1 > t2:
+                t1, t2 = t2, t1
+            t_min = max(t_min, t1)
+            t_max = min(t_max, t2)
+            if t_min > t_max:
+                return False
+    return t_max >= 0.0 and t_min <= 1.0
+
+
+def _point_in_aabb(p: List[float], min_b: List[float], max_b: List[float]) -> bool:
+    return all(min_b[i] <= p[i] <= max_b[i] for i in range(3))
+
+
 def build_strike_analysis(
     action_name: str,
     armature_name: str,
@@ -66,6 +106,7 @@ def build_strike_analysis(
     pelvis_positions: Optional[Dict[int, List[float]]] = None,
     head_positions: Optional[Dict[int, List[float]]] = None,
     target_geometry: Optional[Dict[str, Any]] = None,
+    authorized_event: Optional[Dict[str, Any]] = None,
     authorized_event_frame: Optional[int] = None,
     target_strike_frames: int = 5,
     target_hold_frames: int = 3,
@@ -82,8 +123,9 @@ def build_strike_analysis(
         effector_positions: Mapeamento de frame para coordenadas 3D [X, Y, Z] do efetor.
         pelvis_positions: Opcional, posições da pelve para medir antecipação do tronco.
         head_positions: Opcional, posições da cabeça para medir antecipação sagital.
-        target_geometry: Opcional, alvo geométrico (ex: {'type': 'SPHERE', 'center': [x,y,z], 'radius_m': r}).
-        authorized_event_frame: Opcional, frame de impacto autorizado pelas regras de combate do jogo.
+        target_geometry: Opcional, alvo geométrico SPHERE ou BOX com suporte a detecção contínua (CCD / travessia).
+        authorized_event: Opcional, evento autenticado com 'event_name', 'frame', 'source' e 'is_verified'.
+        authorized_event_frame: Opcional (legado não autenticado; gera CANDIDATO caso não acompanhado de proveniência).
         target_strike_frames: Meta de quadros para a fase de bote rápido.
         target_hold_frames: Meta de quadros para a fase de retenção/impacto.
         hold_speed_threshold_mps: Limiar de velocidade em m/s considerado sustentação/pausa pós-contato.
@@ -117,30 +159,93 @@ def build_strike_analysis(
     contact_status: str
     confirmation_source: str
     detection_method: str
+    unauthenticated_event_warning: Optional[str] = None
 
-    if authorized_event_frame is not None and authorized_event_frame in effector_positions:
-        contact_frame = authorized_event_frame
-        contact_status = CONTACT_STATUS_CONFIRMED_EVENT
-        confirmation_source = CONFIRMATION_SOURCE_EVENT
-        detection_method = f"Evento autorizado de combate no frame {authorized_event_frame}"
-    elif target_geometry is not None and target_geometry.get("type") == "SPHERE":
-        center = target_geometry["center"]
-        radius = float(target_geometry.get("radius_m", 0.15))
-        # Procura o primeiro frame onde o efetor entra no raio do alvo
-        entered_frames = [f for f in sorted_frames if _distance_3d(effector_positions[f], center) <= radius]
-        if entered_frames:
-            contact_frame = entered_frames[0]
-            contact_status = CONTACT_STATUS_CONFIRMED_TARGET
-            confirmation_source = CONFIRMATION_SOURCE_GEOMETRIC
-            detection_method = f"Colisão geométrica com alvo esférico (raio {radius:.2f} m) no frame {contact_frame}"
+    # Verificação de Evento Autorizado de Gameplay
+    valid_event = False
+    if authorized_event is not None and isinstance(authorized_event, dict):
+        ev_frame = authorized_event.get("frame")
+        ev_name = authorized_event.get("event_name") or authorized_event.get("event_id")
+        ev_source = authorized_event.get("source")
+        ev_verified = bool(authorized_event.get("is_verified", False))
+
+        if ev_name and ev_source and ev_verified and ev_frame in effector_positions:
+            valid_event = True
+            contact_frame = int(ev_frame)
+            contact_status = CONTACT_STATUS_CONFIRMED_EVENT
+            confirmation_source = CONFIRMATION_SOURCE_EVENT
+            detection_method = f"Evento autenticado '{ev_name}' (origem: {ev_source}) no frame {contact_frame}"
         else:
-            # Não tocou o alvo: recai em candidato cinemático
-            peak_f = max(sorted_frames, key=lambda f: speeds_mps[f])
-            after_peak = [f for f in sorted_frames if f >= peak_f]
-            contact_frame = next((f for f in after_peak if speeds_mps[f] < speeds_mps[peak_f] * 0.40), sorted_frames[-1])
-            contact_status = CONTACT_STATUS_CANDIDATE
-            confirmation_source = CONFIRMATION_SOURCE_HEURISTIC
-            detection_method = "Alvo geométrico fornecido não atingido; candidato inferido por desaceleração"
+            unauthenticated_event_warning = (
+                f"Evento '{ev_name}' no frame {ev_frame} rejeitado por falta de autenticação formal "
+                f"(origem: {ev_source}, verificado: {ev_verified}); revertido para candidato cinemático."
+            )
+    elif authorized_event_frame is not None:
+        unauthenticated_event_warning = (
+            f"Parâmetro numérico authorized_event_frame ({authorized_event_frame}) recebido sem proveniência ou "
+            "verificação formal de gameplay; classificado estritamente como CANDIDATO cinemático."
+        )
+
+    # Verificação de Alvo Geométrico (com Continuous Collision Detection / travessia entre amostras)
+    geometric_hit_frame: Optional[int] = None
+    geom_details: str = ""
+
+    if not valid_event and target_geometry is not None:
+        geom_type = str(target_geometry.get("type", "")).upper()
+
+        if geom_type == "SPHERE":
+            center = target_geometry["center"]
+            radius = float(target_geometry.get("radius_m", 0.15))
+
+            for i, f in enumerate(sorted_frames):
+                p_curr = effector_positions[f]
+                # Ponto dentro da esfera
+                if _distance_3d(p_curr, center) <= radius:
+                    geometric_hit_frame = f
+                    geom_details = f"Colisão pontual com alvo esférico (raio {radius:.2f} m) no frame {f}"
+                    break
+                # Travessia contínua (CCD): segmento entre f_prev e f_curr intercepta a esfera
+                if i > 0:
+                    p_prev = effector_positions[sorted_frames[i - 1]]
+                    if _dist_segment_to_point(p_prev, p_curr, center) <= radius:
+                        geometric_hit_frame = f
+                        geom_details = f"Travessia contínua (CCD) interceptando alvo esférico (raio {radius:.2f} m) entre f{sorted_frames[i-1]} e f{f}"
+                        break
+
+        elif geom_type == "BOX":
+            if "min_bounds" in target_geometry and "max_bounds" in target_geometry:
+                min_b = target_geometry["min_bounds"]
+                max_b = target_geometry["max_bounds"]
+            elif "center" in target_geometry:
+                c = target_geometry["center"]
+                ext = target_geometry.get("extents_m") or target_geometry.get("size_m", [0.3, 0.3, 0.3])
+                min_b = [c[k] - ext[k] / 2.0 for k in range(3)]
+                max_b = [c[k] + ext[k] / 2.0 for k in range(3)]
+            else:
+                raise StrikeAnalysisError("Alvo tipo BOX deve conter 'min_bounds' e 'max_bounds' ou 'center' e 'extents_m'.")
+
+            for i, f in enumerate(sorted_frames):
+                p_curr = effector_positions[f]
+                # Ponto dentro da caixa AABB
+                if _point_in_aabb(p_curr, min_b, max_b):
+                    geometric_hit_frame = f
+                    geom_details = f"Colisão pontual com volume BOX no frame {f}"
+                    break
+                # Travessia contínua (CCD) do segmento com o AABB
+                if i > 0:
+                    p_prev = effector_positions[sorted_frames[i - 1]]
+                    if _segment_intersects_aabb(p_prev, p_curr, min_b, max_b):
+                        geometric_hit_frame = f
+                        geom_details = f"Travessia contínua (CCD) interceptando volume BOX entre f{sorted_frames[i-1]} e f{f}"
+                        break
+
+    if valid_event:
+        pass  # Já preenchido acima
+    elif geometric_hit_frame is not None:
+        contact_frame = geometric_hit_frame
+        contact_status = CONTACT_STATUS_CONFIRMED_TARGET
+        confirmation_source = CONFIRMATION_SOURCE_GEOMETRIC
+        detection_method = geom_details
     else:
         # Inferência puramente cinemática (queda de velocidade após pico)
         peak_f = max(sorted_frames, key=lambda f: speeds_mps[f])
@@ -148,7 +253,10 @@ def build_strike_analysis(
         contact_frame = next((f for f in after_peak if speeds_mps[f] < speeds_mps[peak_f] * 0.40), sorted_frames[-1])
         contact_status = CONTACT_STATUS_CANDIDATE
         confirmation_source = CONFIRMATION_SOURCE_HEURISTIC
-        detection_method = "Candidato cinemático: queda de velocidade para menos de 40% do pico após a aceleração máxima"
+        if target_geometry is not None:
+            detection_method = "Alvo geométrico fornecido não atingido nem atravessado; candidato inferido por desaceleração"
+        else:
+            detection_method = "Candidato cinemático: queda de velocidade para menos de 40% do pico após a aceleração máxima"
 
     # 3. Determinação da antecipação (windup)
     frames_before_contact = [f for f in sorted_frames if f < contact_frame]
@@ -252,6 +360,8 @@ def build_strike_analysis(
         f"Velocidade do efetor: pico {peak_speed:.3f} m/s, no contato {contact_speed:.3f} m/s (razão de aceleração: {accel_ratio:.2f}x).",
         f"Retenção pós-contato: {hold_frames_count} frames ({hold_duration_sec:.3f} s abaixo de {hold_speed_threshold_mps} m/s).",
     ]
+    if unauthenticated_event_warning:
+        facts.append(f"Aviso de autenticação: {unauthenticated_event_warning}")
 
     metrics = StrikeMetrics(
         windup_frame=windup_frame,
@@ -274,6 +384,8 @@ def build_strike_analysis(
         "A análise cinemática avalia timing e trajetórias nos eixos físicos, sem emitir notas subjetivas de estética.",
         "Se o status for CANDIDATO, o ponto de impacto é uma inferência cinemática baseada no perfil de desaceleração e não substitui hitbox autorizada.",
     ]
+    if unauthenticated_event_warning:
+        limitations.append(unauthenticated_event_warning)
 
     return {
         "schema": SCHEMA_NAME,

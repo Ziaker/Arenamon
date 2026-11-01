@@ -31,7 +31,7 @@ class PelvisMomentumMetrics:
     thrust_duration_seconds: float
     recovery_duration_seconds: float
     momentum_recovery_ratio: float
-    support_stability_ratio: float
+    support_stability_ratio: Optional[float]
 
 
 def _dist_3d(a: List[float], b: List[float]) -> float:
@@ -129,6 +129,7 @@ def build_weight_momentum_analysis(
     has_feet = (left_foot_positions is not None and right_foot_positions is not None)
     grounded_frames_count = 0
     evaluated_feet_frames = 0
+    support_ratio: Optional[float] = None
 
     if has_feet:
         for f in sorted_frames:
@@ -140,9 +141,8 @@ def build_weight_momentum_analysis(
                 r_ground = abs(rz - ground_z_reference_m) <= ground_tolerance_m
                 if l_ground or r_ground:
                     grounded_frames_count += 1
-        support_ratio = round(grounded_frames_count / max(1, evaluated_feet_frames), 3)
-    else:
-        support_ratio = 1.0  # Não avaliado por falta de marcadores de pé
+        if evaluated_feet_frames > 0:
+            support_ratio = round(grounded_frames_count / evaluated_feet_frames, 3)
 
     # 6. Fatos factuais
     facts = [
@@ -154,8 +154,10 @@ def build_weight_momentum_analysis(
         f"Pico de velocidade da pelve: {peak_vel:.3f} m/s; Pico de aceleração: {peak_acc:.3f} m/s².",
         f"Duração do impulso motor: {thrust_duration_sec:.3f} s; Duração da recuperação: {recovery_duration_sec:.3f} s (razão de recuperação: {recovery_ratio:.2f}x).",
     ]
-    if has_feet:
+    if support_ratio is not None:
         facts.append(f"Estabilidade da base: {support_ratio * 100:.1f}% dos quadros com pelo menos um pé apoiado no solo (ref: Z={ground_z_reference_m:.2f} m).")
+    else:
+        facts.append("Estabilidade da base: Trajetórias dos pés não fornecidas; suporte no solo não avaliado.")
 
     metrics = PelvisMomentumMetrics(
         total_travel_distance_m=round(total_travel, 4),
@@ -174,6 +176,8 @@ def build_weight_momentum_analysis(
         "Mede cinemática translacional de pelve e pés em metros e m/s, sem simulação física de massa corporal (massa gravitacional não fornecida no armature).",
         "Contato de pés com o solo é inferido por tolerância geométrica em relação ao ground_z_reference_m calibrado.",
     ]
+    if support_ratio is None:
+        limitations.append("Trajetórias dos pés ausentes; cálculo de estabilidade de apoio no solo não realizado.")
 
     return {
         "schema": SCHEMA_NAME,
@@ -204,11 +208,16 @@ def validate_weight_momentum(data: Dict[str, Any]) -> Tuple[bool, List[str]]:
     required_metrics = [
         "total_travel_distance_m", "anticipation_recoil_m", "thrust_advance_m",
         "vertical_compression_drop_m", "peak_pelvis_velocity_mps", "peak_pelvis_acceleration_mps2",
-        "thrust_duration_seconds", "recovery_duration_seconds", "momentum_recovery_ratio", "support_stability_ratio"
+        "thrust_duration_seconds", "recovery_duration_seconds", "momentum_recovery_ratio",
     ]
     for rm in required_metrics:
         if rm not in metrics:
             errors.append(f"Métrica física obrigatória ausente em metrics: '{rm}'")
+
+    if "support_stability_ratio" not in metrics:
+        errors.append("Métrica 'support_stability_ratio' deve estar presente em metrics (como float ou None)")
+    elif metrics["support_stability_ratio"] is not None and not isinstance(metrics["support_stability_ratio"], (int, float)):
+        errors.append("Métrica 'support_stability_ratio' deve ser do tipo float ou None")
 
     return len(errors) == 0, errors
 
@@ -302,17 +311,23 @@ def export_weight_momentum_to_agent_report(
             "method": "recovery_time_over_thrust_time",
             "confidence": 0.95,
         },
-        {
+    ]
+
+    if metrics["support_stability_ratio"] is not None:
+        measurements.append({
             "metric": "support_stability_ratio",
             "value": metrics["support_stability_ratio"],
             "unit": "ratio",
             "method": "ground_contact_frames_ratio",
             "confidence": 0.90,
-        },
-    ]
+        })
+
+    missing_data = []
+    if metrics["support_stability_ratio"] is None:
+        missing_data.append("Trajetórias dos pés não fornecidas; suporte no solo não avaliado.")
 
     limitations = {
-        "missing_data": [],
+        "missing_data": missing_data,
         "assumptions": [
             f"Taxa de amostragem de {analysis['fps']:.1f} FPS.",
         ],

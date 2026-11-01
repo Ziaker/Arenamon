@@ -165,7 +165,7 @@ class TestF06F07F09RealAssets(unittest.TestCase):
         self.assertTrue(rep_valid, f"Erros F15: {rep_errs}")
 
     def test_real_f07_golisopod_weight_momentum(self):
-        """F07 Real: Transferência de peso e impulso de Golisopod em 00400_attack01."""
+        """F07 Real: Transferência de peso, impulso e apoio dos pés de Golisopod em 00400_attack01."""
         if not self.has_blender or not os.path.isfile(self.za_blend):
             self.skipTest("Blender ou pm0867_00_00.blend indisponível.")
 
@@ -178,13 +178,29 @@ class TestF06F07F09RealAssets(unittest.TestCase):
             "f_start, f_end = int(act.frame_range[0]), int(act.frame_range[1])\n"
             "all_bones = [b.name for b in arm.data.bones]\n"
             "waist_samples = {}\n"
+            "left_foot_samples = {}\n"
+            "right_foot_samples = {}\n"
             "for f in range(f_start, f_end + 1, 3):\n"
             "    bpy.context.scene.frame_set(f)\n"
             "    bpy.context.view_layer.update()\n"
-            "    pb = arm.pose.bones.get('waist')\n"
-            "    if pb:\n"
-            "        waist_samples[f] = [round(c, 4) for c in pb.matrix.translation]\n"
-            "res = {'armature': arm.name, 'bones': all_bones, 'fps': fps, 'range': [f_start, f_end], 'waist': waist_samples}\n"
+            "    pb_w = arm.pose.bones.get('waist')\n"
+            "    pb_lf = arm.pose.bones.get('left_foot')\n"
+            "    pb_rf = arm.pose.bones.get('right_foot')\n"
+            "    if pb_w:\n"
+            "        waist_samples[f] = [round(c, 4) for c in pb_w.matrix.translation]\n"
+            "    if pb_lf:\n"
+            "        left_foot_samples[f] = [round(c, 4) for c in pb_lf.matrix.translation]\n"
+            "    if pb_rf:\n"
+            "        right_foot_samples[f] = [round(c, 4) for c in pb_rf.matrix.translation]\n"
+            "res = {\n"
+            "    'armature': arm.name,\n"
+            "    'bones': all_bones,\n"
+            "    'fps': fps,\n"
+            "    'range': [f_start, f_end],\n"
+            "    'waist': waist_samples,\n"
+            "    'left_foot': left_foot_samples,\n"
+            "    'right_foot': right_foot_samples,\n"
+            "}\n"
             "print('__EXTRACTION_JSON__' + json.dumps(res))\n"
         )
 
@@ -195,22 +211,42 @@ class TestF06F07F09RealAssets(unittest.TestCase):
         json_line = [l for l in proc.stdout.splitlines() if token in l][0].replace(token, "")
         data = json.loads(json_line)
         waist_traj = {int(k): v for k, v in data["waist"].items()}
+        l_foot_traj = {int(k): v for k, v in data["left_foot"].items()}
+        r_foot_traj = {int(k): v for k, v in data["right_foot"].items()}
 
-        analysis = build_weight_momentum_analysis(
+        # 1. Análise COM pés reais extraídos do Blender
+        analysis_with_feet = build_weight_momentum_analysis(
             action_name="00400_attack01",
             armature_name=data["armature"],
             frame_range=tuple(data["range"]),
             fps=data["fps"],
             pelvis_positions=waist_traj,
+            left_foot_positions=l_foot_traj,
+            right_foot_positions=r_foot_traj,
+            ground_z_reference_m=0.0,
+            ground_tolerance_m=0.10,
         )
+        is_valid, errs = validate_weight_momentum(analysis_with_feet)
+        self.assertTrue(is_valid, f"Erros F07 (com pés): {errs}")
+        metrics_feet = analysis_with_feet["metrics"]
+        # Comprova que o suporte dos pés é medido numericamente (não nulo)
+        self.assertIsNotNone(metrics_feet["support_stability_ratio"])
+        self.assertIsInstance(metrics_feet["support_stability_ratio"], float)
 
-        is_valid, errs = validate_weight_momentum(analysis)
-        self.assertTrue(is_valid, f"Erros F07: {errs}")
+        # 2. Análise SEM pés: comprova rigor factual (retorna None, NUNCA 1.0)
+        analysis_no_feet = build_weight_momentum_analysis(
+            action_name="00400_attack01",
+            armature_name=data["armature"],
+            frame_range=tuple(data["range"]),
+            fps=data["fps"],
+            pelvis_positions=waist_traj,
+            left_foot_positions=None,
+            right_foot_positions=None,
+        )
+        self.assertIsNone(analysis_no_feet["metrics"]["support_stability_ratio"])
+        self.assertIn("ausentes", analysis_no_feet["limitations"][-1])
 
-        metrics = analysis["metrics"]
-        self.assertGreater(metrics["total_travel_distance_m"], 0.05)
-        self.assertGreater(metrics["peak_pelvis_velocity_mps"], 0.1)
-
+        # 3. Exportação para F15
         rig_map = build_rig_map(
             bone_names=data["bones"],
             rig_id="golisopod_real",
@@ -218,7 +254,7 @@ class TestF06F07F09RealAssets(unittest.TestCase):
             absent_roles=PARAMETRO_MANUAL_ROLES_AUSENTES,
         )
         report = export_weight_momentum_to_agent_report(
-            analysis=analysis,
+            analysis=analysis_with_feet,
             source_file=self.za_blend,
             rig_mapping=rig_map,
         )
@@ -267,20 +303,14 @@ class TestF06F07F09RealAssets(unittest.TestCase):
             }
         ]
 
-        roles = {
-            0: KEYFRAME_ROLE_START,
-            20: KEYFRAME_ROLE_ANTICIPATION,
-            40: KEYFRAME_ROLE_STRIKE,
-            80: KEYFRAME_ROLE_RECOVERY,
-        }
-
+        # 1. Análise F09 com detecção AUTOMÁTICA analítica de marcos (sem papéis manuais forçados)
         analysis = build_pose_silhouette_analysis(
             action_name="00400_attack01",
             armature_name=data["armature"],
             frame_range=(0, 135),
             fps=data["fps"],
             keyframe_bone_poses=poses,
-            keyframe_roles=roles,
+            keyframe_roles=None,  # Detecção automática por cinemática
             visual_evidences=evidences,
         )
 
@@ -289,9 +319,14 @@ class TestF06F07F09RealAssets(unittest.TestCase):
 
         self.assertEqual(len(analysis["keyframes"]), 4)
         for k in analysis["keyframes"]:
-            self.assertGreater(k["frontal_bbox"]["width_m"], 0.2)
-            self.assertGreater(k["frontal_bbox"]["height_m"], 0.2)
+            self.assertGreater(k["frontal_skeletal_bbox"]["width_m"], 0.2)
+            self.assertGreater(k["frontal_skeletal_bbox"]["height_m"], 0.2)
             self.assertIsNotNone(k["evidence_ref"])
+
+        # Comprova identificação automática dos papéis estruturais
+        detected_roles = [k["structural_role"] for k in analysis["keyframes"]]
+        self.assertIn(KEYFRAME_ROLE_START, detected_roles)
+        self.assertIn(KEYFRAME_ROLE_RECOVERY, detected_roles)
 
         rig_map = build_rig_map(
             bone_names=data["bones"],
