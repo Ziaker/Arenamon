@@ -9,6 +9,8 @@
 // Mecânica real (Game) + Character real + mixer, sem navegador. Infra: animation-runtime-harness.mjs.
 // Uso: node prototypes/combat-lab/test/animation-epilogue-contract.test.mjs
 import assert from 'node:assert/strict';
+// Contrato do modo ANTIGO das ações cronometradas (clipe esticado na duração da ação); o modo novo (velocidade original) é coberto por clip-fidelity.test.mjs.
+globalThis.__animTimedLegacy = true;
 import {makeMatch, cmd, vec, C} from './animation-runtime-harness.mjs';
 
 let n = 0;const ok = l => {n++;console.log('✓', l);};

@@ -107,6 +107,8 @@ export function migrateFlat(flat, known) {
   const values = {}, converted = [], ignored = [];
   // 29/10/2026: a recuperação do pouso do salto normal passou a agir (0,25 s por decisão do responsável). O 0,19 salvo era o padrão antigo que nunca teve efeito, não uma escolha: sobe para 0,25.
   if (flat['map.jumpLandingRecovery'] === 0.19) {flat = {...flat, 'map.jumpLandingRecovery': 0.25};converted.push({from: 'map.jumpLandingRecovery', to: 'map.jumpLandingRecovery', value: 0.25});}
+  // 31/10/2026: a velocidade global 1,75× da calibração v8 tocava todas as animações mais rápido do que foram feitas (auditoria docs/AUDITORIA_ANIMACOES_JOGO.md); a pedido do responsável volta a 1×.
+  if (flat['display.animation.speed'] === 1.75) {flat = {...flat, 'display.animation.speed': 1};converted.push({from: 'display.animation.speed', to: 'display.animation.speed', value: 1});}
   const legacyDurationTackle = 'rules.tackleDuration' in flat;
   for (const [path, v] of Object.entries(flat)) {
     if (LEGACY_MAP[path]) {

@@ -25,6 +25,7 @@ import {fromGlbEvents, extractClipDuration} from '../sim/animation-combat-window
 import {sniffFormat} from './validate.js';
 import {RigLayers} from './rig-layers.js';
 import {sprintUsesTurn, updateSprintTurn} from './sprint-turn.js';
+import {hipsCarriesTravel, nativeTimedTime} from './clip-fidelity.js';
 import {tintColor} from './character-colors.js';
 import {emptyProfile, migrateProfile, resolveField, trimOf, loopRange, clipTimeAt, jumpPhaseFor, easeCurve, JUMP_PHASE_DEFAULTS} from '../sim/animation-profile.js';
 import {getMove, listMoves} from '../sim/moves.js';
@@ -204,10 +205,10 @@ export class Character {
     this.hipsRest = this.hips?.position.clone();
     // Alguns exportadores gravam o deslocamento no quadril; outros, num nó raiz acima do esqueleto. Guarda todos os alvos
     // de posição capazes de mover o personagem inteiro para neutralizá-los no mesmo quadro.
-    const rootMotionNodes = new Set(this.hips ? [this.hips] : []);
+    const hipsMoves = !C.display.animation.hipSway || hipsCarriesTravel(this.hips, this.clips), rootMotionNodes = new Set(this.hips && hipsMoves ? [this.hips] : []);   // com osso raiz acima, só ele é preso (o balanço do quadril fica; clip-fidelity.js)
     for (const clip of this.clips) for (const track of clip.tracks) if (track.name.endsWith('.position')) {
       const node = this.root.getObjectByName(track.name.slice(0, -9));
-      if (node && (node === this.hips || !node.parent?.isBone)) rootMotionNodes.add(node);
+      if (node && ((node === this.hips && hipsMoves) || !node.parent?.isBone)) rootMotionNodes.add(node);
     }
     this.rootMotionNodes = [...rootMotionNodes].map(node => ({node, rest: node.position.clone()}));
     this.rootMotionAnimated = new T.Vector3();this.rootMotionRestWorld = new T.Vector3();
@@ -434,7 +435,7 @@ export class Character {
       // Uma animação importada pode trazer root motion num nó raiz que não aparecia nos clipes do GLB principal.
       for (const track of c.tracks) if (track.name.endsWith('.position')) {
         const node = this.root.getObjectByName(track.name.slice(0, -9));
-        if (node && (node === this.hips || !node.parent?.isBone) && !this.rootMotionNodes.some(entry => entry.node === node)) this.rootMotionNodes.push({node, rest: node.position.clone()});
+        if (node && ((node === this.hips && (!C.display.animation.hipSway || hipsCarriesTravel(this.hips, [c]))) || !node.parent?.isBone) && !this.rootMotionNodes.some(entry => entry.node === node)) this.rootMotionNodes.push({node, rest: node.position.clone()});
       }
       const coverage = total ? found / total : 0, compatible = coverage >= .6 && c.tracks.length > 0;
       let name = `${c.name || 'clip'} [${file.name}]`, n = 2;while (this.clips.some(x => x.name === name)) name = `${c.name} [${file.name}] (${n++})`;c.name = name;
@@ -889,7 +890,7 @@ export class Character {
       } else if (this.current.key === 'ledge_climb' && this.current.id === 'ledge_climb') {   // clipe próprio: sem reinício nem pose estalada, termina junto com a subida
         a.time = Math.min(cap, Math.max(0, progressOf(this, f, 'ledge_climb')) * cap);
       } else if (TIMED.has(this.current.key)) {
-        const timed = Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
+        const timed = nativeTimedTime(this, s) ?? Math.max(0, progressOf(this, f, this.current.key)) * cap;a.time = playback.loop ? timed % Math.max(.001, cap) : Math.min(cap, timed);
       } else {
         const next = (reversed ? Math.max(0, cap - a.time) : a.time) + dt * s;a.time = playback.loop ? next % Math.max(.001, cap) : Math.min(cap, next);   // desfaz o espelho do quadro anterior antes de avançar
       }

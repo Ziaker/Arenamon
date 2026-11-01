@@ -21,6 +21,7 @@ MAPA = {
     'Jump Fall 1': 'jump fall',
     'Land 1': 'land',
 }
+LOOPS = {'idle', 'walk', 'sprint', 'jump rise', 'jump fall'}
 rig = bpy.data.objects['AlienRig']
 mesh = next(o for o in bpy.data.objects if o.type == 'MESH' and o.find_armature() == rig)
 falta = [a for a in MAPA if a not in bpy.data.actions]
@@ -30,6 +31,8 @@ for a in list(bpy.data.actions):
         bpy.data.actions.remove(a)
 for velho, novo in MAPA.items():
     a = bpy.data.actions[velho]; a.name = novo; a.use_fake_user = True
+    if novo in LOOPS:   # o ultimo quadro do loop repete o primeiro: sem ele o jogo nao segura o mesmo quadro duas vezes a cada volta
+        a.use_frame_range = True; a.frame_end = a.frame_end - 1
     print('ACTION', velho, '->', novo, 'frames', tuple(a.frame_range))
 # Personagem na origem (x, y = 0); a altura fica como no Blender (pe no chao)
 rig.location.x = rig.location.y = 0.0
@@ -40,5 +43,6 @@ for o in bpy.data.objects: o.select_set(o in (rig, mesh))
 bpy.context.view_layer.objects.active = rig
 bpy.ops.export_scene.gltf(filepath=OUT, export_format='GLB', use_selection=True, export_animations=True,
                           export_animation_mode='ACTIONS', export_frame_range=False, export_force_sampling=True,
-                          export_anim_single_armature=True)
+                          export_anim_single_armature=True,
+                          export_anim_slide_to_zero=True)   # tempos comecam em 0 (sem segurar o quadro 1 por 1/24 s)
 print('GLB', OUT, os.path.getsize(OUT))

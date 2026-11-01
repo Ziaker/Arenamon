@@ -16,7 +16,7 @@ problema está no **relógio** com que o motor toca os clipes e em camadas que m
 | 1 | **Velocidade global das animações = 1,75×** | TUDO toca 75% mais rápido que o animado | `display.animation.speed` (= `Character.options.speed`), usado em `speedOf()` — `view/characters.js:446` |
 | 2 | Ações com tempo da simulação **esticam/espremem o clipe inteiro** na duração da ação | esquiva, salto sobre o rival, tackle, aterrissagem, atordoamento rápidos demais | ramo `TIMED` de `blend()` e `progressOf()` — `view/characters.js` ~l. 890, `view/visual-epilogue.js:180` |
 | 3 | Estados sem clipe próprio tocam a **idle esticada na duração da ação** | idle «respirando» a 3,6× no tackle e 7,5× no atordoamento da defesa | mesma regra do item 2 + reservas `STATE_FALLBACK` (`view/characters.js` ~l. 38) |
-| 4 | O **quadril é preso à posição da física** (X/Z) em todo quadro | some o balanço lateral/frontal do quadril que foi animado | trava de root motion — `view/characters.js` ~l. 906–927 (`rootMotionNodes` inclui o quadril) |
+| 4 | O osso que o jogo trata como quadril é preso à posição da física (X/Z) | em rigs com osso raiz ACIMA do quadril detectado, apagaria o balanço do quadril (no Eggo o jogo trata o `Root` como quadril, então o `Hips` real já mexia livre — conferido depois) | trava de root motion — `view/characters.js` ~l. 906–927 |
 | 5 | **«Trava ao chão»** ligada por padrão apoia o ponto mais baixo no chão | some o sobe-desce do clipe (pulinho do sprint, subida do Jump 1) | `groundCurve()` / `lockToGround` — `view/characters.js` ~l. 930 |
 | 6 | Velocidade do corpo × passada do clipe **não são sincronizadas** | pés patinando | não existe sincronia de passada no motor |
 | 7 | GLB exportado começa em 1/24 s e repete o quadro 1 no fim do loop | pequeno «engasgo» a cada volta do loop | exportação (`scripts/blender-vision/exportar_eggo_glb.py`, sem «slide to zero») |
@@ -67,9 +67,9 @@ dano usada como esquiva para a esquerda, uma de morte como esquiva para trás). 
 
 ## 4–5. Camadas que mexem no corpo
 
-- **Quadril preso:** medido em prévia com walk, sprint e esquivas dos três personagens: o quadril fica **exatamente**
-  sobre a posição da física (0,00 m) em todo quadro. Correto para o deslocamento (root motion), mas também apaga o
-  deslocamento lateral/frontal que o quadril tem DENTRO da pose (ex.: o Eggo desloca o quadril 2 cm para a perna de apoio).
+- **Quadril preso:** o osso que o jogo usa como quadril fica **exatamente** sobre a posição da física (0,00 m). Correção
+  depois da auditoria: no Eggo esse osso é o `Root` (raiz), não o `Hips`; o balanço do `Hips` já aparecia. O risco existe
+  para rigs em que o quadril detectado tem uma raiz acima dele.
 - **Trava ao chão:** ligada por padrão; o sobe-desce do clipe é neutralizado (o pulinho de 7 cm do sprint e a subida de
   0,6 m do Jump 1 não aparecem; a altura do salto vem só da física). Pode ser desligada por animação no editor (grupo
   Movimento).
@@ -106,3 +106,27 @@ quadro 1 por 1/24 s a cada volta. Corrige-se exportando com «Slide to zero» e 
 6. **Sincronia de passada** opcional (velocidade do clipe acompanha a do corpo, com limites), ou velocidades de
    deslocamento por personagem.
 7. Exportar o GLB com «Slide to zero» e sem quadro duplicado.
+
+## Correções aplicadas (v1.49.18, 31/10/2026, pedido «Sim, corrige»)
+
+| # | Correção | Onde ajustar / desfazer |
+|---|---|---|
+| 1 | **Velocidade global das animações = 1×** (a linha 1,75× saiu da base de calibração; workspace salvo com 1,75 migra para 1 ao abrir) | Visualizar › «Animação: transições» › Velocidade geral das animações; Editor de animações › Animação (global) |
+| 2–3 | **Ações tocam na velocidade em que foram animadas** (esquiva, tackle, salto sobre o rival, recuo, atordoamento; a idle de reserva também a 1×). O que sobra do clipe segue em epílogo (sistema de conclusão visual que já existia) | mesmo bloco › «Ações tocam na velocidade em que foram animadas» (desligar = modo antigo, esticar na ação) |
+| 4 | Quadril: só é preso quando é ele que carrega o deslocamento (sem efeito no Eggo/Wookada/Cogumelo atuais; protege rigs com raiz acima do quadril) | mesmo bloco › «Manter o balanço do quadril» |
+| 7 | `eggo.glb` reexportado com «Slide to zero» e sem o quadro repetido no fim dos loops (idle, walk, sprint, jump rise, jump fall) | `scripts/blender-vision/exportar_eggo_glb.py` |
+
+**Medição depois da correção** (partida real, IA × IA): o relógio dos clipes passou a andar a **1,00×** nas ações e nas reservas
+(esquiva, carga do tackle, empurrado, defesa, atordoamento) nos três personagens; a pose continua idêntica ao Blender (0,0 cm).
+
+**Não aplicadas (precisam de decisão):**
+- 5 «Trava ao chão» desligada por padrão: desligá-la faria o `Jump 1` (subida de 0,6 m dentro do clipe) somar altura à do salto
+  da física. Continua por animação no editor (grupo Movimento) — para o pulinho do sprint, desligue só na animação `sprint`.
+- 6 Sincronia de passada: mudaria a velocidade das pernas em relação ao animado (a walk do Eggo precisaria de ~7×). A
+  alternativa é velocidade de deslocamento por personagem ou passadas maiores nas animações.
+
+**Testes:** `clip-fidelity.test.mjs` (novo), `calibration-base`, `tuning-io`, `animation`, `animation-epilogue*`,
+`animation-viewport-vs-jogo`, `animation-loop-controls`, `sprint-turn` e os de navegador `eggo-sprint-turn` e
+`game-feel-rig` passam. Os testes do contrato antigo (`animation`, `animation-epilogue-contract`, `animation-runtime`)
+rodam com o modo antigo ligado explicitamente. `animation-runtime` tem uma falha que **já existia antes** destas mudanças
+(`jump_fall` não alcançado no roteiro sintético).

@@ -258,7 +258,7 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     const jogo = box.querySelector('[data-jogo]');
     if (jogo) {
       const grp = ANIMATION_GROUPS.find(([, , ids]) => ids.includes(S.action)) ?? (moveIdentity(S.action) ? ['moves', 'Moves (por identidade)'] : null), tab = ACTION_TABS[GAME_TAB[grp?.[0]] || 'tackle'], mv = moveIdentity(S.action);
-      const sections = [['🎞 Animação (global)', ['display.animation.fade', 'display.animation.actionFade', 'display.animation.locomotionHold', 'display.animation.speed', 'display.grounding.autoGround', 'display.grounding.visualOffset'], true], ...(tab?.sections || [])];
+      const sections = [['🎞 Animação (global)', ['display.animation.fade', 'display.animation.actionFade', 'display.animation.locomotionHold', 'display.animation.speed', 'display.animation.timedNative', 'display.animation.hipSway', 'display.grounding.autoGround', 'display.grounding.visualOffset'], true], ...(tab?.sections || [])];
       const mvPaths = mv ? tuning.manifest.filter(m => mv.group && m.path.startsWith(`world.${mv.group}.`)).map(m => m.path) : [];
       if (mvPaths.length) sections.unshift([`✦ Sliders do Move «${mv.name ?? mv.id}»`, mvPaths, true]);
       jogo.innerHTML = `<p class="hint">Todos os sliders globais ligados a «${esc(grp?.[1] || 'esta animação')}». São os mesmos controles de Ajustes e Ações (entram no desfazer do jogo).</p>`;
