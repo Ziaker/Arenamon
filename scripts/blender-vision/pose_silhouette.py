@@ -189,6 +189,14 @@ def build_pose_silhouette_analysis(
     # Se os papéis não foram passados manualmente, detecta automaticamente via cinemática
     detected_roles = auto_detect_keyframe_milestones(keyframe_bone_poses) if not keyframe_roles else {}
 
+    # Se recebeu amostragem densa/completa da Action sem papéis manuais, foca nos marcos fundamentais detectados
+    if not keyframe_roles and len(sorted_frames) > 8:
+        eval_frames = sorted(detected_roles.keys())
+        detection_mode = f"automática por cinemática (isolou {len(eval_frames)} marcos de {len(sorted_frames)} quadros amostrados)"
+    else:
+        eval_frames = sorted_frames
+        detection_mode = "manual" if keyframe_roles else "automática por cinemática"
+
     evidence_by_frame: Dict[int, Dict[str, Any]] = {}
     if visual_evidences:
         for ev in visual_evidences:
@@ -196,23 +204,22 @@ def build_pose_silhouette_analysis(
                 evidence_by_frame[f] = ev
 
     silhouettes: List[Dict[str, Any]] = []
-    detection_mode = "manual" if keyframe_roles else "automática por cinemática"
     facts: List[str] = [
         f"Ação analisada: '{action_name}' no armature '{armature_name}' ({frame_range[0]}..{frame_range[1]} a {fps:.1f} FPS).",
-        f"Total de poses estruturais avaliadas: {len(sorted_frames)} (seleção: {detection_mode}).",
+        f"Total de poses estruturais avaliadas: {len(eval_frames)} (seleção: {detection_mode}).",
         "Nota taxonômica: Dimensões referem-se à Bounding Box Esquelética Projetada (posições dos centros dos ossos), não à silhueta rasterizada de malha poligonal densa.",
     ]
 
-    for f in sorted_frames:
+    for f in eval_frames:
         bones = keyframe_bone_poses[f]
         front_bb, lat_bb, tilt = _calc_bbox_and_tilt(bones)
         t_sec = round((f - frame_range[0]) / fps, 3)
 
         role = (keyframe_roles or {}).get(f) or detected_roles.get(f)
         if not role:
-            if f == sorted_frames[0]:
+            if f == eval_frames[0]:
                 role = KEYFRAME_ROLE_START
-            elif f == sorted_frames[-1]:
+            elif f == eval_frames[-1]:
                 role = KEYFRAME_ROLE_RECOVERY
             else:
                 role = KEYFRAME_ROLE_STRIKE

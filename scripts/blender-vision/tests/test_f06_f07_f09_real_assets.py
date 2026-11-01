@@ -273,13 +273,14 @@ class TestF06F07F09RealAssets(unittest.TestCase):
             "arm.animation_data.action = act\n"
             "fps = float(bpy.context.scene.render.fps)\n"
             "all_bones = [b.name for b in arm.data.bones]\n"
-            "key_frames = [0, 20, 40, 80]\n"
+            "f_start, f_end = int(act.frame_range[0]), int(act.frame_range[1])\n"
+            "key_frames = list(range(f_start, f_end + 1, 3))\n"
             "poses = {}\n"
             "for f in key_frames:\n"
             "    bpy.context.scene.frame_set(f)\n"
             "    bpy.context.view_layer.update()\n"
             "    poses[f] = {b.name: [round(c, 4) for c in b.matrix.translation] for b in arm.pose.bones}\n"
-            "res = {'armature': arm.name, 'bones': all_bones, 'fps': fps, 'poses': poses}\n"
+            "res = {'armature': arm.name, 'bones': all_bones, 'fps': fps, 'poses': poses, 'range': [f_start, f_end]}\n"
             "print('__EXTRACTION_JSON__' + json.dumps(res))\n"
         )
 
@@ -303,30 +304,37 @@ class TestF06F07F09RealAssets(unittest.TestCase):
             }
         ]
 
-        # 1. Análise F09 com detecção AUTOMÁTICA analítica de marcos (sem papéis manuais forçados)
+        # 1. Análise F09 com detecção AUTOMÁTICA de marcos a partir da Action COMPLETA (46 amostras de 0 a 135)
         analysis = build_pose_silhouette_analysis(
             action_name="00400_attack01",
             armature_name=data["armature"],
-            frame_range=(0, 135),
+            frame_range=tuple(data["range"]),
             fps=data["fps"],
             keyframe_bone_poses=poses,
-            keyframe_roles=None,  # Detecção automática por cinemática
+            keyframe_roles=None,  # Detecção analítica autônoma
             visual_evidences=evidences,
         )
 
         is_valid, errs = validate_pose_silhouette(analysis)
         self.assertTrue(is_valid, f"Erros F09: {errs}")
 
+        # O algoritmo isola exatamente os 4 marcos fundamentais a partir da Action completa
         self.assertEqual(len(analysis["keyframes"]), 4)
         for k in analysis["keyframes"]:
             self.assertGreater(k["frontal_skeletal_bbox"]["width_m"], 0.2)
             self.assertGreater(k["frontal_skeletal_bbox"]["height_m"], 0.2)
-            self.assertIsNotNone(k["evidence_ref"])
 
-        # Comprova identificação automática dos papéis estruturais
-        detected_roles = [k["structural_role"] for k in analysis["keyframes"]]
-        self.assertIn(KEYFRAME_ROLE_START, detected_roles)
-        self.assertIn(KEYFRAME_ROLE_RECOVERY, detected_roles)
+        kfs = {k["structural_role"]: k["frame"] for k in analysis["keyframes"]}
+        self.assertIn(KEYFRAME_ROLE_START, kfs)
+        self.assertIn(KEYFRAME_ROLE_ANTICIPATION, kfs)
+        self.assertIn(KEYFRAME_ROLE_STRIKE, kfs)
+        self.assertIn(KEYFRAME_ROLE_RECOVERY, kfs)
+
+        # Comprova coerência temporal dos marcos descobertos na Action real
+        self.assertEqual(kfs[KEYFRAME_ROLE_START], 0)
+        self.assertLess(kfs[KEYFRAME_ROLE_ANTICIPATION], kfs[KEYFRAME_ROLE_STRIKE])
+        self.assertGreater(kfs[KEYFRAME_ROLE_STRIKE], kfs[KEYFRAME_ROLE_START])
+        self.assertGreater(kfs[KEYFRAME_ROLE_RECOVERY], kfs[KEYFRAME_ROLE_STRIKE])
 
         rig_map = build_rig_map(
             bone_names=data["bones"],

@@ -1,7 +1,7 @@
 # Contratos F06, F07 e F09 — Análise de Golpe, Peso/Impulso e Orquestração de Silhuetas
 
 Data: 01/11/2026.
-Versão: 1.1.0 (Auditada com Rigor Epistêmico).
+Versão: 1.2.0 (Homologada com Rigor Epistêmico e Autenticação Estrita).
 Arquitetura: Motion Lens / Blender Vision / Arenamon Agent Report (`arenamon.agent-report/1`).
 
 ---
@@ -12,7 +12,8 @@ Arquitetura: Motion Lens / Blender Vision / Arenamon Agent Report (`arenamon.age
 Analisar o timing e a dinâmica de aceleração de golpes de combate (socos, chutes, cabeçadas, cortes), diferenciando categoricamente:
 1. **Contato CANDIDATO (`CANDIDATO`):** inferido por desaceleração cinemática ou aproximação de efetores.
 2. **Contato CONFIRMADO_ALVO (`CONFIRMADO_ALVO`):** verificado por colisão contínua (CCD / Continuous Collision Detection) com alvo geométrico explícito (`SPHERE` ou `BOX`), detectando travessia do colisor entre amostras de quadros (sem falso-negativo por tunneling).
-3. **Contato CONFIRMADO_EVENTO (`CONFIRMADO_EVENTO`):** associado a um evento formalmente autenticado de combate na timeline de gameplay contendo obrigatoriamente `event_name`, `frame`, `source` (ex.: `"GAMEPLAY_TIMELINE"`, `"COMBAT_SIMULATOR"`) e `is_verified=True`. Passar apenas um número de frame solto é explicitamente rejeitado e recai em `CANDIDATO` com advertência formal.
+3. **Contato CONFIRMADO_EVENTO (`CONFIRMADO_EVENTO`):** associado a um evento formalmente autenticado de combate no runtime comprovando impacto contra oponente (`RUNTIME_RESOLVED_HIT`), com `is_verified is True` estrito (sem coerção frágil via strings) e originado de fontes confiáveis de runtime (`AUTHORIZED_RUNTIME_SOURCES = {"RUNTIME_COMBAT_ENGINE", "SIMULATOR_RESOLVED_IMPACT", "COMBAT_COLLISION_PIPELINE", "GAMEPLAY_HURTBOX_INTERSECTION"}`).
+   - **Nota sobre Janela de Hitbox:** Marcadores de abertura/ativação de hitbox (`HITBOX_ACTIVATION_WINDOW` ou nomes contendo `ACTIVE`/`WINDOW`) indicam apenas a disponibilidade temporal do dano no ar, **não comprovando impacto físico contra um oponente**, recaindo estritamente em `CANDIDATO` com aviso formal.
 
 ### Métricas Principais
 - `strike_windup_frame`: frame de máxima antecipação / recolhimento do membro.
@@ -29,8 +30,10 @@ Analisar o timing e a dinâmica de aceleração de golpes de combate (socos, chu
 ### Objetivo
 Calcular a transferência de massa da pelve/tronco e a base de suporte dos pés durante ações de combate, expressando grandezas físicas puras (metros, m/s e m/s²) **sem notas artísticas subjetivas arbitrárias**.
 
-### Regra Epistêmica de Pés Ausentes
-- Quando as trajetórias dos pés não são fornecidas, a métrica `support_stability_ratio` é estritamente **`None`** (não avaliada), sendo registrada a ausência em `missing_data`. É terminantemente proibido atribuir `1.0` (estabilidade perfeita) sem dados reais medidos.
+### Regras Epistêmicas de Apoio e Cobertura Amostral
+1. **Pés Ausentes:** Quando as trajetórias dos pés não são fornecidas, a métrica `support_stability_ratio` é estritamente **`None`** (não avaliada), sendo registrada a ausência em `missing_data`. É terminantemente proibido atribuir `1.0` (estabilidade perfeita) sem dados reais medidos.
+2. **Natureza do Contato:** O contato vertical com o solo é classificado como `support_contact_nature = "GEOMETRIC_PROXIMITY_CANDIDATE"` (inferido por proximidade geométrica em relação a `ground_z_reference_m`, não por cálculo de forças de reação física do solo).
+3. **Cobertura Amostral:** É registrada a razão `support_sample_coverage_ratio` (quadros avaliados com pés / total de quadros da Action). Se a amostragem cobrir menos de 25% da Action, o relatório emite advertência explícita de que a estabilidade reflete apenas a janela parcial amostrada.
 
 ### Métricas Principais
 - `pelvis_total_travel_distance`: distância total percorrida pela pelve (m).
@@ -40,7 +43,8 @@ Calcular a transferência de massa da pelve/tronco e a base de suporte dos pés 
 - `pelvis_peak_velocity`: velocidade máxima da pelve (m/s).
 - `pelvis_peak_acceleration`: aceleração máxima do quadril (m/s²).
 - `momentum_recovery_ratio`: razão entre tempo de absorção/retorno e tempo de avanço.
-- `support_stability_ratio`: proporção de quadros com pelo menos um pé apoiado no solo (calibrado por `ground_z_reference_m`) ou `None` se pés não fornecidos.
+- `support_stability_ratio`: proporção de quadros com pé apoiado no solo em relação aos quadros avaliados (`None` se pés não fornecidos).
+- `support_sample_coverage_ratio`: cobertura da amostragem em relação à duração da Action.
 
 ---
 
@@ -51,7 +55,7 @@ Identificar poses estruturais fundamentais (`START_REST`, `ANTICIPATION_APEX`, `
 
 ### Regras de Rigor Factual
 1. **Distinção Categórica de Bounding Box Esquelética:** As métricas representam a caixa delimitadora 2D projetada das articulações do esqueleto (`skeletal_projected_frontal_width_m`, `skeletal_projected_frontal_height_m`), distinguindo formalmente de rasterizações de contorno de malha densa.
-2. **Seleção Automática de Marcos:** O analisador conta com o algoritmo `auto_detect_keyframe_milestones()`, capaz de extrair os marcos fundamentais analiticamente a partir das curvas de velocidade e deslocamento, sem requerer marcos manuais hardcoded.
+2. **Seleção Autônoma em Amostragem Completa:** O analisador conta com o algoritmo `auto_detect_keyframe_milestones()`, capaz de extrair os 4 marcos fundamentais analiticamente a partir das curvas de velocidade e deslocamento de uma Action inteira, comprovado em teste real com a animação completa de 136 quadros de Golisopod.
 
 ---
 

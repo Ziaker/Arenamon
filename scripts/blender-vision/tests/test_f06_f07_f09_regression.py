@@ -99,6 +99,37 @@ class TestF06F07F09Regression(unittest.TestCase):
         missing = report["limitations_and_risks"]["missing_data"]
         self.assertTrue(any("pés" in m.lower() for m in missing))
 
+    def test_regression_f07_sample_coverage_and_partial_warning(self):
+        """Regressão 1B: Se apenas uma fração pequena da Action tiver dados de pés,
+        a cobertura amostral é explicitamente registrada e classificada como candidato de proximidade.
+        """
+        pelvis_traj = {i: [0.0, i * 0.05, 1.0] for i in range(0, 100, 2)}
+        # Apenas 2 frames possuem dados dos pés (em uma Action de 100 frames)
+        l_foot = {0: [0, 0, 0.0], 2: [0, 0, 0.0]}
+        r_foot = {0: [0, 0, 0.0], 2: [0, 0, 0.0]}
+
+        analysis = build_weight_momentum_analysis(
+            action_name="Long_Action_Sparse_Feet",
+            armature_name="HeroRig",
+            frame_range=(0, 99),
+            fps=30.0,
+            pelvis_positions=pelvis_traj,
+            left_foot_positions=l_foot,
+            right_foot_positions=r_foot,
+            ground_z_reference_m=0.0,
+        )
+
+        metrics = analysis["metrics"]
+        self.assertEqual(metrics["support_stability_ratio"], 1.0)
+        # Cobertura amostral é 2/100 = 0.02 (2%)
+        self.assertAlmostEqual(metrics["support_sample_coverage_ratio"], 0.02, places=2)
+        self.assertEqual(metrics["support_contact_nature"], "GEOMETRIC_PROXIMITY_CANDIDATE")
+
+        # Limitações devem conter aviso de amostragem parcial
+        lim_text = " ".join(analysis["limitations"])
+        self.assertIn("parcial", lim_text)
+        self.assertIn("janela amostrada", lim_text)
+
     # -----------------------------------------------------------------------
     # Regressão 2: F06 — Evento não autenticado recai para CANDIDATO
     # -----------------------------------------------------------------------
@@ -142,13 +173,52 @@ class TestF06F07F09Regression(unittest.TestCase):
         )
         self.assertEqual(analysis_dict["metrics"]["contact_status"], CONTACT_STATUS_CANDIDATE)
         self.assertEqual(analysis_dict["metrics"]["confirmation_source"], CONFIRMATION_SOURCE_HEURISTIC)
-        self.assertTrue(any("rejeitado por falta de autenticação" in f for f in analysis_dict["facts"]))
+        self.assertTrue(any("rejeitado" in f for f in analysis_dict["facts"]))
+
+        # Caso C: tentativa de burlar com string 'false' ou 'true'
+        string_bool_event = {
+            "event_name": "IMPACT_FAKE",
+            "frame": 8,
+            "source": "RUNTIME_COMBAT_ENGINE",
+            "is_verified": "false",  # string não booleana
+        }
+        analysis_str = build_strike_analysis(
+            action_name="Jab_String_Bool",
+            armature_name="HeroRig",
+            frame_range=(0, 10),
+            fps=30.0,
+            strike_effector_role="right_hand",
+            effector_positions=effector_traj,
+            authorized_event=string_bool_event,
+        )
+        self.assertEqual(analysis_str["metrics"]["contact_status"], CONTACT_STATUS_CANDIDATE)
+        self.assertTrue(any("estritamente o booleano True" in f for f in analysis_str["facts"]))
+
+        # Caso D: apenas ativação/janela de hitbox (sem acerto confirmado de oponente)
+        hitbox_window_event = {
+            "event_name": "MELEE_HITBOX_WINDOW_ACTIVE",
+            "frame": 8,
+            "source": "RUNTIME_COMBAT_ENGINE",
+            "event_type": "HITBOX_ACTIVATION_WINDOW",
+            "is_verified": True,
+        }
+        analysis_win = build_strike_analysis(
+            action_name="Jab_Hitbox_Window",
+            armature_name="HeroRig",
+            frame_range=(0, 10),
+            fps=30.0,
+            strike_effector_role="right_hand",
+            effector_positions=effector_traj,
+            authorized_event=hitbox_window_event,
+        )
+        self.assertEqual(analysis_win["metrics"]["contact_status"], CONTACT_STATUS_CANDIDATE)
+        self.assertTrue(any("apenas ativação/janela de hitbox" in f for f in analysis_win["facts"]))
 
     # -----------------------------------------------------------------------
     # Regressão 3: F06 — Evento autenticado confirma CONFIRMADO_EVENTO
     # -----------------------------------------------------------------------
     def test_regression_f06_authenticated_event_confirms_with_provenance(self):
-        """Regressão 3: Evento autenticado com identificador, origem e verificação gera CONFIRMADO_EVENTO."""
+        """Regressão 3: Evento autenticado do runtime comprovando acerto efetivo gera CONFIRMADO_EVENTO."""
         effector_traj = {
             0: [0.0, 0.0, 1.0],
             4: [0.0, 0.5, 1.0],
@@ -157,9 +227,10 @@ class TestF06F07F09Regression(unittest.TestCase):
         }
 
         auth_event = {
-            "event_name": "MELEE_HITBOX_ACTIVE",
+            "event_name": "OPPONENT_HURTBOX_IMPACT",
+            "event_type": "RUNTIME_RESOLVED_HIT",
             "frame": 8,
-            "source": "GAMEPLAY_TIMELINE_COLLISION_TABLE",
+            "source": "RUNTIME_COMBAT_ENGINE",
             "is_verified": True,
         }
 
@@ -176,7 +247,7 @@ class TestF06F07F09Regression(unittest.TestCase):
         self.assertEqual(analysis["metrics"]["contact_status"], CONTACT_STATUS_CONFIRMED_EVENT)
         self.assertEqual(analysis["metrics"]["confirmation_source"], CONFIRMATION_SOURCE_EVENT)
         self.assertEqual(analysis["metrics"]["contact_frame"], 8)
-        self.assertIn("MELEE_HITBOX_ACTIVE", analysis["facts"][3])
+        self.assertIn("OPPONENT_HURTBOX_IMPACT", analysis["facts"][3])
 
     # -----------------------------------------------------------------------
     # Regressão 4: F06 — Alvo tipo BOX e detecção contínua (CCD / travessia)
@@ -282,6 +353,45 @@ class TestF06F07F09Regression(unittest.TestCase):
         # Métricas devem conter skeletal_projected
         metric_names = [m["metric"] for m in report["measurements"]]
         self.assertTrue(any("skeletal_projected" in m for m in metric_names))
+
+    def test_regression_f09_dense_action_isolates_four_milestones(self):
+        """Regressão 5B: Quando fornecida uma Action completa com 40 quadros contínuos,
+        o analisador isola analiticamente exatamente os 4 marcos estruturais fundamentais.
+        """
+        # Simula 40 frames contínuos (de f=0 a f=39) de uma estocada completa:
+        # f=0..5: repouso
+        # f=10: carregamento máximo para trás (Y=-0.3 m)
+        # f=20: bote máximo esticado à frente (Y=+1.5 m)
+        # f=39: retorno a repouso (Y=+0.1 m)
+        dense_40 = {}
+        for f in range(40):
+            if f <= 10:
+                y = 0.0 - 0.3 * (f / 10.0)
+            elif f <= 20:
+                y = -0.3 + 1.8 * ((f - 10) / 10.0)
+            else:
+                y = 1.5 - 1.4 * ((f - 20) / 19.0)
+            dense_40[f] = {"Hips": [0, y * 0.3, 1.0], "RightHand": [0.2, y, 1.2]}
+
+        analysis = build_pose_silhouette_analysis(
+            action_name="Continuous_Thrust_40F",
+            armature_name="HeroRig",
+            frame_range=(0, 39),
+            fps=30.0,
+            keyframe_bone_poses=dense_40,
+            keyframe_roles=None,  # 100% autônomo
+        )
+
+        is_valid, errs = validate_pose_silhouette(analysis)
+        self.assertTrue(is_valid, f"Erros F09: {errs}")
+
+        # O analisador deve isolar os 4 marcos fundamentais
+        self.assertEqual(len(analysis["keyframes"]), 4)
+        kfs = {k["structural_role"]: k["frame"] for k in analysis["keyframes"]}
+        self.assertEqual(kfs[KEYFRAME_ROLE_START], 0)
+        self.assertEqual(kfs[KEYFRAME_ROLE_ANTICIPATION], 10)
+        self.assertEqual(kfs[KEYFRAME_ROLE_STRIKE], 20)
+        self.assertEqual(kfs[KEYFRAME_ROLE_RECOVERY], 39)
 
 
 if __name__ == "__main__":

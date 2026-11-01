@@ -32,6 +32,8 @@ class PelvisMomentumMetrics:
     recovery_duration_seconds: float
     momentum_recovery_ratio: float
     support_stability_ratio: Optional[float]
+    support_sample_coverage_ratio: Optional[float]
+    support_contact_nature: str
 
 
 def _dist_3d(a: List[float], b: List[float]) -> float:
@@ -130,6 +132,9 @@ def build_weight_momentum_analysis(
     grounded_frames_count = 0
     evaluated_feet_frames = 0
     support_ratio: Optional[float] = None
+    total_action_frames = max(1, frame_range[1] - frame_range[0] + 1)
+    support_coverage: Optional[float] = None
+    support_nature: str = "NOT_EVALUATED"
 
     if has_feet:
         for f in sorted_frames:
@@ -143,6 +148,8 @@ def build_weight_momentum_analysis(
                     grounded_frames_count += 1
         if evaluated_feet_frames > 0:
             support_ratio = round(grounded_frames_count / evaluated_feet_frames, 3)
+            support_coverage = round(evaluated_feet_frames / total_action_frames, 3)
+            support_nature = "GEOMETRIC_PROXIMITY_CANDIDATE"
 
     # 6. Fatos factuais
     facts = [
@@ -155,7 +162,10 @@ def build_weight_momentum_analysis(
         f"Duração do impulso motor: {thrust_duration_sec:.3f} s; Duração da recuperação: {recovery_duration_sec:.3f} s (razão de recuperação: {recovery_ratio:.2f}x).",
     ]
     if support_ratio is not None:
-        facts.append(f"Estabilidade da base: {support_ratio * 100:.1f}% dos quadros com pelo menos um pé apoiado no solo (ref: Z={ground_z_reference_m:.2f} m).")
+        facts.append(
+            f"Estabilidade da base ({support_nature}): {support_ratio * 100:.1f}% dos quadros avaliados com pé próximo ao solo (ref: Z={ground_z_reference_m:.2f} m). "
+            f"Cobertura amostral dos pés: {support_coverage * 100:.1f}% da Action ({evaluated_feet_frames}/{total_action_frames} frames)."
+        )
     else:
         facts.append("Estabilidade da base: Trajetórias dos pés não fornecidas; suporte no solo não avaliado.")
 
@@ -170,14 +180,20 @@ def build_weight_momentum_analysis(
         recovery_duration_seconds=recovery_duration_sec,
         momentum_recovery_ratio=recovery_ratio,
         support_stability_ratio=support_ratio,
+        support_sample_coverage_ratio=support_coverage,
+        support_contact_nature=support_nature,
     )
 
     limitations = [
         "Mede cinemática translacional de pelve e pés em metros e m/s, sem simulação física de massa corporal (massa gravitacional não fornecida no armature).",
-        "Contato de pés com o solo é inferido por tolerância geométrica em relação ao ground_z_reference_m calibrado.",
+        "Contato de pés com o solo é inferido por tolerância geométrica em relação ao ground_z_reference_m calibrado (CANDIDATO por proximidade, não colisão de física rígida).",
     ]
     if support_ratio is None:
         limitations.append("Trajetórias dos pés ausentes; cálculo de estabilidade de apoio no solo não realizado.")
+    elif support_coverage is not None and support_coverage < 0.25:
+        limitations.append(
+            f"Amostragem dos pés é parcial ({support_coverage * 100:.1f}% da Action); a estabilidade reflete apenas a janela amostrada."
+        )
 
     return {
         "schema": SCHEMA_NAME,
@@ -321,6 +337,14 @@ def export_weight_momentum_to_agent_report(
             "method": "ground_contact_frames_ratio",
             "confidence": 0.90,
         })
+        if metrics.get("support_sample_coverage_ratio") is not None:
+            measurements.append({
+                "metric": "support_sample_coverage_ratio",
+                "value": metrics["support_sample_coverage_ratio"],
+                "unit": "ratio",
+                "method": "evaluated_frames_over_action_frames",
+                "confidence": 1.0,
+            })
 
     missing_data = []
     if metrics["support_stability_ratio"] is None:

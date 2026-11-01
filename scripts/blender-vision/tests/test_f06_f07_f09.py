@@ -128,9 +128,10 @@ class TestF06F07F09(unittest.TestCase):
         effector_traj = {i: [0.0, i * 0.1, 1.0] for i in range(0, 16, 2)}
 
         auth_event = {
-            "event_name": "MELEE_STRIKE_HITBOX",
+            "event_name": "OPPONENT_HIT_RESOLVED",
+            "event_type": "RUNTIME_RESOLVED_HIT",
             "frame": 8,
-            "source": "COMBAT_TIMELINE_TABLE",
+            "source": "RUNTIME_COMBAT_ENGINE",
             "is_verified": True,
         }
 

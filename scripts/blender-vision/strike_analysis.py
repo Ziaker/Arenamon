@@ -24,6 +24,19 @@ CONTACT_STATUS_CANDIDATE = "CANDIDATO"
 CONTACT_STATUS_CONFIRMED_TARGET = "CONFIRMADO_ALVO"
 CONTACT_STATUS_CONFIRMED_EVENT = "CONFIRMADO_EVENTO"
 
+# Tipologia formal de eventos de combate
+EVENT_TYPE_RUNTIME_RESOLVED_HIT = "RUNTIME_RESOLVED_HIT"  # Impacto contra oponente comprovado pelo runtime
+EVENT_TYPE_HITBOX_WINDOW = "HITBOX_ACTIVATION_WINDOW"      # Apenas abertura de janela de dano (não é acerto)
+EVENT_TYPE_ANIMATION_NOTIFY = "ANIMATION_KEY_NOTIFY"      # Marcador genérico de animação
+
+# Origens autorizadas do subsistema de combate para eventos autenticados
+AUTHORIZED_RUNTIME_SOURCES = {
+    "RUNTIME_COMBAT_ENGINE",
+    "SIMULATOR_RESOLVED_IMPACT",
+    "COMBAT_COLLISION_PIPELINE",
+    "GAMEPLAY_HURTBOX_INTERSECTION",
+}
+
 VERDICT_STATUS_OK = "OK"
 VERDICT_STATUS_WARNING = "AVISO"
 VERDICT_STATUS_ALERT = "ALERTA"
@@ -165,21 +178,38 @@ def build_strike_analysis(
     valid_event = False
     if authorized_event is not None and isinstance(authorized_event, dict):
         ev_frame = authorized_event.get("frame")
-        ev_name = authorized_event.get("event_name") or authorized_event.get("event_id")
-        ev_source = authorized_event.get("source")
-        ev_verified = bool(authorized_event.get("is_verified", False))
+        ev_name = str(authorized_event.get("event_name") or authorized_event.get("event_id") or "")
+        ev_source = str(authorized_event.get("source") or "")
+        ev_type = str(authorized_event.get("event_type") or authorized_event.get("type") or EVENT_TYPE_RUNTIME_RESOLVED_HIT).upper()
+        # Verificação booleana estrita: DEVE ser exatamente True (evita que 'false' vire True via bool())
+        is_verified_strict = (authorized_event.get("is_verified") is True)
 
-        if ev_name and ev_source and ev_verified and ev_frame in effector_positions:
+        # Distinção entre ativação de hitbox e acerto efetivo no oponente
+        if ev_type == EVENT_TYPE_HITBOX_WINDOW or "WINDOW" in ev_name.upper() or "ACTIVE" in ev_name.upper():
+            unauthenticated_event_warning = (
+                f"Evento '{ev_name}' indica apenas ativação/janela de hitbox ({ev_type}), "
+                "o que não comprova acerto contra oponente no gameplay; classificado como CANDIDATO."
+            )
+        elif not is_verified_strict:
+            unauthenticated_event_warning = (
+                f"Evento '{ev_name}' no frame {ev_frame} rejeitado: 'is_verified' deve ser estritamente o booleano True "
+                f"(recebido: {repr(authorized_event.get('is_verified'))}); revertido para candidato cinemático."
+            )
+        elif ev_source not in AUTHORIZED_RUNTIME_SOURCES:
+            unauthenticated_event_warning = (
+                f"Evento '{ev_name}' rejeitado: origem '{ev_source}' não pertence às fontes autorizadas do runtime de combate "
+                f"({sorted(AUTHORIZED_RUNTIME_SOURCES)}); revertido para candidato cinemático."
+            )
+        elif not (isinstance(ev_frame, int) and ev_frame in effector_positions):
+            unauthenticated_event_warning = (
+                f"Evento '{ev_name}' no frame {ev_frame} inválido: frame fora das posições amostradas do efetor."
+            )
+        else:
             valid_event = True
             contact_frame = int(ev_frame)
             contact_status = CONTACT_STATUS_CONFIRMED_EVENT
             confirmation_source = CONFIRMATION_SOURCE_EVENT
-            detection_method = f"Evento autenticado '{ev_name}' (origem: {ev_source}) no frame {contact_frame}"
-        else:
-            unauthenticated_event_warning = (
-                f"Evento '{ev_name}' no frame {ev_frame} rejeitado por falta de autenticação formal "
-                f"(origem: {ev_source}, verificado: {ev_verified}); revertido para candidato cinemático."
-            )
+            detection_method = f"Acerto comprovado de combate '{ev_name}' ({ev_type}) via {ev_source} no frame {contact_frame}"
     elif authorized_event_frame is not None:
         unauthenticated_event_warning = (
             f"Parâmetro numérico authorized_event_frame ({authorized_event_frame}) recebido sem proveniência ou "
