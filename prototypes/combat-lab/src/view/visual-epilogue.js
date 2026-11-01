@@ -17,6 +17,7 @@ import {C} from '../sim/config.js';
 import {actionDuration, actionSpec} from '../sim/entity.js';
 import {trimOf} from '../sim/animation-profile.js';
 import {MOVE_KEYS, TIMED, ONE_SHOT, ACTION_KEYS, COMBAT_KEYS, LOCOMOTION, TRANSIENT} from './characters.js';
+import {reasonCodeOf, motionStateOf} from './motion-state.js';
 
 /** Chaves novas que são sucessoras legítimas: o clipe dedicado de recuperação assume (fade normal, sem epílogo). */
 const SUCCESSORS = new Set(['recovery_tackle', 'recovery_dodge', 'recovery_move']);
@@ -101,7 +102,8 @@ export function resumeEpilogue(ch, f, ctx) {
   return true;
 }
 
-function pushLog(ch, ev) {ch.log.push(ev);if (ch.log.length > 400) ch.log.shift();}
+/** Todo evento do log leva o motivo em código estável e o descritor do estado de destino (Melee G1: só anotação, nada aqui decide transição). */
+function pushLog(ch, ev) {ev.reasonCode = reasonCodeOf(ev);ev.motion = motionStateOf(ev.to);ch.log.push(ev);if (ch.log.length > 400) ch.log.shift();}
 
 /**
  * Entrada no epílogo: a mudança de estado iminente (`raw` novo) tentaria cortar uma execução única não concluída.
@@ -217,7 +219,7 @@ export function progressOf(ch, f, key) {
  * Telemetria da troca de estado (movida de characters.js): animação iniciada/substituída, tempo e porcentagem
  * tocados, motivo, estados anterior e seguinte e origem. Interrupções de epílogo saem marcadas com epilogueEnd.
  */
-export function logTransition(ch, prev, key, id, index, f, ctx) {
+export function logTransition(ch, prev, key, id, index, f, ctx, entry = null, sameClip = false) {
   const d = prev ? prev.clip.duration || 1 : 1, played = prev ? prev.action.time : 0, pct = prev ? Math.min(1, played / d) : 0;
   const source = key === '__preview' ? 'prévia' : COMBAT_KEYS.has(key) || f.flight ? 'combate' : ACTION_KEYS.has(key) || key === 'guard' || key === 'guard_enter' || LOCOMOTION.has(key) || key === 'sprint' ? (ctx.source || 'jogador') : 'sistema';
   // Fim de X/C: concluída se o último tempo visto + um quadro alcança a duração; senão foi cancelada (defesa, sprint…).
@@ -233,7 +235,8 @@ export function logTransition(ch, prev, key, id, index, f, ctx) {
   const interrupted = !afterNatural && prev && (TIMED.has(prev.key) || ONE_SHOT.has(prev.key)) && pct < .95 && reason !== 'ação concluída';
   const ev = {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: prev?.key ?? null, to: key, clipFrom: prev ? ch.clips[prev.index]?.name : null, clipTo: ch.clips[index].name,
     variant: ch.variantsOf(id).indexOf(index) + 1, variants: ch.variantsOf(id).length, playedSeconds: +played.toFixed(3), playedPct: afterNatural ? 100 : +(pct * 100).toFixed(1), reason, interrupted: !!interrupted, source,
-    execFrom: prev?.entry ?? null, weightFrom: prev ? +prev.weight.toFixed(3) : null};   // identidade da execução que saiu (serial da ação) e o peso visual dela na saída
+    execFrom: prev?.entry ?? null, execTo: entry, weightFrom: prev ? +prev.weight.toFixed(3) : null};   // identidade da execução que saiu (serial da ação) e o peso visual dela na saída
+  if (sameClip) {ev.sameClip = true;ev.interrupted = false;}   // troca de estado sem trocar de clipe: nada foi cortado, só rastreado
   if (ch.epilogueInterrupt) {ev.epilogueEnd = true;ch.epilogueInterrupt = false;}   // a transição normal encerra um epílogo interrompido por autoridade
   pushLog(ch, ev);
 }

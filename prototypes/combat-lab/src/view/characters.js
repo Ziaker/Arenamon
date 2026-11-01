@@ -807,7 +807,7 @@ export class Character {
       const rerun = ONE_SHOT.has(key) && (prev.key !== key || prev.entry !== entry);
       if (rerun) {prev.started = this.clock;prev.action.time = 0;this.timer = 0;this.fade = 0;this.restartsReused = (this.restartsReused ?? 0) + 1;}
       else this.restartsAvoided++;
-      prev.entry = entry;prev.key = key;prev.id = id;return;
+      if (prev.key !== key || prev.entry !== entry) logTransition(this, prev, key, id, index, f, ctx, entry, true);prev.entry = entry;prev.key = key;prev.id = id;return;   // Melee G1: a troca de estado sobre o MESMO clipe também deixa rastro (antes não saía no log)
     }
     if (prev) {prev.fadeStart = this.clock;prev.fadeFrom = prev.weight;prev.fadeOut = this.profileValue(prev.id, 'blendOut', prev.clip.name);this.layers.push(prev);}   // Editor › Blend de saída: duração do fade de quem sai (vazio = o blend de entrada do próximo)
     // Sem clone: o mixer cacheia a ação por (clipe, raiz) e o tempo é por ação. Clonar copiava todos os keyframes de todas as tracks a cada troca de estado e fazia o cache do mixer crescer sem limite (uma entrada por troca).
@@ -823,7 +823,7 @@ export class Character {
     this.fade = 0;this.timer = 0;this.transitions++;
     if (key === 'jump_apex') this.visualFreeze = Math.max(this.visualFreeze, this.profileValue(id, 'jumpApexFreeze', clip.name) ?? 0);   // pico do salto: congelamento opcional
     // Telemetria da troca (lógica em visual-epilogue.js; interrupções de epílogo saem com epilogueEnd: true).
-    logTransition(this, prev, key, id, index, f, ctx);
+    logTransition(this, prev, key, id, index, f, ctx, entry);
   }
   /** Tempo das camadas e da animação atual; fade por peso. */
   blend(f, dt, key, p) {
