@@ -1,0 +1,809 @@
+{
+ "Eggo": {
+  "scale": 1,
+  "velAndar": 4.8,
+  "velSprint": 7.44,
+  "dodgeDist": 2.05,
+  "rows": [
+   {
+    "estado": "idle",
+    "clipe": "idle",
+    "proprio": true,
+    "dur": 4.21,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.06,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "walk",
+    "clipe": "walk",
+    "proprio": true,
+    "dur": 1.04,
+    "raizAnda_m": 0.72,
+    "raizSobe_m": 0.12,
+    "velClipe_ms": 0.69
+   },
+   {
+    "estado": "walk_back",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "walk_left",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "walk_right",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "sprint",
+    "clipe": "sprint",
+    "proprio": true,
+    "dur": 1.38,
+    "raizAnda_m": 3.2,
+    "raizSobe_m": 0.16,
+    "velClipe_ms": 2.33
+   },
+   {
+    "estado": "sprint_back",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "sprint_left",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "sprint_right",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "turn",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "dodge_forward",
+    "clipe": "dodge forward",
+    "proprio": true,
+    "dur": 1.38,
+    "raizAnda_m": 2.3,
+    "raizSobe_m": 0.28,
+    "velClipe_ms": 1.67
+   },
+   {
+    "estado": "dodge_back",
+    "clipe": "dodge back",
+    "proprio": true,
+    "dur": 1.38,
+    "raizAnda_m": 2.3,
+    "raizSobe_m": 0.24,
+    "velClipe_ms": 1.67
+   },
+   {
+    "estado": "dodge_left",
+    "clipe": "dodge left",
+    "proprio": true,
+    "dur": 0.92,
+    "raizAnda_m": 2.3,
+    "raizSobe_m": 0.16,
+    "velClipe_ms": 2.5
+   },
+   {
+    "estado": "dodge_right",
+    "clipe": "dodge right",
+    "proprio": true,
+    "dur": 0.92,
+    "raizAnda_m": 2.3,
+    "raizSobe_m": 0.16,
+    "velClipe_ms": 2.5
+   },
+   {
+    "estado": "jump",
+    "clipe": "jump",
+    "proprio": true,
+    "dur": 1.25,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.71,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "jump_start",
+    "clipe": "jump start",
+    "proprio": true,
+    "dur": 0.13,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.17,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "jump_rise",
+    "clipe": "jump rise",
+    "proprio": true,
+    "dur": 0.21,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.01,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "jump_apex",
+    "clipe": "jump apex",
+    "proprio": true,
+    "dur": 0.21,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.01,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "jump_fall",
+    "clipe": "jump fall",
+    "proprio": true,
+    "dur": 0.21,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.01,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "fall",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "land",
+    "clipe": "land",
+    "proprio": true,
+    "dur": 0.46,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.14,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "tackle",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "tackle_charge",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "block",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "hit",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "knockback",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "recover",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "downed",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "death",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   }
+  ]
+ },
+ "Wookada": {
+  "scale": 1,
+  "velAndar": 4.8,
+  "velSprint": 7.44,
+  "dodgeDist": 2.05,
+  "rows": [
+   {
+    "estado": "idle",
+    "clipe": "Mutant Idle",
+    "proprio": true,
+    "dur": 10.4,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.01,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "walk",
+    "clipe": "Mutant Walking",
+    "proprio": true,
+    "dur": 1.03,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.11,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "walk_back",
+    "clipe": "Mutant Walking",
+    "proprio": true,
+    "dur": 1.03,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.11,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "walk_left",
+    "clipe": "Mutant Walking",
+    "proprio": true,
+    "dur": 1.03,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.11,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "walk_right",
+    "clipe": "Mutant Walking",
+    "proprio": true,
+    "dur": 1.03,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.11,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "sprint",
+    "clipe": "sprint 8 dir",
+    "proprio": true,
+    "dur": 0.65,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.06,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "sprint_back",
+    "clipe": "sprint 8 dir",
+    "proprio": true,
+    "dur": 0.65,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.06,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "sprint_left",
+    "clipe": "sprint 8 dir",
+    "proprio": true,
+    "dur": 0.65,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.06,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "sprint_right",
+    "clipe": "sprint 8 dir",
+    "proprio": true,
+    "dur": 0.65,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.06,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "turn",
+    "clipe": "turn",
+    "proprio": true,
+    "dur": 1.1,
+    "raizAnda_m": 0.02,
+    "raizSobe_m": 0.03,
+    "velClipe_ms": 0.02
+   },
+   {
+    "estado": "dodge_forward",
+    "clipe": "dodge foward",
+    "proprio": true,
+    "dur": 1.15,
+    "raizAnda_m": 0.07,
+    "raizSobe_m": 0.8,
+    "velClipe_ms": 0.06
+   },
+   {
+    "estado": "dodge_back",
+    "clipe": "dash back",
+    "proprio": true,
+    "dur": 1.07,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.03,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "dodge_left",
+    "clipe": "dodge left",
+    "proprio": true,
+    "dur": 1.08,
+    "raizAnda_m": 0.05,
+    "raizSobe_m": 0.33,
+    "velClipe_ms": 0.05
+   },
+   {
+    "estado": "dodge_right",
+    "clipe": "dodge right",
+    "proprio": true,
+    "dur": 1.08,
+    "raizAnda_m": 0.05,
+    "raizSobe_m": 0.33,
+    "velClipe_ms": 0.05
+   },
+   {
+    "estado": "jump",
+    "clipe": "Mutant Jumping",
+    "proprio": true,
+    "dur": 0.75,
+    "raizAnda_m": 0.02,
+    "raizSobe_m": 0.49,
+    "velClipe_ms": 0.03
+   },
+   {
+    "estado": "jump_start",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "jump_rise",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "jump_apex",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "jump_fall",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "fall",
+    "clipe": "falling",
+    "proprio": true,
+    "dur": 1.07,
+    "raizAnda_m": 0.02,
+    "raizSobe_m": 0.08,
+    "velClipe_ms": 0.02
+   },
+   {
+    "estado": "land",
+    "clipe": "jump land",
+    "proprio": true,
+    "dur": 0.82,
+    "raizAnda_m": 0.03,
+    "raizSobe_m": 0.35,
+    "velClipe_ms": 0.04
+   },
+   {
+    "estado": "tackle",
+    "clipe": "tackle 1",
+    "proprio": true,
+    "dur": 2,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.15,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "tackle_charge",
+    "clipe": "charge move start",
+    "proprio": true,
+    "dur": 1.18,
+    "raizAnda_m": 0.03,
+    "raizSobe_m": 0.08,
+    "velClipe_ms": 0.03
+   },
+   {
+    "estado": "block",
+    "clipe": "bloking still",
+    "proprio": true,
+    "dur": 0.35,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "hit",
+    "clipe": "get hit",
+    "proprio": true,
+    "dur": 1.35,
+    "raizAnda_m": 0.06,
+    "raizSobe_m": 0.06,
+    "velClipe_ms": 0.05
+   },
+   {
+    "estado": "knockback",
+    "clipe": "Sweep Fall",
+    "proprio": true,
+    "dur": 0.45,
+    "raizAnda_m": 0.01,
+    "raizSobe_m": 0.03,
+    "velClipe_ms": 0.03
+   },
+   {
+    "estado": "recover",
+    "clipe": "dead recovery",
+    "proprio": true,
+    "dur": 2.75,
+    "raizAnda_m": 0.09,
+    "raizSobe_m": 0.34,
+    "velClipe_ms": 0.03
+   },
+   {
+    "estado": "downed",
+    "clipe": "lying still post ground crash",
+    "proprio": true,
+    "dur": 0.33,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "death",
+    "clipe": "stay dead",
+    "proprio": true,
+    "dur": 1.67,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0,
+    "velClipe_ms": 0
+   }
+  ]
+ },
+ "Cogumelo": {
+  "scale": 1,
+  "velAndar": 4.8,
+  "velSprint": 7.44,
+  "dodgeDist": 2.05,
+  "rows": [
+   {
+    "estado": "idle",
+    "clipe": "idle",
+    "proprio": true,
+    "dur": 3.7,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.01,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "walk",
+    "clipe": "Zombie Walk",
+    "proprio": true,
+    "dur": 2.3,
+    "raizAnda_m": 0.9,
+    "raizSobe_m": 0.07,
+    "velClipe_ms": 0.39
+   },
+   {
+    "estado": "walk_back",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "walk_left",
+    "clipe": "Left Strafe",
+    "proprio": true,
+    "dur": 0.7,
+    "raizAnda_m": 1.97,
+    "raizSobe_m": 0.11,
+    "velClipe_ms": 2.82
+   },
+   {
+    "estado": "walk_right",
+    "clipe": "Standing Run Right",
+    "proprio": true,
+    "dur": 0.8,
+    "raizAnda_m": 1.63,
+    "raizSobe_m": 0.09,
+    "velClipe_ms": 2.04
+   },
+   {
+    "estado": "sprint",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "sprint_back",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "sprint_left",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "sprint_right",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "turn",
+    "clipe": "Injured Run Backwards Right Turn",
+    "proprio": true,
+    "dur": 0.57,
+    "raizAnda_m": 0.7,
+    "raizSobe_m": 0.07,
+    "velClipe_ms": 1.24
+   },
+   {
+    "estado": "dodge_forward",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "dodge_back",
+    "clipe": "Falling Back Death",
+    "proprio": true,
+    "dur": 1.87,
+    "raizAnda_m": 0.27,
+    "raizSobe_m": 0.34,
+    "velClipe_ms": 0.14
+   },
+   {
+    "estado": "dodge_left",
+    "clipe": "Hit On Side Of Head",
+    "proprio": true,
+    "dur": 2.43,
+    "raizAnda_m": 2.98,
+    "raizSobe_m": 0.16,
+    "velClipe_ms": 1.22
+   },
+   {
+    "estado": "dodge_right",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "jump",
+    "clipe": "Jump",
+    "proprio": true,
+    "dur": 0.97,
+    "raizAnda_m": 1.64,
+    "raizSobe_m": 0.43,
+    "velClipe_ms": 1.7
+   },
+   {
+    "estado": "jump_start",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "jump_rise",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "jump_apex",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "jump_fall",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "fall",
+    "clipe": "Falling",
+    "proprio": true,
+    "dur": 0.37,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "land",
+    "clipe": "Fall A Land To Run Forward",
+    "proprio": true,
+    "dur": 0.97,
+    "raizAnda_m": 1.11,
+    "raizSobe_m": 0.25,
+    "velClipe_ms": 1.15
+   },
+   {
+    "estado": "tackle",
+    "clipe": "charge",
+    "proprio": true,
+    "dur": 2.37,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.02,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "tackle_charge",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "block",
+    "clipe": "Standing Block Idle",
+    "proprio": true,
+    "dur": 1.87,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.02,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "hit",
+    "clipe": "Big Hit To Head",
+    "proprio": true,
+    "dur": 1.6,
+    "raizAnda_m": 0,
+    "raizSobe_m": 0.04,
+    "velClipe_ms": 0
+   },
+   {
+    "estado": "knockback",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "recover",
+    "clipe": "— (usa reserva)",
+    "proprio": false,
+    "dur": null,
+    "raizAnda_m": null,
+    "raizSobe_m": null,
+    "velClipe_ms": null
+   },
+   {
+    "estado": "downed",
+    "clipe": "Falling Down",
+    "proprio": true,
+    "dur": 1.57,
+    "raizAnda_m": 0.23,
+    "raizSobe_m": 0.09,
+    "velClipe_ms": 0.15
+   },
+   {
+    "estado": "death",
+    "clipe": "Dying Backwards",
+    "proprio": true,
+    "dur": 1.73,
+    "raizAnda_m": 0.05,
+    "raizSobe_m": 0.07,
+    "velClipe_ms": 0.03
+   }
+  ]
+ }
+}

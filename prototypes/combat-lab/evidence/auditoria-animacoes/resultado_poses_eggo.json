@@ -1,0 +1,312 @@
+{
+ "clips": {
+  "dodge back": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   }
+  ],
+  "dodge forward": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "Neck",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightArm",
+    "blender_vs_cru": null
+   }
+  ],
+  "dodge left": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": [
+     0,
+     "RightFoot"
+    ]
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   }
+  ],
+  "dodge right": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   }
+  ],
+  "idle": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "Head",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   }
+  ],
+  "jump": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftFoot",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": [
+     0,
+     "RightFoot"
+    ]
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "Head",
+    "blender_vs_cru": [
+     0,
+     "RightFoot"
+    ]
+   }
+  ],
+  "jump apex": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "Head",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "Head",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "Head",
+    "blender_vs_cru": null
+   }
+  ],
+  "jump fall": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   }
+  ],
+  "jump rise": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   }
+  ],
+  "jump start": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": null
+   }
+  ],
+  "land": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightArm",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftForeArm",
+    "blender_vs_cru": null
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": null
+   }
+  ],
+  "sprint": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightForeArm",
+    "blender_vs_cru": [
+     0,
+     "RightHand"
+    ]
+   }
+  ],
+  "walk": [
+   {
+    "frame": 1,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 5,
+    "cru_vs_jogo_cm": 0,
+    "osso": "LeftHand",
+    "blender_vs_cru": [
+     0,
+     "LeftFoot"
+    ]
+   },
+   {
+    "frame": 9,
+    "cru_vs_jogo_cm": 0,
+    "osso": "RightHand",
+    "blender_vs_cru": [
+     0,
+     "RightLeg"
+    ]
+   }
+  ]
+ },
+ "scale": 1,
+ "errors": [],
+ "pageErrors": []
+}
