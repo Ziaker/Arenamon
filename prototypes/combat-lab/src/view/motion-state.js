@@ -96,3 +96,37 @@ export function commandOutcome(/** @type {ReturnType<typeof snapshotBefore>} */ 
   }
   return out;
 }
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Melee G2 — eventos visuais tipados do Anim. Derivados do MESMO log de transições (nenhuma segunda fonte de verdade).
+//   state-enter / state-exit : entrada e saída de um estado de animação (identidade = serial da execução, ex. «tackle#1»);
+//   epilogue-start / epilogue-end : início e fim NATURAL da conclusão visual;
+//   epilogue-interrupted : a conclusão foi cortada (cause = reasonCode: locomotion-cancel, action-accepted, combat-reaction…).
+// eventId = «<executionId>#<tipo>»: sai no máximo UMA vez por Character; a prévia do Editor não gera evento; a restauração de
+// save/load (resumeEpilogue) fica muda, então carregar uma partida não repete enter/start. Só apresentação: nada aqui escreve
+// no lutador nem decide combate (efeitos mecânicos continuam sendo de Game).
+// ---------------------------------------------------------------------------------------------------------------------
+/** Eventos tipados de UMA entrada do log (0 a 3 eventos). */
+export function animEventsOf(/** @type {any} */ ev) {
+  const base = {tick: ev.tick ?? null, from: ev.from ?? null, to: ev.to ?? null, reasonCode: ev.reasonCode ?? reasonCodeOf(ev)};
+  const mk = (type, executionId, state, extra = {}) => executionId ? [{type, executionId, eventId: `${executionId}#${type}`, state, ...base, ...extra}] : [];
+  if (ev.reason === 'conclusão visual') return mk('epilogue-start', ev.execTo, ev.to);
+  if (ev.reason === 'conclusão natural') return mk('epilogue-end', ev.execFrom, ev.from);
+  const out = [];
+  if (ev.epilogueEnd) out.push(...mk('epilogue-interrupted', ev.execFrom, ev.from, {cause: base.reasonCode}));
+  out.push(...mk('state-exit', ev.execFrom, ev.from));
+  out.push(...mk('state-enter', ev.execTo, ev.to));
+  return out;
+}
+
+/** Registra os eventos de uma entrada do log no Character (`animEvents`) e avisa o ouvinte `onAnimEvent`. Idempotente por eventId. */
+export function emitAnimEvents(/** @type {any} */ ch, /** @type {any} */ ev) {
+  if (ch.muteAnimEvents || ch.preview || ch.movePreview || ev.to === '__preview' || ev.from === '__preview') return;
+  const list = ch.animEvents ??= [], ids = ch.animEventIds ??= new Set();
+  for (const e of animEventsOf(ev)) {
+    if (ids.has(e.eventId)) continue;
+    ids.add(e.eventId);list.push(e);
+    if (list.length > 400) ids.delete(list.shift().eventId);
+    ch.onAnimEvent?.(e);
+  }
+}

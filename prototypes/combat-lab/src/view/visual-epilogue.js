@@ -17,7 +17,7 @@ import {C} from '../sim/config.js';
 import {actionDuration, actionSpec} from '../sim/entity.js';
 import {trimOf} from '../sim/animation-profile.js';
 import {MOVE_KEYS, TIMED, ONE_SHOT, ACTION_KEYS, COMBAT_KEYS, LOCOMOTION, TRANSIENT} from './characters.js';
-import {reasonCodeOf, motionStateOf} from './motion-state.js';
+import {reasonCodeOf, motionStateOf, emitAnimEvents} from './motion-state.js';
 
 /** Chaves novas que são sucessoras legítimas: o clipe dedicado de recuperação assume (fade normal, sem epílogo). */
 const SUCCESSORS = new Set(['recovery_tackle', 'recovery_dodge', 'recovery_move']);
@@ -90,7 +90,7 @@ export function resumeEpilogue(ch, f, ctx) {
   if (!m || typeof m !== 'object' || !m.key || !epilogueKey(m.key)) return false;
   if (loops(ch, m.id, m.key) || epilogueAuthority(f)) return false;
   if (!ch.clips[m.index] || !(ch.variantsOf(m.id) || []).includes(m.index)) return false;
-  ch.enter(m.key, m.id, m.index, m.entry, f, ctx);
+  ch.muteAnimEvents = true;try {ch.enter(m.key, m.id, m.index, m.entry, f, ctx);} finally {ch.muteAnimEvents = false;}   // Melee G2: restaurar de um save não repete state-enter/epilogue-start (já saíram antes do save)
   const cur = ch.current;
   for (const l of ch.layers) if (l.action !== cur.action) l.action.stop();   // a sequência original já estava sem fades
   ch.layers = [];
@@ -103,7 +103,7 @@ export function resumeEpilogue(ch, f, ctx) {
 }
 
 /** Todo evento do log leva o motivo em código estável e o descritor do estado de destino (Melee G1: só anotação, nada aqui decide transição). */
-function pushLog(ch, ev) {ev.reasonCode = reasonCodeOf(ev);ev.motion = motionStateOf(ev.to);ch.log.push(ev);if (ch.log.length > 400) ch.log.shift();}
+function pushLog(ch, ev) {ev.reasonCode = reasonCodeOf(ev);ev.motion = motionStateOf(ev.to);ch.log.push(ev);if (ch.log.length > 400) ch.log.shift();emitAnimEvents(ch, ev);}
 
 /**
  * Entrada no epílogo: a mudança de estado iminente (`raw` novo) tentaria cortar uma execução única não concluída.
@@ -130,7 +130,7 @@ export function tryStartEpilogue(ch, f, raw, dt, ctx) {
   pushLog(ch, {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: cur.key, to: cur.key, clipFrom: ch.clips[cur.index]?.name, clipTo: ch.clips[cur.index]?.name,
     variant: ch.variantsOf(cur.id).indexOf(cur.index) + 1, variants: ch.variantsOf(cur.id).length,
     playedSeconds: +cur.action.time.toFixed(3), playedPct: +(Math.min(1, cur.action.time / d) * 100).toFixed(1),
-    reason: 'conclusão visual', epilogue: true, interrupted: false, source: ctx.source || 'sistema'});
+    reason: 'conclusão visual', epilogue: true, interrupted: false, source: ctx.source || 'sistema', execTo: cur.entry});
   return true;
 }
 
@@ -146,7 +146,7 @@ export function stepEpilogue(ch, f, raw, ctx) {
   if (remainingOf(ch, cur, cap) <= frame) {
     // Fim natural: o clipe alcançou o fim efetivo. O próprio quadro segue o `raw` normal (fade padrão).
     pushLog(ch, {t: +ch.clock.toFixed(3), tick: ctx.tick ?? null, from: cur.key, to: raw, clipFrom: ch.clips[cur.index]?.name, clipTo: null,
-      playedSeconds: +cur.action.time.toFixed(3), playedPct: 100, reason: 'conclusão natural', epilogueEnd: true, interrupted: false, source: ctx.source || 'sistema'});
+      playedSeconds: +cur.action.time.toFixed(3), playedPct: 100, reason: 'conclusão natural', epilogueEnd: true, interrupted: false, source: ctx.source || 'sistema', execFrom: cur.entry});
     ch.epilogue = null;
     ch.epilogueNaturalEnd = true;   // Loop avançado: a transição DESTE quadro usa o conclusionBlend do clipe que concluiu
     clearEpilogueMark(f);
