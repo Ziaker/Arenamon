@@ -13,11 +13,12 @@ import {effectiveMovePhases} from '../sim/move-phases.js';
 import {presentationActionCandidates} from '../sim/move-presentation.js';
 import {C} from '../sim/config.js';
 import {createAnimationPreview, PREVIEW_FRAME} from '../view/animation-preview.js';
+import {clipFps, timeFrame, frameCount} from '../view/frame-hold.js';
 
 const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;'}[c]));
 const TABS = [['geral', 'Visão geral'], ['fases', 'Fases e janelas'], ['mov', 'Movimento'], ['trans', 'Transições'], ['hit', 'Hitboxes'], ['ev', 'Eventos VFX e áudio'], ['prin', 'Princípios'], ['jogo', 'Parâmetros do jogo'], ['diag', 'Diagnóstico']];
 const TAB_TIPS = {geral: 'Reprodução, mistura e laço do clipe', fases: 'Startup, ativo, recovery, cancelamento, invencibilidade e congelamento', mov: 'Root motion, trava ao chão e deslocamento', trans: 'Estados que usam a animação, reserva e animação seguinte', hit: 'Declarar, adicionar, remover e posicionar hitboxes', ev: 'Eventos do GLB e marcadores de VFX/áudio', prin: 'Os 12 princípios da animação ligados aos sliders reais do jogo', jogo: 'Todos os sliders globais do jogo ligados a esta animação', diag: 'Cobertura, telemetria, conflitos e validação'};
-const TAB_GROUPS = {geral: ['Reprodução', 'Mistura', 'Loop', 'Loop avançado'], fases: ['Combate'], mov: ['Movimento', 'Salto'], trans: ['Transições']};
+const TAB_GROUPS = {geral: ['Reprodução', 'Mistura', 'Segurar quadro', 'Loop', 'Loop avançado'], fases: ['Combate'], mov: ['Movimento', 'Salto'], trans: ['Transições']};
 const GAME_TAB = {locomotion: 'dodge', defense: 'block', tackle: 'tackle', dodge: 'dodge', jump: 'jump', wall: 'tackle', moves: 'tackle'};
 const HB_TIPS = {shape: 'Forma do volume de contato.', bone: 'Osso do esqueleto em que a hitbox fica presa (vazio = raiz do personagem).', size: 'Dimensão da hitbox neste eixo, em metros.', position: 'Deslocamento da hitbox a partir do osso/raiz, em metros.', rotation: 'Giro da hitbox em graus.', start: 'Fração do clipe em que a hitbox passa a valer.', end: 'Fração do clipe em que a hitbox deixa de valer.', damage: 'Dano da hitbox quando aplicável (registrado).', target: 'Quem a hitbox pode atingir.', reaction: 'Reação causada no alvo (registrado).'};
 const PREF = 'arenamon-anim-editor-layout:';
@@ -163,6 +164,23 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
   function select(id) {S.action = id;S.variantIdx = null;S.hit = 0;S.paused = false;stopPlay();refresh();}
 
   // ---------- Painel de propriedades ----------
+  /** Aviso de escopo: o perfil é gravado por MODELO; dois lutadores com o mesmo modelo dividem as edições. */
+  function scopeNoticeHtml(c) {
+    const other = ui.characters[1 - S.slot], same = other && (c.source.assetId ? other.source.assetId === c.source.assetId : (other.source.name || 'sem-nome') === (c.source.name || 'sem-nome'));
+    const nome = c.source.name || 'sem nome', quem = S.slot === 0 ? 'Azul' : 'Vermelho';
+    return `<p class="hint" data-scope-notice>Editando: <b>${esc(quem)}</b> (modelo ${esc(nome)}). ${same ? 'Os dois lutadores usam este mesmo modelo: <b>as edições valem para os dois</b>, porque o perfil é gravado por modelo. Troque o modelo de um deles ou use «Copiar do outro» para separar.' : 'O perfil é gravado por modelo; o outro lutador não muda.'}</p>`;
+  }
+  /** Quadro que a prévia mostra agora (1 = primeiro), a taxa do clipe e a quantidade de quadros. */
+  function previewFrameInfo(c) {
+    const i = clipIndex(c);if (i == null) return null;
+    const clip = c.clips[i], fps = clipFps(clip);
+    return {fps, frame: Math.min(frameCount(clip.duration, fps), timeFrame(previewTime(), fps)), total: frameCount(clip.duration, fps)};
+  }
+  /** Botão «Segurar o quadro da prévia»: grava o quadro atual da prévia como «Quadro a segurar». */
+  function holdNowHtml(c) {
+    const h = previewFrameInfo(c);if (!h) return '';
+    return `<div class="ae-row" title="Pare a prévia no quadro desejado (arraste a timeline ou use pausa) e clique para segurar este quadro."><span>Prévia: quadro ${h.frame} de ${h.total} (${h.fps} quadros/s)</span><button data-holdnow>Segurar o quadro da prévia</button></div>`;
+  }
   function fieldRow(c, f) {
     const v = valueOf(c, f), shown = v.value;
     const badge = `<small class="ae-src ${v.overridden ? 'ovr' : ''}" title="Origem do valor: ${v.from}">${v.overridden ? 'sobrescrito (' + v.from + ')' : v.from}${f.applied ? '' : ' · SEM EFEITO NO JOGO (só anotação)'}</small>`;
@@ -186,9 +204,10 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     if (S.tab === 'geral' || S.tab === 'fases' || S.tab === 'mov' || S.tab === 'trans') {
       const groups = TAB_GROUPS[S.tab];
       html += `<div class="ae-sec"><label class="ae-scope" title="Onde gravar o campo: em todas as variantes da ação ou só no clipe selecionado."><span>Gravar em</span><select data-scope><option value="action"${S.scope === 'action' ? ' selected' : ''}>Todas as variantes</option><option value="variant"${S.scope === 'variant' ? ' selected' : ''}>Só o clipe selecionado</option></select></label></div>`;
+      html += scopeNoticeHtml(c);
       for (const g of groups) {
         const fs = FIELDS.filter(f => f.group === g && (!f.only || f.only.includes(S.action)));
-        if (fs.length) html += `<div class="ae-sec"><b>${g}</b>${fs.map(f => fieldRow(c, f)).join('')}</div>`;
+        if (fs.length) html += `<div class="ae-sec"><b>${g}</b>${fs.map(f => fieldRow(c, f)).join('')}${g === 'Segurar quadro' ? holdNowHtml(c) : ''}</div>`;
       }
       if (S.tab === 'mov') html += `<div class="ae-sec"><b>Global do personagem</b><label class="ae-row" title="Trava o deslocamento horizontal (X/Z) gravado nos clipes de TODAS as animações deste personagem (padrão ligado). A sobrescrita por animação fica acima."><span>Travar deslocamento horizontal (X/Z)</span><input type="checkbox" data-g="lockRootMotion" ${c.lockRootMotion ? 'checked' : ''}></label><label class="ae-row" title="Remove o sobe/desce gravado nos clipes (pés sempre no chão)."><span>Travar no chão</span><input type="checkbox" data-g="lockToGround" ${c.lockToGround ? 'checked' : ''}></label><label class="ae-row" title="Apoia o ponto mais baixo de cada clipe no piso automaticamente."><span>Ajuste automático ao chão</span><input type="checkbox" data-g="autoGround" ${c.autoGround ? 'checked' : ''}></label></div><p class="hint">O que não for liberado por animação (X/Z) segue travado pela física.</p>`;
       if (S.tab === 'fases' && moveIdentity(S.action)) html += gameRulesHtml();
@@ -325,6 +344,10 @@ export function createAnimationEditor({ui, $, tuning = null, ACTION_TABS = {}, S
     box.querySelector('[data-tlm-export]')?.addEventListener('click', () => {const a = document.createElement('a');a.href = URL.createObjectURL(new Blob([JSON.stringify({character: c.source.name, transitions: c.transitions, restartsAvoided: c.restartsAvoided, log: c.log}, null, 2)], {type: 'application/json'}));a.download = 'telemetria-animacoes.json';a.click();setTimeout(() => URL.revokeObjectURL(a.href), 500);});
     box.querySelector('[data-tlm-clear]')?.addEventListener('click', () => {c.log.length = 0;renderProps();});
     box.querySelector('[data-scope]')?.addEventListener('change', e => {S.scope = e.target.value;refresh({keepList: true});});
+    box.querySelector('[data-holdnow]')?.addEventListener('click', () => {
+      const h = previewFrameInfo(ch());if (!h) return;
+      commit(c0 => {c0.animProfile = setField(c0.animProfile, profileKey(c0), 'holdFrame', h.frame);});
+    });
     for (const b of box.querySelectorAll('[data-var]')) b.onclick = e => {if (e.target.dataset.rm) return;S.variantIdx = Number(b.dataset.var);if (c.preview) startPlay();refresh({keepList: true});};
     for (const x of box.querySelectorAll('[data-rm]')) x.onclick = e => {e.stopPropagation();commit(ch0 => ch0.removeVariant(S.action, Number(x.dataset.rm)));};
     box.querySelector('[data-addclip]')?.addEventListener('change', e => {if (e.target.value === '') return;const idx = Number(e.target.value);commit(ch0 => {ch0.addVariant(S.action, idx);});S.variantIdx = idx;refresh();});

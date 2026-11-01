@@ -14,13 +14,14 @@
 // laço, a pose da action principal (que recomeça em loopStart+loopCrossfade) é EXATAMENTE a pose em que a segunda
 // action parou — a mistura é contínua (sem salto), para qualquer peso da emenda.
 import {trimOf, loopRange, easeCurve} from '../sim/animation-profile.js';
+import {HOLD_FIELD_IDS, frameTime, clipFps} from './frame-hold.js';
 
 /** Campos novos de loopagem (FIELDS em animation-profile.js). */
 export const LOOP_FIELD_IDS = ['loopStartTime', 'loopEndTime', 'introSpeed', 'cycleSpeed', 'outroSpeed',
   'cyclePauseStart', 'cyclePauseEnd', 'repeatGap', 'loopCrossfade', 'loopCrossfadeWeight',
   'entrySmooth', 'exitSmooth', 'conclusionBlend', 'loopExitDelay', 'cyclePhaseOffset'];
 /** Só estes alteram o mapeamento de tempo (conclusionBlend e loopExitDelay agem fora do relógio do clipe). */
-export const TIME_FIELD_IDS = LOOP_FIELD_IDS.filter(id => id !== 'conclusionBlend' && id !== 'loopExitDelay');
+export const TIME_FIELD_IDS = [...LOOP_FIELD_IDS.filter(id => id !== 'conclusionBlend' && id !== 'loopExitDelay'), ...HOLD_FIELD_IDS];
 
 /**
  * Configuração resolvida do agendador para um clipe.
@@ -60,6 +61,7 @@ export function loopScheduleOf(ch, layer, {duration: d, cap, speed: s, loop, pre
   // isto os 15 controles de loopagem liam o perfil de 'preview' (inexistente) e a prévia caía no caminho clássico.
   const action = p?.action ?? layer.id;
   for (const fid of TIME_FIELD_IDS) {const v = ch.profileValue(action, fid, name);if (v !== undefined && v !== null) values[fid] = v;}
+  if (values.holdFrame == null) delete values.holdFor;   // tempo segurado sem quadro escolhido não faz nada
   if (!Object.keys(values).length) return null;
   const fx = ch.profileFx(layer, action), trim = fx ? trimOf(fx) : [0, 1], lrf = fx ? loopRange(fx) : trim;
   const t0 = trim[0] * d, t1 = Math.min(trim[1] * d, cap);
@@ -76,23 +78,63 @@ export function loopScheduleOf(ch, layer, {duration: d, cap, speed: s, loop, pre
     loopCrossfade: xf, loopCrossfadeWeight: values.loopCrossfadeWeight ?? 1,
     entrySmooth: segmented ? (values.entrySmooth ?? 'linear') : 'linear', exitSmooth: segmented ? (values.exitSmooth ?? 'linear') : 'linear',
     cyclePhaseOffset: values.cyclePhaseOffset || 0,
+    // Segurar quadro: o clipe para neste quadro (1 = primeiro) por holdFor s de jogo; 0/vazio = enquanto o estado durar.
+    holdAt: values.holdFrame != null ? clamp(frameTime(values.holdFrame, clipFps(ch.clips[layer.index])), t0, t1) : null,
+    holdFor: values.holdFor > 0 ? values.holdFor : Infinity,
   };
   let elapsed, rateMul;
   if (ch.epilogue) {const e = ch.epilogue;e.baseElapsed ??= Math.max(0, layer.action.time - t0);elapsed = e.baseElapsed + (ch.clock - e.started) * s;rateMul = s;}   // relógio livre do ponto onde o clipe está
   else if (p) {rateMul = previewSpeed * (ch.speeds[p.action] ?? 1);elapsed = (ch.clock - p.started) * rateMul;}
   else {rateMul = s;elapsed = (ch.clock - layer.started) * s;}
   // Pausas e intervalo são digitados em SEGUNDOS DE JOGO: o orçamento decorre na velocidade efetiva, então convertemos.
-  cfg.cyclePauseStart *= rateMul;cfg.cyclePauseEnd *= rateMul;cfg.repeatGap *= rateMul;
+  cfg.cyclePauseStart *= rateMul;cfg.cyclePauseEnd *= rateMul;cfg.repeatGap *= rateMul;cfg.holdFor *= rateMul;
   return {cfg, elapsed};
 }
 
 /**
- * Tempo do clipe para o orçamento decorrido. O orçamento é consumido por segmento: cada trecho consome
+ * Tempo do clipe para o orçamento decorrido, com o «Segurar quadro» por cima: o clipe corre até cfg.holdAt, fica parado
+ * ali por cfg.holdFor (s de jogo; Infinity = sem fim) e depois segue de onde parou, qualquer que seja o resto da
+ * configuração (recorte, laço, pausas, velocidades). Sem holdAt, é o agendador de sempre.
+ * @param {{elapsed: number, duration: number, cfg: LoopCfg}} p
+ * @returns {{time: number, hold: boolean, done: boolean, seam: number|null}} seam = progresso 0–1 da janela de emenda (null fora dela)
+ */
+export function scheduleClipTime(p) {
+  const b0 = p.cfg.holdAt == null ? null : holdReach(p);
+  if (b0 == null) return baseTime(p);
+  const e = Math.max(0, p.elapsed);
+  if (e < b0) return baseTime(p);
+  if (e < b0 + p.cfg.holdFor) return {time: p.cfg.holdAt, hold: true, done: false, seam: null};
+  return baseTime({...p, elapsed: e - p.cfg.holdFor});
+}
+
+/** Orçamento (s de jogo) em que o agendador base chega ao quadro segurado, na 1ª passada; null se nunca chega. */
+export function holdReach({duration: d, cfg}) {
+  if (cfg.holdAt == null) return null;
+  const Lm = Math.max(.005, cfg.cycleLen), rate = {intro: Math.max(.05, cfg.introSpeed || 1), cycle: Math.max(.05, cfg.cycleSpeed || 1), outro: Math.max(.05, cfg.outroSpeed || 1)};
+  const intro = (cfg.cycleStart - cfg.trimStart) / rate.intro, cycle = Lm / rate.cycle;
+  const end = cfg.loop ? intro + cfg.cyclePauseStart + cycle - 1e-6 : intro + cfg.cyclePauseStart + cycle + cfg.cyclePauseEnd + (cfg.trimEnd - cfg.loopEnd) / rate.outro;
+  const reached = b => baseTime({elapsed: b, duration: d, cfg}).time >= cfg.holdAt - 1e-6;
+  if (!reached(end)) return null;
+  let lo = 0, hi = end;
+  for (let i = 0; i < 40; i++) {const mid = (lo + hi) / 2;if (reached(mid)) hi = mid;else lo = mid;}
+  return hi;
+}
+
+/** Em que ponto do «Segurar quadro» o clipe está: 'off' | 'before' (correndo até o quadro) | 'holding' | 'after'. */
+export function holdPhase(p) {
+  const b0 = p.cfg.holdAt == null ? null : holdReach(p);
+  if (b0 == null) return 'off';
+  const e = Math.max(0, p.elapsed);
+  return e < b0 ? 'before' : e < b0 + p.cfg.holdFor ? 'holding' : 'after';
+}
+
+/**
+ * Tempo do clipe para o orçamento decorrido (agendador base, sem o «Segurar quadro»). O orçamento é consumido por segmento: cada trecho consome
  * (duração em segundos de clipe ÷ velocidade do trecho) e as pausas/intervalos consomem sem avançar.
  * @param {{elapsed: number, duration: number, cfg: LoopCfg}} p
  * @returns {{time: number, hold: boolean, done: boolean, seam: number|null}} seam = progresso 0–1 da janela de emenda (null fora dela)
  */
-export function scheduleClipTime({elapsed, duration: d, cfg}) {
+function baseTime({elapsed, duration: d, cfg}) {
   const {trimStart: t0, trimEnd: t1, cycleStart: cs, loopEnd: c1} = cfg;
   const Lm = Math.max(.005, cfg.cycleLen), xf = Math.min(cfg.loopCrossfade || 0, Lm * .9);
   const phase = ((cfg.cyclePhaseOffset % Lm) + Lm) % Lm;

@@ -1,6 +1,6 @@
 # Plano: editor de animações com «segurar quadro» e escopo por personagem
 
-Estado: **plano, nada implementado**. Pedido do responsável (01/11/2026): escolher por botão qual quadro fica em laço (estilo Mugen), por exemplo o quadro 14 do pulo em laço por 2 s antes de ir direto para a descida, e fazer os controles da aba de animações funcionarem de forma previsível e **por personagem**, não em todos ao mesmo tempo.
+Estado (01/11/2026, v1.49.22): **F1, F3 e F4 implementadas; F2 só com aviso** (veja «Entregue» abaixo). F5 (hang time mecânico) não será feita: o responsável escolheu «só visual». Pedido do responsável (01/11/2026): escolher por botão qual quadro fica em laço (estilo Mugen), por exemplo o quadro 14 do pulo em laço por 2 s antes de ir direto para a descida, e fazer os controles da aba de animações funcionarem de forma previsível e **por personagem**, não em todos ao mesmo tempo.
 
 ## O que o código faz hoje (lido em `prototypes/combat-lab/src`, não executado)
 
@@ -46,3 +46,11 @@ Estado: **plano, nada implementado**. Pedido do responsável (01/11/2026): escol
 ## O que não foi verificado
 - Nada foi executado no jogo; as causas acima vêm da leitura do código. «Aplica em todos» é hipótese até a F1.
 - O Eggo ainda não tem as fases novas (`Jump * 2`) no GLB; o teste do quadro 14 depende disso.
+
+## Entregue (v1.49.22)
+
+- **F1:** `node scripts/gen-matriz-campos-animacao.mjs` gera `docs/MATRIZ_CAMPOS_ANIMACAO.md` (ação × relógio × controles que valem). Resultado: estados `TIMED` (jump inteiro, tackle, esquivas, recuos…) ignoram Loop avançado e Segurar quadro.
+- **F2 (parcial):** o editor avisa quem está sendo editado e quando os dois lutadores usam o mesmo modelo (o perfil é por modelo). **Não separei o perfil por lutador**: a causa de «aplica em todos» ainda é hipótese; falta você confirmar no jogo com dois modelos diferentes.
+- **F3:** grupo **Segurar quadro** na aba «Visão geral» do editor: *Quadro a segurar* (nº do quadro, 1 = primeiro), *Tempo segurado* (0/vazio = enquanto o estado durar) e o botão **«Segurar o quadro da prévia»** (preenche com o quadro que a prévia mostra, com quadros/s do clipe). Implementado no agendador (`view/clip-scheduler.js`, `view/frame-hold.js`): corre até o quadro, segura e segue de onde parou, em qualquer combinação com recorte, laço, pausas e velocidades.
+- **F4:** nas fases do pulo, um *Tempo segurado* finito atrasa a troca visual para a fase seguinte (ex.: pico → queda) mesmo com a física já descendo. **Limite:** o pouso, reações e ações novas interrompem na hora. O pulo do jogo dura cerca de 0,9 s no ar, então um hold de 2 s no pico é cortado pelo pouso; para ficar 2 s no ar seria preciso mexer na física (F5).
+- Teste: `prototypes/combat-lab/test/animation-hold-frame.test.mjs`.

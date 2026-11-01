@@ -32,7 +32,7 @@ import {getMove, listMoves} from '../sim/moves.js';
 import {firstAvailablePresentationAction} from '../sim/move-presentation.js';
 import {clipKeyOf, clipIndexOfKey, profileVariants} from './clip-keys.js';
 import {tryStartEpilogue, stepEpilogue, synthesizeLanding, progressOf, logTransition, resumeEpilogue, markEpilogue, clearEpilogueMark, epilogueAuthority} from './visual-epilogue.js';
-import {scheduleClipTime, loopScheduleOf} from './clip-scheduler.js';
+import {scheduleClipTime, loopScheduleOf, holdPhase} from './clip-scheduler.js';
 import {applyLoopSeam} from './loop-seam.js';
 
 /** Ordem de preferência por estado (a primeira ação com animação associada é usada). */
@@ -470,6 +470,17 @@ export class Character {
   }
   /** O modelo tem clipe próprio em alguma fase do salto? Sem nenhum, o salto inteiro segue o clipe «jump» (comportamento anterior). */
   hasJumpPhases() {return JUMP_PHASES_LIST.some(id => this.variantsOf(id).length > 0);}
+  /** Editor › Segurar quadro: a fase do pulo atual ainda está correndo até o quadro segurado ou parada nele (tempo finito)? Só entre fases do pulo
+   * normal com o voo ativo; pouso, reação, ação nova e KO interrompem na hora (o voo acabando já tira o personagem desta checagem). */
+  jumpHoldKeeps(f, next) {
+    const cur = this.current;
+    if (!cur || !JUMP_PHASES_LIST.includes(cur.key) || !JUMP_PHASES_LIST.includes(next) || !f.flight?.isNormalJump || f.wallSplat || f.hp <= 0) return false;
+    const d = cur.clip.duration || 1, s = this.speedOf(cur.id), playback = this.playbackOf(cur.id, cur.key);
+    const sch = loopScheduleOf(this, cur, {duration: d, cap: Math.min(d, playback.maxDuration > 0 ? playback.maxDuration * s : d), speed: s, loop: playback.loop, preview: null, previewSpeed: Character.options.speed});
+    if (!sch || !Number.isFinite(sch.cfg.holdFor)) return false;
+    const ph = holdPhase({elapsed: sch.elapsed, duration: d, cfg: sch.cfg});
+    return ph === 'before' || ph === 'holding';
+  }
   jumpPhaseKey(f) {
     const start = this.profileValue('jump_start', 'jumpStartTime') ?? JUMP_PHASE_DEFAULTS.startTime, band = this.profileValue('jump_apex', 'jumpApexBand') ?? JUMP_PHASE_DEFAULTS.apexBand;
     return jumpPhaseFor({vy: f.flight.vy, sinceLaunch: this.clock - (this.flightStartClock ?? this.clock), startTime: start, apexBand: band});
@@ -736,6 +747,8 @@ export class Character {
       if (holdFor > 0 && this.playbackOf(this.current.id, this.current.key).loop) {if (this.loopHold?.key !== key) this.loopHold = {key, at: this.clock};if (this.clock - this.loopHold.at < holdFor) key = this.current.key;else this.loopHold = null;}
       else this.loopHold = null;
     } else this.loopHold = null;
+    // Editor › Segurar quadro: a fase do pulo com tempo segurado configurado continua na tela até o tempo acabar, mesmo com a física já na fase seguinte (só visual).
+    if (!p && !mp && !this.epilogue && !this.transient && this.current && key !== this.current.key && this.jumpHoldKeeps(f, key)) key = this.current.key;
     this.statesSeen.add(key);
     // Identidade da entrada: estado + número da ação/transição (X, C, transição curta ou prévia).
     const serial = p ? p.serial : mp ? mp.serial : this.transient ? this.transient.serial : ACTION_KEYS.has(key) ? this.actionSerial : (f.hitSerial ?? 0);
